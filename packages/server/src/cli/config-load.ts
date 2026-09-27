@@ -66,9 +66,10 @@ function normalize(key: string, value: unknown): unknown {
 export function loadServerConfig(
   flags: Flags,
   env: NodeJS.ProcessEnv = process.env,
+  os?: NodeJS.Platform,
 ): ServerConfig {
   const dataDir =
-    (flags["data-dir"] as string | undefined) ?? defaultDataDir(env);
+    (flags["data-dir"] as string | undefined) ?? defaultDataDir(env, os);
   let file: ConfigOverrides = {};
   const configPath = join(dataDir, "config.json");
   if (existsSync(configPath)) {

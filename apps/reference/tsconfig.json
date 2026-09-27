@@ -10,7 +10,8 @@
       ],
       "@niclaslindstedt/oss-framework/qr": [
         "../../../oss-framework/src/qr/index.ts"
-      ]
+      ],
+      "@niclaslindstedt/storage-server": ["../../packages/server/src/index.ts"]
     }
   },
   "include": [

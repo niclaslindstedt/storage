@@ -22,6 +22,8 @@ export type CliIo = {
   tty: boolean;
   /** The always-on debug log file (offered for download by the console). */
   logFile?: string | null;
+  /** The OS whose default paths apply (defaults to this one; tests pin it). */
+  platform?: NodeJS.Platform;
 };
 
 export function openContext(config: ServerConfig, log: Logger): Ctx {

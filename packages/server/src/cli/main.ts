@@ -52,11 +52,11 @@ export async function runCli(
     return EXIT.ok;
   }
   if (argv.includes("--debug-agent")) {
-    const dataDir = defaultDataDir(deps.env);
+    const dataDir = defaultDataDir(deps.env, deps.platform);
     out(
       renderDebugAgent({
         dataDir,
-        logFile: defaultLogFile(deps.env),
+        logFile: defaultLogFile(deps.env, deps.platform),
         configFile: `${dataDir}/config.json`,
       }),
     );
@@ -98,17 +98,22 @@ export async function runCli(
   const log =
     deps.log ??
     createLogger({
-      file: defaultLogFile(deps.env),
+      file: defaultLogFile(deps.env, deps.platform),
       debug,
       // Diagnostics go to stderr; stdout carries the command's result.
       out: deps.err,
       err: deps.err,
       color: deps.tty,
     });
-  const io: CliIo = { logFile: defaultLogFile(deps.env), ...deps, log };
+  const io: CliIo = {
+    logFile: defaultLogFile(deps.env, deps.platform),
+    ...deps,
+    log,
+  };
 
   try {
-    const config = (): ServerConfig => loadServerConfig(args.flags, deps.env);
+    const config = (): ServerConfig =>
+      loadServerConfig(args.flags, deps.env, deps.platform);
     switch (spec.name) {
       case "serve":
         return await runServe(io, config());

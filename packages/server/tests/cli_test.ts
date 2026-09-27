@@ -36,6 +36,8 @@ async function cli(
     signal,
     tty: false,
     log,
+    // Default paths differ per OS; the expectations below are Linux's.
+    platform: "linux",
   });
   return {
     code,
