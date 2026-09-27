@@ -16,6 +16,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
     }
   },
   "files": [
@@ -34,5 +38,13 @@
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
+  },
+  "peerDependencies": {
+    "@niclaslindstedt/oss-framework": ">=3.11.0"
+  },
+  "peerDependenciesMeta": {
+    "@niclaslindstedt/oss-framework": {
+      "optional": true
+    }
   }
 }
