@@ -11,6 +11,7 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 
+import type { Metrics } from "./admin/metrics.ts";
 import { adminRoutes } from "./api/admin.ts";
 import { fileRoutes } from "./api/files.ts";
 import { identityRoutes } from "./api/identity.ts";
@@ -38,6 +39,8 @@ export type StorageServerOptions = {
   tlsInfo?: () => { mode: string; fp?: string };
   /** Whether TLS terminates in this process (enables HSTS). */
   secure?: boolean;
+  /** Collect request metrics (the admin console reads them). */
+  metrics?: Metrics;
 };
 
 export type StorageServer = {
@@ -100,6 +103,7 @@ export function createStorageServer(
   const handle = createHandler(ctx, router, {
     secure: options.secure ?? false,
     faults: config.testMode ? faults : undefined,
+    metrics: options.metrics,
   });
 
   return {

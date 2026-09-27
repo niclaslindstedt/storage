@@ -182,6 +182,7 @@ export function revokeDevice(
   principal: Principal | null,
   deviceId: string,
   ip: string | null,
+  actor = "cli",
 ): void {
   const row = principal
     ? ownedOrAdmin(ctx, principal, deviceId)
@@ -196,7 +197,7 @@ export function revokeDevice(
     ctx.db.run("DELETE FROM tokens WHERE device_id = ?", deviceId);
     ctx.db.run("DELETE FROM challenges WHERE device_id = ?", deviceId);
     ctx.audit.append({
-      actor: principal?.deviceId ?? "cli",
+      actor: principal?.deviceId ?? actor,
       action: "device.revoke",
       target: deviceId,
       ip,

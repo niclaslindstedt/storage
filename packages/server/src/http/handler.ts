@@ -7,6 +7,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 
+import type { Metrics } from "../admin/metrics.ts";
 import type { Ctx } from "../context.ts";
 import {
   ApiError,
@@ -34,6 +35,8 @@ export type HandlerOptions = {
   secure: boolean;
   /** Test-mode fault rules, consulted before routing (never for /__test/). */
   faults?: FaultRule[];
+  /** Request metrics for the admin console (route pattern, status, time). */
+  metrics?: Metrics;
 };
 
 const EXPOSED = "ETag, X-File-Id, X-Meta, X-Seq, Retry-After, Content-Length";
@@ -178,6 +181,23 @@ export function createHandler(ctx: Ctx, router: Router, opts: HandlerOptions) {
     const abort = new AbortController();
     res.on("close", () => abort.abort());
 
+    // Metrics: the route *pattern* only, recorded once the response ends.
+    let routeLabel = method === "OPTIONS" ? "(preflight)" : "(unmatched)";
+    let streaming = Number(url.searchParams.get("wait") ?? "0") > 0;
+    if (opts.metrics) {
+      const metrics = opts.metrics;
+      const started = performance.now();
+      res.once("close", () =>
+        metrics.record({
+          method,
+          route: routeLabel,
+          status: res.statusCode,
+          ms: Math.round((performance.now() - started) * 10) / 10,
+          streaming,
+        }),
+      );
+    }
+
     try {
       const found = router.match(method === "OPTIONS" ? "GET" : method, path);
       const anyPublic = router
@@ -236,6 +256,7 @@ export function createHandler(ctx: Ctx, router: Router, opts: HandlerOptions) {
         return;
       }
       const { route, params } = matched;
+      routeLabel = route.pattern;
 
       const authz = req.headers.authorization;
       const token =
@@ -318,6 +339,12 @@ export function createHandler(ctx: Ctx, router: Router, opts: HandlerOptions) {
 
       const out: Res = await route.handler(r);
       if (out.sse) {
+        streaming = true;
+        const metrics = opts.metrics;
+        if (metrics) {
+          metrics.sseOpened();
+          res.once("close", () => metrics.sseClosed());
+        }
         startSse(res, out.sse);
         return;
       }

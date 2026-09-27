@@ -62,6 +62,12 @@ export class PortMapper {
     return this.current();
   }
 
+  /** Map the ports again now (the admin console's "refresh" action). */
+  async refresh(): Promise<PortMapStatus> {
+    await this.map();
+    return this.current();
+  }
+
   private async map(): Promise<void> {
     const methods = this.opts.methods ?? ["upnp", "natpmp"];
     const errors: string[] = [];
