@@ -15,9 +15,11 @@ build:
 
 test: build test-unit test-e2e
 
-# Browser tests of the reference app (needs Chromium; CI installs it).
+# Browser tests: the reference app and the admin console (needs Chromium;
+# CI installs it).
 test-app: build
 	npm run test:e2e --workspace apps/reference
+	npm run test:browser --workspace packages/server
 
 test-unit:
 	npm run test --workspace packages/server
@@ -35,6 +37,7 @@ examples:
 lint:
 	npx eslint . --max-warnings 0
 	npx tsc --noEmit -p packages/server
+	npx tsc --noEmit -p packages/server/src/admin/ui
 	npx tsc --noEmit -p packages/testkit
 	npx tsc --noEmit -p e2e
 	npx tsc --noEmit -p apps/reference
