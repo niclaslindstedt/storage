@@ -26,6 +26,7 @@
 | D9  | Storage engine       | SQLite (`node:sqlite`, WAL) for metadata + content-addressed blob directory. `:memory:` + in-memory blobs for tests.                                                                                                         | One implementation for production and tests; no native addons.                                                                                                                 |
 | D10 | License              | PolyForm-Noncommercial-1.0.0                                                                                                                                                                                                 | Matches the sibling repos.                                                                                                                                                     |
 | D11 | Out of scope         | Server-side search / thumbnails (server cannot read data); federation between servers.                                                                                                                                       | E2EE makes them impossible or a leak.                                                                                                                                          |
+| D12 | Admin console        | **Local web console on its own listener** (default `127.0.0.1:8081`), a dependency-free TypeScript SPA embedded in the server. Stable admin token in `<data-dir>/admin.token` (0600) → session cookie. See §11.1.            | Operators need to administer, monitor, read logs and troubleshoot without a shell; the console must add no remote attack surface and no runtime dependency.                    |
 
 ---
 
@@ -122,7 +123,9 @@ the ref in `e2e/framework-ref`).
 
 - **No passwords anywhere.** Devices authenticate with P-256 ECDSA keys whose
   private halves are non-extractable. Admins administer via the CLI with
-  filesystem access to the data directory, or the loopback-only admin page.
+  filesystem access to the data directory, or the admin console (§11.1),
+  which listens on loopback by default and is unlocked by a token stored in
+  the data directory.
 - **All secrets are 256-bit random**, compared in constant time, stored only as
   SHA-256 hashes (tokens, pairing codes, invite codes), single-use where
   applicable, short-lived (pairing 10 min, invites 7 days default, access
@@ -433,7 +436,8 @@ const pairing = await client.createDevicePairing();               // device-to-d
 ## 10. Networking & TLS
 
 - Listeners: HTTPS `:8443` (configurable; 443 when mapped), optional HTTP `:8080`
-  used only for ACME http-01 + redirect, loopback admin `127.0.0.1:8081`.
+  used only for ACME http-01 + redirect, admin console `127.0.0.1:8081`
+  (§11.1; `--admin-host`, `--admin-port -1` disables it).
 - `tls.mode`:
   - `acme` — RFC 8555 client (ES256 account key, `http-01` and `tls-alpn-01`),
     identifiers `dns` or `ip` (short-lived profile for IP certs), renewal at
@@ -458,6 +462,104 @@ Configuration precedence: flags > env (`STORAGE_*`) > `config.json` in the
 data dir > defaults. Logging per OSS_SPEC §19 (`status/warn/info/header/error`
 
 - always-on debug log file, `--debug` to stderr).
+
+### 11.1 Admin console
+
+`serve` starts a second, separate HTTP listener: a web console to
+administer, monitor, read logs and troubleshoot the server. It never shares
+a port, a cookie or a code path with the device API.
+
+**Binding and exposure.** `--admin-host` (default `127.0.0.1`) and
+`--admin-port` (default `8081`, `-1` disables). A non-loopback host logs a
+warning: the console speaks plain HTTP, so it must only be published on a
+host's loopback (`docker run -p 127.0.0.1:8081:8081`, the image sets
+`STORAGE_ADMIN_HOST=0.0.0.0` inside the container) or reached through an SSH
+tunnel. The console is unavailable when `--admin-port -1`.
+
+**Authentication.**
+
+- The admin token is 256-bit random, created on first start in
+  `<data-dir>/admin.token` (mode 0600; in-memory servers keep it in memory)
+  and reused across restarts, so a Prometheus scrape config or a bookmark
+  keeps working. Whoever can read the data directory is already an admin
+  (§4.2), so the file adds no new trust. `storage-server admin` prints the
+  sign-in URL; `storage-server admin --rotate` replaces the token and
+  invalidates every session.
+- The token is never written to the log file. `serve` prints the sign-in
+  link to stderr only.
+- `GET /login?token=…` (or the login form, `POST /login`) exchanges the
+  token for a session: 256-bit id, stored hashed in memory, `HttpOnly;
+SameSite=Strict; Path=/` cookie, 12 h absolute / 1 h idle lifetime, bound to
+  the token it was issued under (rotation kills it). The response redirects
+  to `/` so the token leaves the address bar and history.
+- Scripts and Prometheus use `Authorization: Bearer <token>` instead.
+- Login attempts are rate limited (10/min per client) and compared in
+  constant time.
+
+**Browser hardening.**
+
+- DNS-rebinding guard: the `Host` header's name must be an IP literal or
+  `localhost` (a rebinding attack needs a domain name). Anything else is
+  `421 Misdirected Request`.
+- CSRF: state-changing requests (`POST`/`PATCH`/`DELETE`) authenticated by
+  cookie must carry `X-Storage-Admin: 1` (not settable cross-origin without
+  a preflight, which is never granted) and, when present, an `Origin` equal
+  to the console's own origin.
+- Headers: CSP `default-src 'self'; script-src 'self'; style-src 'self';
+img-src 'self' data:; connect-src 'self'; frame-ancestors 'none';
+form-action 'self'; base-uri 'none'`, `X-Frame-Options: DENY`,
+  `Cache-Control: no-store`, `Referrer-Policy: no-referrer`,
+  `X-Content-Type-Options: nosniff`, no CORS.
+
+**What it shows and does.** The console sees only what the server already
+sees (§4.1): names, roles, sizes, counts, timestamps — never content, file
+names, record keys or namespace names.
+
+| Page         | Shows                                                                                                                                                               | Actions                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Overview     | health verdict, uptime, version, URLs, TLS (mode, expiry, fingerprint), port mapping, storage (database, blobs, disk free), counts, traffic charts, recent problems | —                                                                                                            |
+| Accounts     | accounts with role, quota, usage, device and namespace counts, state                                                                                                | create; pair a device (QR on screen); rename, change role/quota, disable/enable; delete (typed confirmation) |
+| Devices      | every device with account, platform, key state, last seen, origin                                                                                                   | revoke                                                                                                       |
+| Namespaces   | id, app, owner, members (names + roles), usage, seq, key epoch, pending invites                                                                                     | —                                                                                                            |
+| Traffic      | requests / 4xx / 5xx / rate-limited per minute (last 60 min), latency p50/p95/p99, per-route table, live SSE connections                                            | —                                                                                                            |
+| Logs         | live tail of the in-memory log buffer (last 2000 entries) with level filter and search                                                                              | pause; download the debug log file                                                                           |
+| Audit        | the audit chain, newest first, filterable by action                                                                                                                 | verify the chain                                                                                             |
+| Troubleshoot | checks (below) with a fix hint for each failure; effective configuration                                                                                            | re-run checks; renew certificate (acme); refresh port mapping; run housekeeping; back up; diagnostics bundle |
+
+Checks (shared with `storage-server doctor`): data directory writable and
+private, database integrity, audit chain, an admin exists, disk space,
+certificate present and valid, port mapping and NAT type, public URL
+answers `/v1/info`, clock sanity. Each returns `{id, label, status:
+ok|warn|fail|skip, detail, hint}`.
+
+The **diagnostics bundle** is a JSON download of the overview, checks,
+redacted configuration, traffic metrics and the last 500 log entries — what
+a bug report needs, with no tokens, codes or user content.
+
+**Monitoring.** `GET /metrics` (bearer or session) serves Prometheus text:
+`storage_http_requests_total{method,route,status}`,
+`storage_http_request_duration_seconds` (histogram), `storage_sse_connections`,
+`storage_accounts`, `storage_devices`, `storage_namespaces`,
+`storage_blob_bytes`, `storage_database_bytes`, `storage_cert_expiry_seconds`,
+`storage_audit_chain_ok`, `storage_up_seconds`.
+
+**API** (JSON, same authentication): `GET /api/overview`, `/api/metrics`,
+`/api/accounts`, `POST /api/accounts`, `PATCH|DELETE /api/accounts/:id`,
+`POST /api/accounts/:id/pairing`, `POST /api/pairing` (new account),
+`GET /api/devices`, `DELETE /api/devices/:id`, `GET /api/namespaces`,
+`GET /api/logs?after=&level=&q=`, `GET /api/logs/stream` (SSE),
+`GET /api/logs/file`, `GET /api/audit?before=&action=`,
+`POST /api/audit/verify`, `GET /api/checks`, `GET /api/config`,
+`POST /api/actions/{renew-certificate,refresh-port-mapping,housekeeping,backup}`,
+`GET /api/diagnostics`. Every mutating call is written to the audit log with
+actor `admin-console`.
+
+**Implementation.** `src/admin/`: `console.ts` (listener, auth, routing),
+`api.ts` (endpoints), `session.ts`, `metrics.ts` (fed by the device-API
+handler's `onRequest` hook), `log-buffer.ts` (a `Logger` tee),
+`checks.ts` (shared with `doctor`), `ui/` (vanilla TypeScript + CSS, bundled
+by esbuild at build time into the server and served as `/app.js`,
+`/app.css`). Browser tests live in `packages/server/browser-tests/`.
 
 ## 12. Testkit (`@niclaslindstedt/storage-testkit`)
 
@@ -567,3 +669,15 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 - [x] R3 docs/, man/, examples/, prompts/, scripts/, .agents/skills/
 - [x] R4 website/ (SEO scaffolding)
 - [x] R5 `scripts/validate.sh` from oss-spec reports no structural violations
+
+### Admin console (§11.1)
+
+- [x] C1 SPEC §11.1 design
+- [ ] C2 `metrics.ts` + handler `onRequest` hook + Prometheus text
+- [ ] C3 `log-buffer.ts` (Logger tee, ring buffer, subscribers)
+- [ ] C4 `checks.ts` shared with `doctor`
+- [ ] C5 admin token file, sessions, host/CSRF guards, `storage-server admin [--rotate]`
+- [ ] C6 console API (overview, accounts, devices, pairing, namespaces, logs, audit, checks, actions, config, diagnostics, metrics)
+- [ ] C7 UI (overview, accounts, devices, namespaces, traffic, logs, audit, troubleshoot) bundled into the server
+- [ ] C8 tests: unit (server), full-stack e2e (revoke from the console), Playwright (UI)
+- [ ] C9 docs (`docs/admin-console.md`, configuration, security, README, website), Docker (`STORAGE_ADMIN_HOST`), man pages
