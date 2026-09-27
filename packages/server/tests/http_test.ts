@@ -37,12 +37,12 @@ async function pairedDevice(
   t: (p: string, i?: RequestInit) => Promise<Response>,
   name = "alice",
 ) {
-  const seeded = await (
+  const seeded = (await (
     await t("/__test/accounts", {
       method: "POST",
       body: JSON.stringify({ name, role: "admin" }),
     })
-  ).json() as any;
+  ).json()) as any;
   const keys = await deviceKeys();
   const pair = await fetch(`${url}/v1/pair`, {
     method: "POST",
@@ -56,22 +56,22 @@ async function pairedDevice(
     }),
   });
   expect(pair.status).toBe(201);
-  const { deviceId, serverId } = await pair.json() as any;
-  const ch = await (
+  const { deviceId, serverId } = (await pair.json()) as any;
+  const ch = (await (
     await fetch(`${url}/v1/auth/challenge`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deviceId }),
     })
-  ).json() as any;
+  ).json()) as any;
   const signature = await signChallenge(keys, serverId, deviceId, ch.challenge);
-  const tok = await (
+  const tok = (await (
     await fetch(`${url}/v1/auth/token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deviceId, challenge: ch.challenge, signature }),
     })
-  ).json() as any;
+  ).json()) as any;
   const api = (path: string, init: RequestInit = {}) =>
     fetch(url + path, {
       ...init,
@@ -95,7 +95,7 @@ describe("HTTP API", () => {
     const { url } = await start();
     const res = await fetch(`${url}/v1/info`);
     expect(res.status).toBe(200);
-    const info = await res.json() as any;
+    const info = (await res.json()) as any;
     expect(info).toMatchObject({ protocol: 1, name: "storage" });
     expect(info.capabilities).toContain("records");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
@@ -109,7 +109,7 @@ describe("HTTP API", () => {
     const { url, t } = await start();
     const { api, pairingUri } = await pairedDevice(url, t);
     expect(pairingUri).toMatch(/^oss-storage:\/\/pair\?v=1&s=http/);
-    const me = await (await api("/v1/me")).json() as any;
+    const me = (await (await api("/v1/me")).json()) as any;
     expect(me.account).toMatchObject({ name: "alice", role: "admin" });
     const anon = await fetch(`${url}/v1/me`);
     expect(anon.status).toBe(401);
@@ -123,7 +123,7 @@ describe("HTTP API", () => {
   it("round-trips files with ETags and answers 412 on stale writes", async () => {
     const { url, t } = await start();
     const { api } = await pairedDevice(url, t);
-    const ns = await (
+    const ns = (await (
       await api("/v1/namespaces", {
         method: "POST",
         body: JSON.stringify({
@@ -132,7 +132,7 @@ describe("HTTP API", () => {
           wrap: WRAP,
         }),
       })
-    ).json() as any;
+    ).json()) as any;
     const body = envelope(1, 32, 4);
     const put = await api(`/v1/ns/${ns.id}/files/dir/file`, {
       method: "PUT",
@@ -174,11 +174,13 @@ describe("HTTP API", () => {
       body: envelope(1, 32, 6),
     });
     expect(stale.status).toBe(412);
-    const err = await stale.json() as any;
+    const err = (await stale.json()) as any;
     expect(err.error.code).toBe("conflict");
     expect(err.error.current.rev).not.toBe(etag.replaceAll('"', ""));
 
-    const list = await (await api(`/v1/ns/${ns.id}/files?recursive=1`)).json() as any;
+    const list = (await (
+      await api(`/v1/ns/${ns.id}/files?recursive=1`)
+    ).json()) as any;
     expect(list.entries.map((e: { path: string }) => e.path)).toEqual([
       "dir/file",
     ]);
@@ -187,12 +189,12 @@ describe("HTTP API", () => {
   it("records, batch and change feed over HTTP", async () => {
     const { url, t } = await start();
     const { api } = await pairedDevice(url, t);
-    const ns = await (
+    const ns = (await (
       await api("/v1/namespaces", {
         method: "POST",
         body: JSON.stringify({ app: "meds", meta: envelopeB64u(), wrap: WRAP }),
       })
-    ).json() as any;
+    ).json()) as any;
     const put = await api(`/v1/ns/${ns.id}/records/days/k1`, {
       method: "PUT",
       body: JSON.stringify({ value: envelopeB64u(1, 4, 1) }),
@@ -205,7 +207,7 @@ describe("HTTP API", () => {
       body: JSON.stringify({ value: envelopeB64u(1, 4, 2) }),
     });
     expect(stale.status).toBe(412);
-    const batch = await (
+    const batch = (await (
       await api(`/v1/ns/${ns.id}/batch`, {
         method: "POST",
         body: JSON.stringify({
@@ -220,11 +222,11 @@ describe("HTTP API", () => {
           ],
         }),
       })
-    ).json() as any;
+    ).json()) as any;
     expect(batch.results[0].ok).toBe(true);
-    const feed = await (
+    const feed = (await (
       await api(`/v1/ns/${ns.id}/changes?since=${ns.seq}`)
-    ).json() as any;
+    ).json()) as any;
     expect(feed.changes.map((c: { key: string }) => c.key)).toEqual([
       "k1",
       "k2",
@@ -234,12 +236,12 @@ describe("HTTP API", () => {
   it("streams events over SSE", async () => {
     const { url, t } = await start();
     const { api, token } = await pairedDevice(url, t);
-    const ns = await (
+    const ns = (await (
       await api("/v1/namespaces", {
         method: "POST",
         body: JSON.stringify({ app: "meds", meta: envelopeB64u(), wrap: WRAP }),
       })
-    ).json() as any;
+    ).json()) as any;
     const ac = new AbortController();
     const res = await fetch(`${url}/v1/events`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -323,12 +325,12 @@ describe("HTTP API", () => {
       body: "{not json",
     });
     expect(bad.status).toBe(400);
-    const ns = await (
+    const ns = (await (
       await api("/v1/namespaces", {
         method: "POST",
         body: JSON.stringify({ app: "x", meta: envelopeB64u(), wrap: WRAP }),
       })
-    ).json() as any;
+    ).json()) as any;
     const big = await api(`/v1/ns/${ns.id}/files/f`, {
       method: "PUT",
       headers: {
@@ -378,7 +380,7 @@ describe("test mode", () => {
     });
     await expect(api("/v1/me")).rejects.toThrow();
 
-    const snap = await (await t("/__test/snapshot")).json() as any;
+    const snap = (await (await t("/__test/snapshot")).json()) as any;
     await api("/v1/namespaces", {
       method: "POST",
       body: JSON.stringify({ app: "x", meta: envelopeB64u(), wrap: WRAP }),
