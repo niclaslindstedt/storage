@@ -1,0 +1,8 @@
+{
+  "name": "storage-example-app-testing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vitest run --config ../vite.config.ts --root ."
+  }
+}

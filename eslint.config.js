@@ -11,6 +11,8 @@ export default [
       "**/coverage/**",
       "website/dist/**",
       "website/src/generated/**",
+      "website/.ssr-build/**",
+      ".lighthouseci/**",
       "apps/*/dist/**",
       "apps/*/test-results/**",
       "apps/*/playwright-report/**",
@@ -52,7 +54,14 @@ export default [
     },
   },
   {
-    files: ["**/tests/**", "**/*_test.ts", "**/scripts/**", "e2e/**"],
+    // Tests, scripts and runnable examples print their results.
+    files: [
+      "**/tests/**",
+      "**/*_test.ts",
+      "**/scripts/**",
+      "e2e/**",
+      "examples/**",
+    ],
     rules: { "no-console": "off" },
   },
 ];
