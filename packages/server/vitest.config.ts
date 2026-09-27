@@ -1,6 +1,21 @@
+import { readFileSync } from "node:fs";
+
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  plugins: [
+    {
+      // Inline Markdown as a string, as the tsup "text" loader does in the build.
+      name: "markdown-as-text",
+      transform(_code, id) {
+        if (!id.endsWith(".md")) return null;
+        return {
+          code: `export default ${JSON.stringify(readFileSync(id, "utf8"))};`,
+          map: null,
+        };
+      },
+    },
+  ],
   test: {
     globals: true,
     environment: "node",

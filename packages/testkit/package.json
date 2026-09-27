@@ -1,17 +1,14 @@
 {
-  "name": "@niclaslindstedt/storage-server",
+  "name": "@niclaslindstedt/storage-testkit",
   "version": "0.1.0",
-  "description": "Self-hosted, zero-knowledge storage server for local-first PWAs: end-to-end encrypted files and rows, QR pairing, per-namespace sharing, ACME certificates and UPnP.",
+  "description": "Run a real storage-server in your tests: in-process for Vitest, as a process for Playwright — with seeding, snapshots, fault injection and clock control.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/niclaslindstedt/storage.git",
-    "directory": "packages/server"
-  },
-  "bin": {
-    "storage-server": "./dist/cli.js"
+    "directory": "packages/testkit"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,9 +19,7 @@
     }
   },
   "files": [
-    "dist",
-    "man",
-    "docs"
+    "dist"
   ],
   "engines": {
     "node": ">=22.13"
@@ -32,8 +27,10 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p .",
-    "gen:man": "node --experimental-strip-types --no-warnings scripts/gen-man.ts"
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@niclaslindstedt/storage-server": "0.1.0"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
