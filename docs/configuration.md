@@ -18,8 +18,9 @@ or a key in `config.json` inside the data directory. Precedence:
 | Docker image | `/data`                                                           |
 
 It holds `storage.db` (SQLite, WAL mode), `blobs/` (content-addressed
-ciphertext), `tls/` (certificates, ACME account key) and optionally
-`config.json`. Everything user-authored in it is ciphertext, but it also
+ciphertext), `tls/` (certificates, ACME account key), `admin.token` (the
+[admin console](admin-console.md) token), `backups/` (backups made from the
+console) and optionally `config.json`. Everything user-authored in it is ciphertext, but it also
 holds your TLS private key — keep it private (`0700`, which the server
 enforces for directories it creates) and back it up with `storage-server
 backup`.
@@ -36,7 +37,8 @@ The keys mirror the server configuration object:
     "host": "0.0.0.0",
     "port": 443,
     "httpPort": 80,
-    "adminPort": 8081
+    "adminPort": 8081,
+    "adminHost": "127.0.0.1"
   },
   "tls": {
     "mode": "acme",

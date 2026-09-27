@@ -37,17 +37,18 @@ The `docs/` directory contains conceptual documentation for storage. Unlike the 
 
 ## Mapping table
 
-| Changed files / scope                                                                                    | Doc(s) to update                                  |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `packages/server/src/api/**`, `packages/server/src/services/**` (routes, status codes, headers)          | `docs/protocol.md`                                |
-| `packages/server/src/cli/spec.ts` `SERVER_FLAGS`, `packages/server/src/config.ts`                        | `docs/configuration.md`                           |
-| `packages/server/src/crypto.ts`, framework `src/storage/selfhosted/crypto.ts`, `vault.ts`, `rotation.ts` | `docs/security.md`                                |
-| `services/invites.ts`, `services/namespaces.ts` (roles, members, rotation)                               | `docs/sharing.md`, `docs/security.md`             |
-| `packages/server/src/tls/**`, `net/**`, `cli/commands/ops.ts` (`doctor`, `upnp`, `cert`)                 | `docs/home-hosting.md`, `docs/troubleshooting.md` |
-| `packages/testkit/src/**`, `api/testing.ts`                                                              | `docs/testing.md`                                 |
-| `Dockerfile`, `compose.yaml`, `.nvmrc`, install steps                                                    | `docs/getting-started.md`, `docs/home-hosting.md` |
-| New module or data flow (`app.ts`, `db/schema.ts`, blob store)                                           | `docs/architecture.md`                            |
-| Error codes (`packages/server/src/errors.ts`)                                                            | `docs/protocol.md`, `docs/troubleshooting.md`     |
+| Changed files / scope                                                                                    | Doc(s) to update                                               |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `packages/server/src/api/**`, `packages/server/src/services/**` (routes, status codes, headers)          | `docs/protocol.md`                                             |
+| `packages/server/src/cli/spec.ts` `SERVER_FLAGS`, `packages/server/src/config.ts`                        | `docs/configuration.md`                                        |
+| `packages/server/src/crypto.ts`, framework `src/storage/selfhosted/crypto.ts`, `vault.ts`, `rotation.ts` | `docs/security.md`                                             |
+| `services/invites.ts`, `services/namespaces.ts` (roles, members, rotation)                               | `docs/sharing.md`, `docs/security.md`                          |
+| `packages/server/src/tls/**`, `net/**`, `cli/commands/ops.ts` (`doctor`, `upnp`, `cert`)                 | `docs/home-hosting.md`, `docs/troubleshooting.md`              |
+| `packages/testkit/src/**`, `api/testing.ts`                                                              | `docs/testing.md`                                              |
+| `packages/server/src/admin/**` (console pages, API, checks, metrics, auth)                               | `docs/admin-console.md`; checks also `docs/troubleshooting.md` |
+| `Dockerfile`, `compose.yaml`, `.nvmrc`, install steps                                                    | `docs/getting-started.md`, `docs/home-hosting.md`              |
+| New module or data flow (`app.ts`, `db/schema.ts`, blob store)                                           | `docs/architecture.md`                                         |
+| Error codes (`packages/server/src/errors.ts`)                                                            | `docs/protocol.md`, `docs/troubleshooting.md`                  |
 
 The website renders `docs/` verbatim (`website/scripts/extract-source-data.mjs`);
 a new doc must also be added to `DOC_ORDER` there, or the website build fails.

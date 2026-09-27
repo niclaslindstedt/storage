@@ -43,6 +43,12 @@ merged: { dose: 400mg, schedule: [08, 20] }`,
 # gets a certificate, asks the router to forward the port`,
   },
   {
+    title: "An admin console in the browser",
+    text: "Accounts, devices, pairing QR codes, live logs, traffic charts, the audit chain and health checks with fixes — on the server's loopback, plus Prometheus metrics.",
+    code: `$ ${source.bin} admin
+http://127.0.0.1:8081/login?token=…`,
+  },
+  {
     title: "The easiest backend to test",
     text: "Start a real server in-process in milliseconds. Inject faults, move the clock, snapshot and restore — from Vitest or Playwright.",
     code: `const server = await startTestServer();

@@ -29,7 +29,7 @@ the audit log.
 | `tls/`                     | DER/X.509 builder, ACME client, certificate manager                   |
 | `net/`                     | UPnP IGD, NAT-PMP, port mapper, NAT diagnostics                       |
 | `qr/`                      | QR encoder and renderers                                              |
-| `admin/`                   | Loopback admin page                                                   |
+| `admin/`                   | Admin console: listener, auth, API, metrics, log buffer, checks, UI   |
 | `cli/`                     | Command registry (single source of truth) and commands                |
 | `app.ts`                   | Embeddable server (routes + handler) — what tests and the testkit run |
 | `serve.ts`                 | Production runtime (HTTPS, ACME, redirects, UPnP, jobs)               |

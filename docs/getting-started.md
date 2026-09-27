@@ -23,6 +23,11 @@ Docker). It is a one-time code that creates the **admin** account on the
 first device that scans it. It expires after ten minutes; print a fresh one
 any time with `storage-server setup`.
 
+`storage-server admin` (in Docker: `docker exec storage /nodejs/bin/node
+/app/dist/cli.js admin`) prints a sign-in link for the **admin console**, a local web page for
+managing accounts and devices, showing pairing QR codes, watching traffic
+and logs, and troubleshooting. See [Admin console](admin-console.md).
+
 ## 2. Pair your first device
 
 Open an app that supports the self-hosted backend (any app built on
@@ -57,5 +62,6 @@ domain name, or for your bare public IP address.
 ## Next
 
 - [Sharing one namespace](sharing.md) with someone else, without sharing your account.
+- [Admin console](admin-console.md) — administer, monitor and troubleshoot in a browser.
 - [Security model](security.md) — what the server can and cannot see.
 - [Testing](testing.md) — the test server your app's end-to-end tests run against.

@@ -24,5 +24,8 @@ services:
       STORAGE_HTTP_PORT: "8080"
       STORAGE_PUBLIC_URL: https://home.example.org
       STORAGE_UPNP: "1"
+      # The admin console stays on the host's loopback (127.0.0.1:8081), which
+      # host networking shares. Never set 0.0.0.0 here: it would reach the LAN.
+      STORAGE_ADMIN_HOST: 127.0.0.1
 volumes:
   storage-data:

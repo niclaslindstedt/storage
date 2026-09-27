@@ -222,6 +222,7 @@ function splitDoc(source, path) {
 const DOC_ORDER = [
   "getting-started",
   "home-hosting",
+  "admin-console",
   "configuration",
   "security",
   "sharing",

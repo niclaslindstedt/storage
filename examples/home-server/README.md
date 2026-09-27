@@ -19,7 +19,9 @@ docker compose exec storage /nodejs/bin/node /app/dist/cli.js setup --account yo
 ```
 
 `setup` prints a QR code; scan it with the app to create the admin account
-on your phone. The server stores only ciphertext — the keys never leave your
+on your phone. `... cli.js admin` prints a sign-in link for the admin
+console on the host's `127.0.0.1:8081` (use `ssh -L 8081:127.0.0.1:8081`
+from another computer). The server stores only ciphertext — the keys never leave your
 devices. Run `storage-server doctor` when something does not connect; see
 [docs/home-hosting.md](../../docs/home-hosting.md) for CGNAT, double NAT and
 dynamic DNS.

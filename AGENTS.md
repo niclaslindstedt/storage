@@ -73,7 +73,10 @@ packages/server/src/
 ├── tls/         ASN.1/X.509/CSR builder, ACME client, certificate manager
 ├── net/         UPnP IGD, NAT-PMP, port mapper, NAT diagnostics
 ├── qr/          QR encoder + terminal / SVG renderers
-├── admin/       loopback admin page (pairing QR)
+├── admin/       admin console (SPEC §11.1): listener + auth (console.ts,
+│                session.ts), JSON API (api.ts, overview.ts), metrics.ts,
+│                log-buffer.ts, checks.ts (shared with `doctor`), ui/ (vanilla
+│                TS + CSS, bundled into the server via `?bundle` imports)
 ├── cli/         command registry (spec.ts = single source of truth) + commands
 ├── app.ts       embeddable server (what tests and the testkit run)
 └── serve.ts     production runtime (HTTPS, ACME, redirects, UPnP, jobs)
@@ -108,6 +111,8 @@ Rules:
 | A schema change                | Append a migration to `db/schema.ts` (never edit a shipped one)                                                                                                          |
 | A CLI command or flag          | `cli/spec.ts` (registry) + `cli/commands/*.ts`, then `make man`                                                                                                          |
 | A config key                   | `config.ts` + `cli/spec.ts` (flag/env) + `docs/configuration.md`                                                                                                         |
+| An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md`                  |
+| A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                        |
 | A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                 |
 | A client feature               | oss-framework `src/storage/selfhosted/` + an e2e test here                                                                                                               |
 | A scenario an app depends on   | `e2e/tests/apps_test.ts`                                                                                                                                                 |
@@ -132,6 +137,14 @@ Rules:
   UPnP / NAT-PMP tests use fake gateways on loopback.
 - Examples are tests too: `examples/app-testing/tests/*_test.ts` runs
   under `make examples` with the same aliases (`examples/vite.config.ts`).
+- The admin console UI has browser tests in
+  `packages/server/browser-tests/*_test.ts` (Playwright, `make test-app`),
+  run against the built server; its API is covered in-process by
+  `tests/admin_console_test.ts`, and end to end with the framework client by
+  `e2e/tests/admin_test.ts`.
+- The console UI (`src/admin/ui`) is type-checked on its own
+  (`tsc -p packages/server/src/admin/ui`, DOM lib) and never imports server
+  code; `ui/types.ts` mirrors the API's response shapes.
 - Source files stay under 1000 lines (§20.5).
 
 ## Documentation sync points

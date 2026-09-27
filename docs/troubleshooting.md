@@ -1,8 +1,13 @@
 # Troubleshooting
 
-Start with `storage-server doctor --public-url <url>`: it checks the data
-directory, database integrity, the audit chain, the certificate, router port
-mapping and NAT type, and whether the public URL answers.
+Start with the [admin console](admin-console.md)'s **Troubleshoot** page
+(`storage-server admin` prints its sign-in link), or `storage-server doctor
+--public-url <url>` in a terminal. Both run the same checks: data directory,
+database integrity, the audit chain, the admin account, disk space, the
+certificate, router port mapping and NAT type, whether the public URL
+answers, and network exposure. Each problem comes with a fix. The console's
+**Logs** page shows the live server log, and **Traffic** shows which
+requests fail.
 
 ## A device cannot connect
 
@@ -46,6 +51,8 @@ default); the client resyncs from scratch automatically.
 
 ## Reporting a bug
 
-Run with `--debug`, reproduce, and attach the debug log
-(`storage-server --debug-agent` shows its path) and the `doctor` output.
-Never attach the data directory.
+Download the diagnostics bundle (Troubleshoot → **Download diagnostics**).
+It holds the checks, redacted settings, traffic figures and recent log
+lines, and no tokens, codes, keys or content. Or run with `--debug`,
+reproduce, and attach the debug log (`storage-server --debug-agent` shows
+its path) and the `doctor` output. Never attach the data directory.

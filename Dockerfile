@@ -2,6 +2,9 @@
 # storage-server — self-hosted, end-to-end encrypted storage.
 # Build: docker build -t storage-server .
 # Run:   docker run -p 8443:8443 -v storage-data:/data storage-server
+# Admin console (docs/admin-console.md): with published ports add
+#        -e STORAGE_ADMIN_HOST=0.0.0.0 -p 127.0.0.1:8081:8081
+# (loopback on the host only); with --network host it is on 127.0.0.1:8081.
 
 FROM node:24-bookworm-slim AS build
 WORKDIR /src

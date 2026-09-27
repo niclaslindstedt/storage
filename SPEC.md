@@ -469,12 +469,15 @@ data dir > defaults. Logging per OSS_SPEC §19 (`status/warn/info/header/error`
 administer, monitor, read logs and troubleshoot the server. It never shares
 a port, a cookie or a code path with the device API.
 
-**Binding and exposure.** `--admin-host` (default `127.0.0.1`) and
-`--admin-port` (default `8081`, `-1` disables). A non-loopback host logs a
-warning: the console speaks plain HTTP, so it must only be published on a
-host's loopback (`docker run -p 127.0.0.1:8081:8081`, the image sets
-`STORAGE_ADMIN_HOST=0.0.0.0` inside the container) or reached through an SSH
-tunnel. The console is unavailable when `--admin-port -1`.
+**Binding and exposure.** `--admin-host` (default `127.0.0.1`, also in the
+Docker image) and `--admin-port` (default `8081`, `-1` disables). A
+non-loopback host logs a warning and fails the exposure check: the console
+speaks plain HTTP, so it must only be published on a host's loopback or
+reached through an SSH tunnel. In Docker with host networking (UPnP) the
+default already means the host's loopback; with bridged networking the
+operator opts in with `STORAGE_ADMIN_HOST=0.0.0.0` and publishes
+`-p 127.0.0.1:8081:8081`. The image never defaults to `0.0.0.0`, because with
+host networking that would expose the console to the LAN.
 
 **Authentication.**
 
@@ -486,7 +489,8 @@ tunnel. The console is unavailable when `--admin-port -1`.
   sign-in URL; `storage-server admin --rotate` replaces the token and
   invalidates every session.
 - The token is never written to the log file. `serve` prints the sign-in
-  link to stderr only.
+  link to stderr only when attached to a terminal (not into a journal or
+  container log); otherwise it points at `storage-server admin`.
 - `GET /login?token=…` (or the login form, `POST /login`) exchanges the
   token for a session: 256-bit id, stored hashed in memory, `HttpOnly;
 SameSite=Strict; Path=/` cookie, 12 h absolute / 1 h idle lifetime, bound to
@@ -529,7 +533,8 @@ names, record keys or namespace names.
 Checks (shared with `storage-server doctor`): data directory writable and
 private, database integrity, audit chain, an admin exists, disk space,
 certificate present and valid, port mapping and NAT type, public URL
-answers `/v1/info`, clock sanity. Each returns `{id, label, status:
+answers `/v1/info`, network exposure (plain HTTP or the console beyond
+loopback), errors logged in the last hour. Each returns `{id, label, status:
 ok|warn|fail|skip, detail, hint}`.
 
 The **diagnostics bundle** is a JSON download of the overview, checks,
@@ -539,9 +544,11 @@ a bug report needs, with no tokens, codes or user content.
 **Monitoring.** `GET /metrics` (bearer or session) serves Prometheus text:
 `storage_http_requests_total{method,route,status}`,
 `storage_http_request_duration_seconds` (histogram), `storage_sse_connections`,
-`storage_accounts`, `storage_devices`, `storage_namespaces`,
-`storage_blob_bytes`, `storage_database_bytes`, `storage_cert_expiry_seconds`,
-`storage_audit_chain_ok`, `storage_up_seconds`.
+`storage_accounts`, `storage_devices`, `storage_devices_pending`,
+`storage_namespaces`, `storage_blob_bytes`, `storage_database_bytes`,
+`storage_disk_free_bytes`, `storage_cert_expiry_seconds`,
+`storage_audit_chain_ok`, `storage_log_errors`, `storage_log_warnings`,
+`storage_up_seconds`.
 
 **API** (JSON, same authentication): `GET /api/overview`, `/api/metrics`,
 `/api/accounts`, `POST /api/accounts`, `PATCH|DELETE /api/accounts/:id`,
@@ -673,11 +680,11 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 ### Admin console (§11.1)
 
 - [x] C1 SPEC §11.1 design
-- [ ] C2 `metrics.ts` + handler `onRequest` hook + Prometheus text
-- [ ] C3 `log-buffer.ts` (Logger tee, ring buffer, subscribers)
-- [ ] C4 `checks.ts` shared with `doctor`
-- [ ] C5 admin token file, sessions, host/CSRF guards, `storage-server admin [--rotate]`
-- [ ] C6 console API (overview, accounts, devices, pairing, namespaces, logs, audit, checks, actions, config, diagnostics, metrics)
-- [ ] C7 UI (overview, accounts, devices, namespaces, traffic, logs, audit, troubleshoot) bundled into the server
-- [ ] C8 tests: unit (server), full-stack e2e (revoke from the console), Playwright (UI)
-- [ ] C9 docs (`docs/admin-console.md`, configuration, security, README, website), Docker (`STORAGE_ADMIN_HOST`), man pages
+- [x] C2 `metrics.ts` + handler `onRequest` hook + Prometheus text
+- [x] C3 `log-buffer.ts` (Logger tee, ring buffer, subscribers)
+- [x] C4 `checks.ts` shared with `doctor`
+- [x] C5 admin token file, sessions, host/CSRF guards, `storage-server admin [--rotate]`
+- [x] C6 console API (overview, accounts, devices, pairing, namespaces, logs, audit, checks, actions, config, diagnostics, metrics)
+- [x] C7 UI (overview, accounts, devices, namespaces, traffic, logs, audit, troubleshoot) bundled into the server
+- [x] C8 tests: unit (server), full-stack e2e (revoke from the console), Playwright (UI)
+- [x] C9 docs (`docs/admin-console.md`, configuration, security, README, website), Docker (`STORAGE_ADMIN_HOST`), man pages

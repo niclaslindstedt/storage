@@ -14,7 +14,11 @@ docker run -d --name storage --restart unless-stopped --network host \
   ghcr.io/niclaslindstedt/storage-server:latest
 ```
 
-`--network host` lets UPnP discovery (multicast) reach the router.
+`--network host` lets UPnP discovery (multicast) reach the router. It also
+puts the [admin console](admin-console.md) on the host's `127.0.0.1:8081`.
+From your laptop, reach it through SSH:
+`ssh -L 8081:127.0.0.1:8081 you@homeserver`, then open the link that
+`docker exec storage /nodejs/bin/node /app/dist/cli.js admin` prints.
 
 ## Port forwarding: `--upnp`
 
@@ -65,5 +69,6 @@ tunnel operator sees only ciphertext.
 ## Backups
 
 `storage-server backup --out /mnt/usb/storage-$(date +%F)` is safe while the
-server runs. Keep the recovery keys of your accounts separately — a backup
+server runs. **Back up now** in the admin console does the same into
+`backups/` in the data directory. Keep the recovery keys of your accounts separately — a backup
 without them is unreadable, which is the point.

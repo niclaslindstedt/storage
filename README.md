@@ -22,7 +22,9 @@ built to hold health data that nobody but its owners can read.
   medication" with a QR code; they see nothing else. Removing them rotates
   the key.
 - **Runs at home without a networking degree.** Built-in Let's Encrypt,
-  router port mapping (UPnP / NAT-PMP), QR pairing and a `doctor` command.
+  router port mapping (UPnP / NAT-PMP), QR pairing, and a local admin
+  console to manage accounts and devices, watch traffic and logs, and fix
+  problems.
 - **The easiest backend to test against.** Start a real server in-process
   in milliseconds, inject faults, move the clock, snapshot and restore.
 
@@ -106,11 +108,27 @@ output (`--help-agent`, `--debug-agent`, `commands --examples`).
 | `cert`        | Show or renew the TLS certificate.                                   |
 | `upnp`        | Inspect or change router port forwarding.                            |
 | `doctor`      | Check the installation end to end.                                   |
+| `admin`       | Print the admin console sign-in link, or rotate its token.           |
 | `health`      | Probe the local server (for container and service health checks).    |
 | `test-server` | Run an in-memory server in test mode (for end-to-end tests).         |
 | `commands`    | List commands in a stable, grep-friendly format.                     |
 | `docs`        | Print an embedded documentation topic.                               |
 | `man`         | Print an embedded manual page.                                       |
+
+### Admin console
+
+`serve` also starts a web console on `127.0.0.1:8081`, reachable only from
+the server itself. Use it to create accounts, show pairing QR codes, revoke
+devices, watch traffic, tail logs, verify the audit chain, run the health
+checks, back up and download a diagnostics bundle. `GET /metrics` serves
+Prometheus metrics.
+
+```sh
+storage-server admin                          # prints the sign-in link
+ssh -L 8081:127.0.0.1:8081 you@homeserver     # from another computer
+```
+
+See [docs/admin-console.md](docs/admin-console.md), including Docker.
 
 ### From an app (oss-framework)
 
@@ -170,6 +188,8 @@ defaults. The ones you are most likely to set:
 | `--domain`     | `STORAGE_DOMAINS`    | —                                                   | Certificate names for ACME                               |
 | `--upnp`       | `STORAGE_UPNP`       | off                                                 | Ask the router to forward the ports                      |
 | `--cors`       | `STORAGE_CORS`       | `paired`                                            | Allow browser origins that paired, or `any`              |
+| `--admin-port` | `STORAGE_ADMIN_PORT` | `8081`                                              | Admin console port (`-1` disables)                       |
+| `--admin-host` | `STORAGE_ADMIN_HOST` | `127.0.0.1`                                         | Admin console interface; keep it on loopback             |
 
 All settings, with defaults: [docs/configuration.md](docs/configuration.md)
 or `storage-server man serve`.
@@ -191,9 +211,12 @@ with Playwright tests that pair separate browser contexts as devices.
 
 ## Troubleshooting
 
-Start with `storage-server doctor --public-url <url>`: it checks the data
-directory, the database, the audit chain, the certificate, router port
-mapping and NAT type, and whether the public URL answers.
+Start with the admin console's **Troubleshoot** page, or
+`storage-server doctor --public-url <url>` in a terminal. Both run the same
+checks: data directory, database, audit chain, admin account, disk space,
+certificate, router port mapping and NAT type, the public URL and network
+exposure. Each problem comes with a fix. The console's **Logs** page tails
+the server log live.
 
 | Symptom                                | Fix                                                                                                                                                        |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -209,7 +232,7 @@ More in [docs/troubleshooting.md](docs/troubleshooting.md).
 Hosted at **[niclaslindstedt.github.io/storage](https://niclaslindstedt.github.io/storage/)**,
 and embedded in the CLI (`storage-server docs <topic>`):
 
-- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Configuration](docs/configuration.md)
+- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Configuration](docs/configuration.md)
 - [Security model](docs/security.md) · [Sharing a namespace](docs/sharing.md) · [Testing](docs/testing.md)
 - [Architecture](docs/architecture.md) · [Protocol (HTTP API v1)](docs/protocol.md) · [Troubleshooting](docs/troubleshooting.md)
 - [SPEC.md](SPEC.md) — the full design specification and progress tracker.

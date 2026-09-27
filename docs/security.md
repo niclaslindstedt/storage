@@ -66,6 +66,10 @@ and the client re-encrypts existing data.
 - A hash-chained audit log of pairings, sign-in failures, revocations,
   sharing, rotations and deletions; `storage-server audit verify`.
 - The Docker image runs as a non-root user on a read-only root filesystem.
+- The [admin console](admin-console.md) listens on loopback by default and
+  is unlocked by a token that lives in the data directory. It uses a session
+  cookie (HttpOnly, SameSite=Strict) and guards against DNS rebinding and
+  CSRF. A strict CSP applies. It shows only what the server already sees.
 
 ## Limits
 
