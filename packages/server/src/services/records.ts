@@ -218,6 +218,20 @@ export function listRecords(
   };
 }
 
+/** Every collection in a namespace with its number of live rows. */
+export function listCollections(
+  ctx: Ctx,
+  principal: Principal,
+  nsId: string,
+): { collection: string; rows: number }[] {
+  requireRole(ctx, principal, nsId, "viewer");
+  return ctx.db.all<{ collection: string; rows: number }>(
+    `SELECT collection, SUM(CASE WHEN value IS NULL THEN 0 ELSE 1 END) AS rows
+     FROM records WHERE namespace_id = ? GROUP BY collection ORDER BY collection`,
+    nsId,
+  );
+}
+
 export function deleteRecord(
   ctx: Ctx,
   principal: Principal,

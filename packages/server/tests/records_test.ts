@@ -12,6 +12,7 @@ import {
   batch,
   deleteRecord,
   getRecord,
+  listCollections,
   listRecords,
   putRecord,
 } from "../src/services/records.ts";
@@ -96,6 +97,18 @@ describe("records", () => {
     );
     // other rows are unaffected
     putRecord(ctx, alice, ns.id, "c", "other", { value: V(4), ifAbsent: true });
+  });
+
+  it("lists collections with their live row counts", () => {
+    const { ctx, alice, ns } = setup();
+    putRecord(ctx, alice, ns.id, "a", "k1", { value: V(1) });
+    putRecord(ctx, alice, ns.id, "a", "k2", { value: V(1) });
+    putRecord(ctx, alice, ns.id, "b", "k1", { value: V(1) });
+    deleteRecord(ctx, alice, ns.id, "b", "k1", {});
+    expect(listCollections(ctx, alice, ns.id)).toEqual([
+      { collection: "a", rows: 2 },
+      { collection: "b", rows: 0 },
+    ]);
   });
 
   it("recreating over a tombstone works with ifAbsent or the tombstone rev", () => {

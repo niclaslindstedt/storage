@@ -29,7 +29,7 @@ carry `Authorization: Bearer <token>`.
 
 ## Namespaces and sharing
 
-- `GET /v1/namespaces?app=`, `POST /v1/namespaces {app, meta, wrap}`, `GET|PATCH|DELETE /v1/namespaces/:ns`.
+- `GET /v1/namespaces?app=`, `POST /v1/namespaces {id?, app, meta, wrap}` (the client may choose `id` — it salts the key derivation), `GET|PATCH|DELETE /v1/namespaces/:ns`.
 - `GET /v1/namespaces/:ns/members`, `PATCH|DELETE …/members/:account`.
 - `GET|POST /v1/namespaces/:ns/invites`, `DELETE …/invites/:id`, `POST /v1/invites/accept {code[, device, accountName]}`.
 - `POST /v1/namespaces/:ns/keys {epoch, wraps}`, `POST /v1/namespaces/:ns/rotate {epoch, wraps}`.
@@ -45,6 +45,7 @@ carry `Authorization: Bearer <token>`.
 
 ## Records
 
+- `GET /v1/ns/:ns/collections` — every (encrypted) collection name with its live row count.
 - `GET /v1/ns/:ns/records/:collection?cursor=&limit=&includeDeleted=1`
 - `GET|PUT|DELETE /v1/ns/:ns/records/:collection/:key` — `PUT {value}` with `If-Match` / `If-None-Match: *`.
 - `POST /v1/ns/:ns/batch {atomic, ops}` — ops `put`, `delete`, `check`, `file.put` (≤ 1 MiB inline), `file.delete`.

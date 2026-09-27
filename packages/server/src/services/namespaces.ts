@@ -162,14 +162,24 @@ function checkMeta(ctx: Ctx, meta: unknown, epoch: number): string {
 export function createNamespace(
   ctx: Ctx,
   principal: Principal,
-  input: { app: unknown; meta: unknown; wrap: unknown },
+  input: { id?: unknown; app: unknown; meta: unknown; wrap: unknown },
 ): NamespaceView {
   if (principal.role === "guest")
     throw forbidden("guests cannot create namespaces");
+  // The client may choose the id: it salts the namespace key derivation and
+  // is bound into every ciphertext, so the device must know it up front.
+  if (
+    input.id !== undefined &&
+    (typeof input.id !== "string" || !/^ns_[A-Za-z0-9_-]{22}$/.test(input.id))
+  ) {
+    throw badRequest("id must be ns_ followed by 22 base64url characters");
+  }
   const app = checkApp(String(input.app ?? ""));
   const meta = checkMeta(ctx, input.meta, 1);
   const wrap = checkWrap(input.wrap, "wrap");
-  const id = newId("ns");
+  const id = (input.id as string | undefined) ?? newId("ns");
+  if (ctx.db.get("SELECT 1 FROM namespaces WHERE id = ?", id))
+    throw conflict("a namespace with that id exists");
   const now = ctx.clock.now();
   ctx.db.tx(() => {
     ctx.db.run(

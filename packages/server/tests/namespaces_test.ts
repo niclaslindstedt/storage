@@ -72,6 +72,39 @@ describe("namespaces", () => {
     await expectApiError(() => getNamespace(ctx, bob, ns.id), "not_found");
   });
 
+  it("accepts a client-chosen id (the client derives keys from it) and refuses duplicates", async () => {
+    const ctx = testContext();
+    const alice = principal(ctx, "alice");
+    const id = "ns_AAAAAAAAAAAAAAAAAAAAAA";
+    const ns = createNamespace(ctx, alice, {
+      id,
+      app: "meds",
+      meta: envelopeB64u(),
+      wrap: WRAP,
+    });
+    expect(ns.id).toBe(id);
+    await expectApiError(
+      () =>
+        createNamespace(ctx, alice, {
+          id,
+          app: "meds",
+          meta: envelopeB64u(),
+          wrap: WRAP,
+        }),
+      "conflict",
+    );
+    await expectApiError(
+      () =>
+        createNamespace(ctx, alice, {
+          id: "ns_bad",
+          app: "meds",
+          meta: envelopeB64u(),
+          wrap: WRAP,
+        }),
+      "invalid_request",
+    );
+  });
+
   it("guests cannot create namespaces; meta must be a current-epoch envelope", async () => {
     const ctx = testContext();
     const guest = principal(ctx, "g", "guest");

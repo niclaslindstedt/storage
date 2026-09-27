@@ -8,6 +8,7 @@ import {
   batch,
   deleteRecord,
   getRecord,
+  listCollections,
   listRecords,
   putRecord,
 } from "../services/records.ts";
@@ -21,6 +22,10 @@ import {
 } from "./common.ts";
 
 export function recordRoutes(router: Router, ctx: Ctx): void {
+  router.add("GET", "/v1/ns/:ns/collections", (req) => ({
+    json: { collections: listCollections(ctx, req.auth(), req.params.ns!) },
+  }));
+
   router.add("GET", "/v1/ns/:ns/records/:collection", (req) => ({
     json: listRecords(ctx, req.auth(), req.params.ns!, req.params.collection!, {
       cursor: req.query.get("cursor") ?? undefined,
