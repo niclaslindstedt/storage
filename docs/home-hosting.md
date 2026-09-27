@@ -1,7 +1,7 @@
 # Hosting at home
 
 A Raspberry Pi, a NAS or an old laptop is plenty. The server needs Node.js
-22.13+ or Docker, about 100 MB of RAM, and disk for your (encrypted) data.
+24+ or Docker, about 100 MB of RAM, and disk for your (encrypted) data.
 
 ## The one-liner
 

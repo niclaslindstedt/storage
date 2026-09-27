@@ -52,7 +52,9 @@ export const sharedConfig: UserConfig = {
     environment: "node",
     include: ["tests/**/*_test.ts"],
     // node:sqlite prints a one-time ExperimentalWarning per worker; silence it.
-    poolOptions: { forks: { execArgv: ["--disable-warning=ExperimentalWarning"] } },
+    poolOptions: {
+      forks: { execArgv: ["--disable-warning=ExperimentalWarning"] },
+    },
     testTimeout: 30_000,
     hookTimeout: 30_000,
   },

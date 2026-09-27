@@ -3,9 +3,9 @@
 // `warn`, `error` — write to stderr (styled when it is a TTY) AND to an
 // always-on debug log file; `debug` goes to the file, and to stderr only with
 // `--debug`. stdout is reserved for a command's result (JSON, QR codes, the
-// agent surfaces), so it pipes cleanly. Nothing user-authored is ever logged: the server never holds a
-// plaintext to log, and ciphertext, tokens and codes are kept out by
-// convention (log ids and sizes, never bodies or secrets).
+// agent surfaces), so it pipes cleanly. Nothing user-authored is ever logged:
+// the server never holds a plaintext to log, and ciphertext, tokens and codes
+// are kept out by convention (log ids and sizes, never bodies or secrets).
 
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";

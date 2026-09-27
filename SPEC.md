@@ -337,6 +337,7 @@ or `If-None-Match: *`. Auth: `Authorization: Bearer <token>`.
   `POST …/uploads/:id/commit {path, meta, ifMatch?, ifNoneMatch?}`; `DELETE …/uploads/:id`.
 
 ### 6.5 Records (rows / key-value)
+
 - `GET /v1/ns/:ns/collections` → encrypted collection names with live row counts
 
 - `GET /v1/ns/:ns/records/:collection?cursor=&limit=&includeDeleted=1` → `{ records: [{ key, rev, value|null, updatedAt }], cursor?, seq }`
@@ -561,8 +562,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 ### Repository (OSS_SPEC)
 
-- [ ] R1 root files (LICENSE, README, CONTRIBUTING, COC, SECURITY, AGENTS + symlinks, CHANGELOG, .gitignore, .editorconfig, Makefile)
-- [ ] R2 .github (workflows ci/version-bump/release/pages/seo/lighthouse, templates, dependabot, CODEOWNERS)
-- [ ] R3 docs/, man/, examples/, prompts/, scripts/, .agents/skills/
-- [ ] R4 website/ (SEO scaffolding)
-- [ ] R5 `scripts/validate.sh` from oss-spec reports no structural violations
+- [x] R1 root files (LICENSE, README, CONTRIBUTING, COC, SECURITY, AGENTS + symlinks, CHANGELOG, .gitignore, .editorconfig, Makefile)
+- [x] R2 .github (workflows ci/version-bump/release/pages/seo/lighthouse, templates, dependabot, CODEOWNERS)
+- [x] R3 docs/, man/, examples/, prompts/, scripts/, .agents/skills/
+- [x] R4 website/ (SEO scaffolding)
+- [x] R5 `scripts/validate.sh` from oss-spec reports no structural violations

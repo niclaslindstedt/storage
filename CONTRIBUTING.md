@@ -7,8 +7,8 @@ the protocol or the cryptography.
 
 ## Prerequisites
 
-- **Node.js 24** (the version in [`.nvmrc`](.nvmrc); `nvm use`). The server
-  itself runs on Node ≥ 22.13, CI builds and tests on 24.
+- **Node.js 24** (the version in [`.nvmrc`](.nvmrc); `nvm use`) — the same
+  version CI builds, tests and releases with.
 - **npm 10+** (ships with Node).
 - **git**.
 - For the browser tests: Chromium via Playwright
@@ -37,6 +37,8 @@ Set `OSS_FRAMEWORK_DIR` to use a checkout somewhere else.
 make build        # server + testkit bundles
 make test         # server unit tests, testkit tests, full-stack e2e
 make test-app     # Playwright tests of the reference app
+make examples     # run every example in examples/
+make website      # build the website (source extraction → prerender → SEO files)
 make lint         # ESLint (zero warnings) + TypeScript in every workspace
 make fmt-check    # Prettier
 make man          # regenerate man/ from the CLI registry
@@ -54,8 +56,8 @@ Run one test file: `npx vitest run tests/files_test.ts` inside the workspace
    <type>(<scope>): <summary>
    ```
    Types: `feat`, `fix`, `perf`, `docs`, `test`, `refactor`, `chore`, `ci`,
-   `build`, `style`. Scopes: `server`, `cli`, `tls`, `net`, `testkit`,
-   `e2e`, `reference`, `website`, `spec`. Breaking changes: `<type>!:` or a
+   `build`, `style`, `security`. Scopes: `server`, `cli`, `tls`, `net`,
+   `testkit`, `e2e`, `app`, `website`, `spec`. Breaking changes: `<type>!:` or a
    `BREAKING CHANGE:` footer.
 4. Install the pre-commit hooks once: `make hooks` (formatting, lint,
    commit-message check, whitespace, and a guard against hand edits of

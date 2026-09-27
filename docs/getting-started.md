@@ -12,7 +12,7 @@ docker run -d --name storage --restart unless-stopped \
   ghcr.io/niclaslindstedt/storage-server:latest
 ```
 
-Or with Node.js 22.13 or newer:
+Or with Node.js 24 or newer:
 
 ```sh
 npx @niclaslindstedt/storage-server serve --data-dir ~/storage

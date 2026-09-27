@@ -27,7 +27,7 @@
     "docs"
   ],
   "engines": {
-    "node": ">=22.13"
+    "node": ">=24"
   },
   "scripts": {
     "build": "tsup",

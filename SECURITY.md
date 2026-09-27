@@ -5,9 +5,9 @@ private information. Security reports get priority over everything else.
 
 ## Supported versions
 
-| Version | Supported |
-| --- | --- |
-| Latest `0.x` release | ✅ security fixes |
+| Version              | Supported                |
+| -------------------- | ------------------------ |
+| Latest `0.x` release | ✅ security fixes        |
 | Older `0.x` releases | ❌ upgrade to the latest |
 
 Until 1.0 only the latest release line receives fixes; the Docker image tag
@@ -56,7 +56,20 @@ Out of scope:
 
 ## Publishing credentials
 
-Releases are published with OIDC trusted publishing (no long-lived tokens).
-The only exception is `RELEASE_TOKEN`, a narrowly scoped token the
-`version-bump` workflow uses to push the release tag (GitHub suppresses
-workflow triggers for the default token); it cannot publish packages.
+No long-lived publishing credential exists. The `release` workflow
+publishes the npm packages to GitHub Packages and the container image to
+GHCR with the job's own `GITHUB_TOKEN` — minted per run, scoped to
+`packages: write` on this repository, and expired when the job ends — and
+signs SLSA build-provenance attestations for both with the job's OIDC
+token (`id-token: write`). Verify an image with
+`gh attestation verify oci://ghcr.io/niclaslindstedt/storage-server:<version> --owner niclaslindstedt`.
+
+GitHub Packages' npm registry does not offer npm's OIDC trusted-publishing
+exchange; the ephemeral job token is its equivalent. If the packages move
+to npmjs.com, publishing switches to trusted publishing with
+`--provenance`.
+
+The one stored secret is `RELEASE_TOKEN`, which the `version-bump`
+workflow uses only to push the release tag (GitHub suppresses workflow
+triggers for tags pushed with the default token). It cannot publish
+packages.

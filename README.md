@@ -1,1 +1,227 @@
 # storage
+
+[![CI](https://github.com/niclaslindstedt/storage/actions/workflows/ci.yml/badge.svg)](https://github.com/niclaslindstedt/storage/actions/workflows/ci.yml)
+[![SEO](https://github.com/niclaslindstedt/storage/actions/workflows/seo.yml/badge.svg)](https://github.com/niclaslindstedt/storage/actions/workflows/seo.yml)
+[![Pages](https://github.com/niclaslindstedt/storage/actions/workflows/pages.yml/badge.svg)](https://niclaslindstedt.github.io/storage/)
+[![Release](https://img.shields.io/github/v/release/niclaslindstedt/storage?sort=semver)](https://github.com/niclaslindstedt/storage/releases)
+[![Container](https://img.shields.io/badge/ghcr.io-storage--server-blue)](https://github.com/niclaslindstedt/storage/pkgs/container/storage-server)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-lightgrey)](LICENSE)
+
+A self-hosted, end-to-end encrypted storage server for local-first apps,
+built to hold health data that nobody but its owners can read.
+
+## Why?
+
+- **The host cannot read your data.** Files, records, file names,
+  collection names and record keys are encrypted on the device; keys never
+  reach the server. A stolen disk or a curious admin sees only ciphertext.
+- **Conflicts merge per row, not per file.** Two devices edit the same
+  medication offline — one the dose, one the schedule — and both edits
+  survive. Tampering, swapping and rollback by the server are detected.
+- **Share one namespace, not your account.** Invite a carer to "Mum's
+  medication" with a QR code; they see nothing else. Removing them rotates
+  the key.
+- **Runs at home without a networking degree.** Built-in Let's Encrypt,
+  router port mapping (UPnP / NAT-PMP), QR pairing and a `doctor` command.
+- **The easiest backend to test against.** Start a real server in-process
+  in milliseconds, inject faults, move the clock, snapshot and restore.
+
+## Prerequisites
+
+- **To run it**: Docker, or **Node.js 24+** on Linux or macOS. About 100 MB
+  of RAM; disk for your (encrypted) data.
+- **To develop**: Node.js 24 (pinned in [`.nvmrc`](.nvmrc)), npm 10+, git,
+  and a checkout of
+  [oss-framework](https://github.com/niclaslindstedt/oss-framework)
+  (`make framework` clones it). Chromium via Playwright for the browser
+  tests; optional `shellcheck`, `actionlint`.
+- **Apps**: any app built on `@niclaslindstedt/oss-framework` with the
+  `storage/selfhosted` backend.
+
+## Install
+
+Container image (GitHub Container Registry, linux/amd64 and linux/arm64):
+
+```sh
+docker pull ghcr.io/niclaslindstedt/storage-server:latest
+```
+
+npm packages (GitHub Packages) — the server and the test kit:
+
+```sh
+echo "@niclaslindstedt:registry=https://npm.pkg.github.com" >> .npmrc
+npm install @niclaslindstedt/storage-server @niclaslindstedt/storage-testkit
+```
+
+From source:
+
+```sh
+git clone https://github.com/niclaslindstedt/storage.git && cd storage
+npm ci && make build
+node packages/server/dist/cli.js --version
+```
+
+## Quick start
+
+```sh
+docker run -d --name storage --restart unless-stopped \
+  -p 8443:8443 -v storage-data:/data \
+  ghcr.io/niclaslindstedt/storage-server:latest
+docker logs storage
+```
+
+The first start prints a one-time QR code. In the app, choose
+**Self-hosted** as the storage backend and scan it: that device becomes the
+admin, gets its keys, and shows a **recovery key** once — store it offline.
+Add more devices from the app (**Add device** shows a QR the new device
+scans) or invite people to a single namespace (**Share**).
+
+Make it reachable from outside your home with a real certificate:
+
+```sh
+docker run -d --name storage --network host -v storage-data:/data \
+  -e STORAGE_TLS=acme -e STORAGE_DOMAINS=home.example.org \
+  -e STORAGE_ACME_EMAIL=you@example.org -e STORAGE_UPNP=1 \
+  ghcr.io/niclaslindstedt/storage-server:latest
+```
+
+## Usage
+
+### Command line
+
+`storage-server` with no command runs `serve`. Every command has `--help`,
+an embedded man page (`storage-server man <command>`) and agent-readable
+output (`--help-agent`, `--debug-agent`, `commands --examples`).
+
+| Command       | What it does                                                         |
+| ------------- | -------------------------------------------------------------------- |
+| `serve`       | Run the storage server (the default command).                        |
+| `setup`       | Create the first admin pairing and print its QR code.                |
+| `pair`        | Print a one-time QR code that enrols a device.                       |
+| `accounts`    | List, create, update and delete accounts.                            |
+| `devices`     | List and revoke devices.                                             |
+| `namespaces`  | List namespaces (metadata only — contents are end-to-end encrypted). |
+| `audit`       | Verify or read the tamper-evident audit log.                         |
+| `backup`      | Write a consistent copy of the data directory.                       |
+| `cert`        | Show or renew the TLS certificate.                                   |
+| `upnp`        | Inspect or change router port forwarding.                            |
+| `doctor`      | Check the installation end to end.                                   |
+| `health`      | Probe the local server (for container and service health checks).    |
+| `test-server` | Run an in-memory server in test mode (for end-to-end tests).         |
+| `commands`    | List commands in a stable, grep-friendly format.                     |
+| `docs`        | Print an embedded documentation topic.                               |
+| `man`         | Print an embedded manual page.                                       |
+
+### From an app (oss-framework)
+
+```ts
+import {
+  createSelfHostedClient,
+  defaultKeyVault,
+} from "@niclaslindstedt/oss-framework/storage";
+
+const client = createSelfHostedClient({
+  app: "meds",
+  vault: defaultKeyVault("meds"), // non-extractable keys in IndexedDB, or the native keystore
+});
+await client.pair(scannedQr, { name: "My phone", platform: "ios" });
+const recoveryKey = await client.createAccountKeys(); // show once, never stored
+
+const ns = await client.createNamespace({ name: "Mum's medication" });
+const meds = ns.recordStore<Medication>("medications"); // row-level sync + merge
+meds.set("levaxin", { name: "Levaxin", dose: "50µg", updatedAt: now() });
+await meds.sync();
+
+const { payload } = await ns.invite({ role: "editor" }); // render as a QR code
+```
+
+Files (`ns.files.write / read / list / history / restore`), a
+single-document adapter for apps that store one JSON file, and live change
+events are covered in [docs/protocol.md](docs/protocol.md) and the
+framework's `src/storage/README.md`.
+
+### In tests
+
+```ts
+import { startTestServer } from "@niclaslindstedt/storage-testkit";
+import { createTestUser } from "@niclaslindstedt/storage-testkit/client";
+
+const server = await startTestServer(); // in-memory, test mode
+const { client } = await createTestUser(server, "mum", { app: "meds" });
+await server.faults.status(503, { times: 1 });
+await server.clock.advance(24 * 3600_000);
+```
+
+For browser tests run `storage-server test-server --secret <s>` and drive it
+with `connectTestServer(url, secret)`. See [docs/testing.md](docs/testing.md).
+
+## Configuration
+
+Every setting is a flag, a `STORAGE_*` environment variable, or a key in
+`<data-dir>/config.json`; precedence is flags > environment > config.json >
+defaults. The ones you are most likely to set:
+
+| Flag           | Environment          | Default                                             | Purpose                                                  |
+| -------------- | -------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| `--data-dir`   | `STORAGE_DATA_DIR`   | `~/.local/share/storage-server` (`/data` in Docker) | Database, ciphertext blobs, certificates                 |
+| `--public-url` | `STORAGE_PUBLIC_URL` | —                                                   | URL devices use from outside; goes into QR codes         |
+| `--port`       | `STORAGE_PORT`       | `8443`                                              | HTTPS port                                               |
+| `--tls`        | `STORAGE_TLS`        | `self-signed`                                       | `acme`, `files`, `self-signed` or `off` (behind a proxy) |
+| `--domain`     | `STORAGE_DOMAINS`    | —                                                   | Certificate names for ACME                               |
+| `--upnp`       | `STORAGE_UPNP`       | off                                                 | Ask the router to forward the ports                      |
+| `--cors`       | `STORAGE_CORS`       | `paired`                                            | Allow browser origins that paired, or `any`              |
+
+All settings, with defaults: [docs/configuration.md](docs/configuration.md)
+or `storage-server man serve`.
+
+## Examples
+
+[`examples/`](examples) — each runs in CI:
+
+- [node-quickstart](examples/node-quickstart) — pairing, one shared
+  encrypted namespace, a row-level merge, and proof the server holds only
+  ciphertext.
+- [app-testing](examples/app-testing) — an app's tests against a real
+  in-memory server: faults, clock, snapshots, rollback detection.
+- [home-server](examples/home-server) — Docker Compose for a home server
+  with Let's Encrypt and UPnP.
+
+[`apps/reference`](apps/reference) is a complete React app on this backend
+with Playwright tests that pair separate browser contexts as devices.
+
+## Troubleshooting
+
+Start with `storage-server doctor --public-url <url>`: it checks the data
+directory, the database, the audit chain, the certificate, router port
+mapping and NAT type, and whether the public URL answers.
+
+| Symptom                                | Fix                                                                                                                                                        |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The app cannot connect from outside    | `curl -v <url>/v1/info` from another network: a timeout means the port is not forwarded (`storage-server upnp status`; CGNAT and double NAT are reported). |
+| "Certificate not trusted" in a browser | Browsers need `--tls acme` (or `files`, or a proxy); `self-signed` is for native apps that pin the key from the QR code.                                   |
+| "Origin not allowed"                   | Pair from that origin, or add `--cors-origin https://app.example`.                                                                                         |
+| 401 after it worked                    | The device was revoked or the account disabled (`storage-server devices list`), or the device clock is far off.                                            |
+
+More in [docs/troubleshooting.md](docs/troubleshooting.md).
+
+## Documentation
+
+Hosted at **[niclaslindstedt.github.io/storage](https://niclaslindstedt.github.io/storage/)**,
+and embedded in the CLI (`storage-server docs <topic>`):
+
+- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Configuration](docs/configuration.md)
+- [Security model](docs/security.md) · [Sharing a namespace](docs/sharing.md) · [Testing](docs/testing.md)
+- [Architecture](docs/architecture.md) · [Protocol (HTTP API v1)](docs/protocol.md) · [Troubleshooting](docs/troubleshooting.md)
+- [SPEC.md](SPEC.md) — the full design specification and progress tracker.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Bugs and feature requests go to
+[Issues](https://github.com/niclaslindstedt/storage/issues), questions to
+[Discussions](https://github.com/niclaslindstedt/storage/discussions), and
+security problems privately per [SECURITY.md](SECURITY.md). This repository
+follows [OSS_SPEC.md](OSS_SPEC.md).
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE).
