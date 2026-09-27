@@ -4,6 +4,7 @@ node_modules
 .git
 coverage
 website
-apps
+apps/**
+!apps/reference/package.json
 e2e/tests
 *.log

@@ -7,7 +7,7 @@ FRAMEWORK_REF := $(shell cat e2e/framework-ref)
 OSS_FRAMEWORK_DIR ?= $(abspath ../oss-framework)
 export OSS_FRAMEWORK_DIR
 
-.PHONY: build test test-app test-unit test-e2e lint fmt fmt-check release clean framework docker website website-dev man shellcheck actionlint validate
+.PHONY: build test test-app test-unit test-e2e examples lint fmt fmt-check release clean framework hooks docker website website-dev man shellcheck actionlint validate
 
 build:
 	npm run build --workspace packages/server
@@ -26,12 +26,19 @@ test-unit:
 test-e2e:
 	npm run test --workspace e2e
 
+# Run every example (OSS_SPEC §13). Needs `make framework build`.
+examples:
+	npm run start --prefix examples/node-quickstart
+	npm run start --prefix examples/app-testing
+	examples/home-server/check.sh
+
 lint:
-	npx eslint .
+	npx eslint . --max-warnings 0
 	npx tsc --noEmit -p packages/server
 	npx tsc --noEmit -p packages/testkit
 	npx tsc --noEmit -p e2e
 	npx tsc --noEmit -p apps/reference
+	npx tsc --noEmit -p examples
 
 fmt:
 	npx prettier --write .
@@ -56,11 +63,22 @@ framework:
 docker:
 	docker build -t storage-server:dev .
 
+# Install the pre-commit and commit-msg hooks (OSS_SPEC §16).
+hooks:
+	git config core.hooksPath .githooks
+	@echo "hooks installed from .githooks/"
+
+website:
+	cd website && npm ci --no-audit --no-fund && npm run build
+
+website-dev:
+	cd website && npm install --no-audit --no-fund && npm run dev
+
 man:
 	npm run gen:man --workspace packages/server
 
 shellcheck:
-	shellcheck scripts/*.sh
+	shellcheck scripts/*.sh .githooks/* examples/*/*.sh
 
 actionlint:
 	actionlint

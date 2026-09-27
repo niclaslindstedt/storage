@@ -3,21 +3,26 @@
 # Build: docker build -t storage-server .
 # Run:   docker run -p 8443:8443 -v storage-data:/data storage-server
 
-FROM node:22.22-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY packages/server/package.json packages/server/package.json
 COPY packages/testkit/package.json packages/testkit/package.json
 COPY e2e/package.json e2e/package.json
-RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY apps/reference/package.json apps/reference/package.json
+RUN npm ci --workspace packages/server --include-workspace-root \
+      --ignore-scripts --no-audit --no-fund
 COPY tsconfig.base.json ./
 COPY docs docs
 COPY man man
 COPY packages/server packages/server
 RUN npm run build --workspace packages/server
+# The data directory must exist, owned by the runtime user, before VOLUME
+# so a fresh (named or anonymous) volume inherits nonroot ownership.
+RUN mkdir -p /data/logs && chown -R 65532:65532 /data && chmod 700 /data
 
 # Distroless: no shell, no package manager, runs as uid 65532.
-FROM gcr.io/distroless/nodejs22-debian12:nonroot
+FROM gcr.io/distroless/nodejs24-debian12:nonroot
 LABEL org.opencontainers.image.title="storage-server" \
       org.opencontainers.image.description="Self-hosted, zero-knowledge storage for local-first apps" \
       org.opencontainers.image.source="https://github.com/niclaslindstedt/storage" \
@@ -25,6 +30,7 @@ LABEL org.opencontainers.image.title="storage-server" \
 WORKDIR /app
 COPY --from=build /src/packages/server/dist ./dist
 COPY --from=build /src/packages/server/package.json ./package.json
+COPY --from=build --chown=65532:65532 /data /data
 ENV STORAGE_DATA_DIR=/data \
     STORAGE_LOG_FILE=/data/logs/debug.log \
     STORAGE_PORT=8443 \

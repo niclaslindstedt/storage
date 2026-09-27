@@ -1,0 +1,33 @@
+name: seo
+
+# §11.3.10 — structural SEO assertions against the built site: prerendered
+# body, one <h1>, per-page title/description/canonical, og:image that
+# exists, parseable JSON-LD, sitemap/robots/llms.txt, and the critical-path
+# JS budget. Errors block the PR; warnings surface as annotations.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  check-seo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: make website
+      - run: npm run typecheck
+        working-directory: website
+      - run: npm run check:seo
+        working-directory: website

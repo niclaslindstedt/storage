@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Default to no permissions — every job declares its own least-privilege
+# scopes (OSS_SPEC §10.3).
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Build + unit + full-stack e2e. The e2e suite runs the oss-framework
+  # client from source at the ref pinned in e2e/framework-ref, cloned by
+  # `make framework`. The server targets Linux and macOS hosts (Windows is
+  # served by the Docker image), so the matrix covers those two.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: make framework
+      - run: make build
+      - run: make test
+
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: make framework
+      - run: make lint
+      - run: make fmt-check
+      - name: Agent symlinks
+        run: scripts/check-symlinks.sh
+      - name: CHANGELOG is release-only
+        if: github.event_name == 'pull_request'
+        run: scripts/check-changelog.sh "origin/${{ github.base_ref }}"
+      - name: Manpages match the CLI definitions
+        run: |
+          make man
+          git diff --exit-code -- man/ || {
+            echo "::error::man/ is stale — run \`make man\` and commit the result"
+            exit 1
+          }
+
+  # Browser tests of the reference app against a real test-mode server.
+  app:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: make framework
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/reference
+      - run: make test-app
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: apps/reference/playwright-report
+          retention-days: 7
+
+  # Every example builds and runs so none can silently rot (OSS_SPEC §13).
+  examples:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: make framework
+      - run: make build
+      - run: make examples
+
+  # The production image builds, starts as non-root and reports healthy.
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: storage-server:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: scripts/docker-smoke.sh storage-server:ci
+
+  # Composition analysis: fail on high-severity advisories (OSS_SPEC §14).
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm audit --audit-level=high
+
+  # Lint workflow YAML with actionlint and shell scripts with shellcheck
+  # (OSS_SPEC §16.1), plus the least-privilege permissions audit (§10.3).
+  # shellcheck is preinstalled on ubuntu-latest.
+  shell-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          echo "${PWD}" >> "$GITHUB_PATH"
+      - run: make actionlint
+      - run: make shellcheck
+      - run: node scripts/check-workflow-permissions.mjs
