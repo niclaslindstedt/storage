@@ -99,7 +99,8 @@ export async function runCli(
     createLogger({
       file: defaultLogFile(deps.env),
       debug,
-      out: deps.out,
+      // Diagnostics go to stderr; stdout carries the command's result.
+      out: deps.err,
       err: deps.err,
       color: deps.tty,
     });

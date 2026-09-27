@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Logging (OSS_SPEC §19). Semantic helpers — `status`, `header`, `info`,
-// `warn`, `error` — write to the terminal (styled when it is a TTY) AND to an
+// `warn`, `error` — write to stderr (styled when it is a TTY) AND to an
 // always-on debug log file; `debug` goes to the file, and to stderr only with
-// `--debug`. Nothing user-authored is ever logged: the server never holds a
+// `--debug`. stdout is reserved for a command's result (JSON, QR codes, the
+// agent surfaces), so it pipes cleanly. Nothing user-authored is ever logged: the server never holds a
 // plaintext to log, and ciphertext, tokens and codes are kept out by
 // convention (log ids and sizes, never bodies or secrets).
 
@@ -23,7 +24,7 @@ export type LoggerOptions = {
   file: string | null;
   /** Mirror debug lines to stderr. */
   debug: boolean;
-  /** Terminal sink; defaults to process stdout/stderr. */
+  /** Sink for status/info/header lines; defaults to stderr (like `err`). */
   out?: (line: string) => void;
   err?: (line: string) => void;
   color?: boolean;
@@ -38,9 +39,9 @@ function describe(err: unknown): string {
 }
 
 export function createLogger(options: LoggerOptions): Logger {
-  const out = options.out ?? ((l: string) => process.stdout.write(l + "\n"));
   const errOut = options.err ?? ((l: string) => process.stderr.write(l + "\n"));
-  const color = options.color ?? Boolean(process.stdout.isTTY);
+  const out = options.out ?? errOut;
+  const color = options.color ?? Boolean(process.stderr.isTTY);
   let fileOk = options.file !== null;
   if (options.file) {
     try {

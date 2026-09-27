@@ -555,9 +555,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 ### Reference app (`apps/reference`)
 
-- [ ] A1 Vite + React app on `oss-framework/storage/selfhosted`: pair (QR/paste), recovery key, namespaces, files, rows, sharing, conflicts, sync status
-- [ ] A2 testability: `data-testid` everywhere, deterministic ids/clock hooks, `?server=` param, in-page event log
-- [ ] A3 Playwright suite against `storage-server test-server` (two browser contexts = two devices / two people)
+- [x] A1 Vite + React app on `oss-framework/storage/selfhosted`: pair (QR/paste), recovery key, namespaces, files, rows, sharing, conflicts, sync status
+- [x] A2 testability: `data-testid` everywhere, deterministic ids/clock hooks, `?server=` param, in-page event log
+- [x] A3 Playwright suite against `storage-server test-server` (two browser contexts = two devices / two people)
 
 ### Repository (OSS_SPEC)
 
