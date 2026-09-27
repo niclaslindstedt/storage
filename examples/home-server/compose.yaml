@@ -1,0 +1,31 @@
+# A home server on a Raspberry Pi or NAS: Let's Encrypt certificate, router
+# port mapping via UPnP / NAT-PMP, data on a named volume.
+#   1. Point home.example.org at your public IP (or use a dynamic-DNS name).
+#   2. Edit the environment below.
+#   3. docker compose up -d && docker compose exec storage /nodejs/bin/node \
+#        /app/dist/cli.js setup --account you
+services:
+  storage:
+    image: ghcr.io/niclaslindstedt/storage-server:latest
+    restart: unless-stopped
+    network_mode: host # lets UPnP / NAT-PMP reach the router
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+    volumes:
+      - storage-data:/data
+    environment:
+      STORAGE_NAME: home
+      STORAGE_TLS: acme
+      STORAGE_DOMAINS: home.example.org
+      STORAGE_ACME_EMAIL: you@example.org
+      STORAGE_PORT: "8443"
+      STORAGE_HTTP_PORT: "8080"
+      STORAGE_PUBLIC_URL: https://home.example.org
+      STORAGE_UPNP: "1"
+      # The admin console stays on the host's loopback (127.0.0.1:8081), which
+      # host networking shares. Never set 0.0.0.0 here: it would reach the LAN.
+      STORAGE_ADMIN_HOST: 127.0.0.1
+volumes:
+  storage-data:

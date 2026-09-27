@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@niclaslindstedt/storage-server": ["../packages/server/src/index.ts"],
+      "@niclaslindstedt/storage-testkit": ["../packages/testkit/src/index.ts"],
+      "@niclaslindstedt/storage-testkit/client": [
+        "../packages/testkit/src/client.ts"
+      ],
+      "@niclaslindstedt/oss-framework/storage": [
+        "../../oss-framework/src/storage/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "tests",
+    "vitest.config.ts",
+    "../../oss-framework/src/storage/folder/fsa.d.ts",
+    "../packages/server/src/md.d.ts"
+  ]
+}

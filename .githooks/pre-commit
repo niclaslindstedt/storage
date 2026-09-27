@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Pre-commit gate (OSS_SPEC §16). Install with `make hooks`.
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+# Trailing whitespace in staged text (markdown hard breaks excepted).
+if git diff --cached --check -- . ':(exclude)*.md' ':(exclude)man/*' >/dev/null 2>&1; then :; else
+  git diff --cached --check -- . ':(exclude)*.md' ':(exclude)man/*'
+  echo "pre-commit: trailing whitespace (see above)" >&2
+  exit 1
+fi
+
+scripts/check-changelog.sh --staged
+scripts/check-symlinks.sh
+make fmt-check
+make lint
+
+if grep -qE '^(scripts/.*\.sh|\.githooks/)' <<<"$staged"; then
+  if command -v shellcheck >/dev/null; then make shellcheck; else
+    echo "pre-commit: shellcheck not installed; skipping (CI runs it)" >&2
+  fi
+fi
+if grep -q '^\.github/workflows/' <<<"$staged"; then
+  node scripts/check-workflow-permissions.mjs
+  if command -v actionlint >/dev/null; then make actionlint; else
+    echo "pre-commit: actionlint not installed; skipping (CI runs it)" >&2
+  fi
+fi

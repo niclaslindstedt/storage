@@ -1,0 +1,35 @@
+name: version-bump
+
+# The single entry point for a release (OSS_SPEC §10.3). Computes the next
+# semver from the conventional commits since the last v* tag and pushes a
+# lightweight vX.Y.Z tag on main. The push authenticates with RELEASE_TOKEN
+# (a PAT or GitHub App token) because the default GITHUB_TOKEN suppresses
+# downstream triggers and the tag would not start `release`. Touches no
+# files and pushes no commits, so it is safe to re-run.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type (auto | patch | minor | major)"
+        required: false
+        default: "auto"
+        type: choice
+        options: ["auto", "patch", "minor", "major"]
+
+permissions: {}
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - name: Tag and git push the next version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: scripts/release.sh "$BUMP"

@@ -1,0 +1,8 @@
+{
+  "name": "storage-example-node-quickstart",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vite-node --config ../vite.config.ts main.ts"
+  }
+}

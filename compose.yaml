@@ -1,0 +1,30 @@
+# Home server with a Let's Encrypt certificate and automatic port forwarding.
+# Edit the environment, then: docker compose up -d && docker compose logs -f
+services:
+  storage:
+    image: ghcr.io/niclaslindstedt/storage-server:latest
+    build: .
+    restart: unless-stopped
+    # Host networking lets UPnP / NAT-PMP reach the router. Without --upnp you
+    # can use `ports: ["443:8443", "80:8080"]` instead.
+    network_mode: host
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+    volumes:
+      - storage-data:/data
+    environment:
+      STORAGE_NAME: home
+      STORAGE_TLS: acme
+      STORAGE_DOMAINS: home.example.org
+      STORAGE_ACME_EMAIL: you@example.org
+      STORAGE_PORT: "8443"
+      STORAGE_HTTP_PORT: "8080"
+      STORAGE_PUBLIC_URL: https://home.example.org
+      STORAGE_UPNP: "1"
+      # The admin console stays on the host's loopback (127.0.0.1:8081), which
+      # host networking shares. Never set 0.0.0.0 here: it would reach the LAN.
+      STORAGE_ADMIN_HOST: 127.0.0.1
+volumes:
+  storage-data:

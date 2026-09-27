@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "paths": {
+      "@niclaslindstedt/oss-framework/storage": [
+        "../../../oss-framework/src/storage/index.ts"
+      ],
+      "@niclaslindstedt/oss-framework/qr": [
+        "../../../oss-framework/src/qr/index.ts"
+      ],
+      "@niclaslindstedt/storage-server": ["../../packages/server/src/index.ts"]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    "vite.config.ts",
+    "playwright.config.ts",
+    "../../../oss-framework/src/storage/folder/fsa.d.ts"
+  ]
+}

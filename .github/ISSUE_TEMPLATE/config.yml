@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/niclaslindstedt/storage/security/advisories/new
+    about: Report vulnerabilities privately (see SECURITY.md), never in a public issue.
+  - name: Questions and ideas
+    url: https://github.com/niclaslindstedt/storage/discussions
+    about: Ask how to host, pair or build on storage-server.

@@ -1,0 +1,31 @@
+{
+  "name": "storage-website",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Showcase and hosted docs for storage-server, prerendered for GitHub Pages.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "scripts": {
+    "extract": "node scripts/extract-source-data.mjs",
+    "dev": "npm run extract && vite",
+    "build": "npm run extract && vite build && node scripts/prerender.mjs && node scripts/generate-seo.mjs",
+    "check:seo": "node scripts/check-seo.mjs",
+    "preview": "node scripts/serve-dist.mjs",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "marked": "^18.0.14",
+    "satori": "^0.33.5",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.0"
+  }
+}

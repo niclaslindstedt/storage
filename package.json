@@ -1,0 +1,38 @@
+{
+  "name": "storage-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted, end-to-end encrypted storage backend for local-first PWAs.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Niclas Lindstedt <niclas@agilator.se>",
+  "type": "module",
+  "workspaces": [
+    "packages/server",
+    "packages/testkit",
+    "e2e",
+    "apps/reference"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint . && npm run typecheck --workspaces --if-present",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.4",
+    "@typescript-eslint/eslint-plugin": "^8.70.1",
+    "@typescript-eslint/parser": "^8.70.1",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0",
+    "jsqr": "^1.4.0",
+    "prettier": "^3.9.9",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "src",
+    "tests",
+    "scripts",
+    "tsup.config.ts",
+    "vitest.config.ts",
+    "browser-tests",
+    "playwright.config.ts"
+  ],
+  "exclude": ["src/admin/ui"]
+}

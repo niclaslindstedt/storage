@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/
+/data/
+website/dist/
+website/src/generated/
+apps/reference/test-results/
+apps/reference/playwright-report/
+.lighthouseci/
+website/.ssr-build/
+packages/server/.admin-e2e/
+packages/server/test-results/
+packages/server/playwright-report/
