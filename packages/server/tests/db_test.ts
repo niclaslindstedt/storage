@@ -91,7 +91,9 @@ describe("openDatabase", () => {
     expect(db.get("SELECT key FROM settings WHERE key='outer'")).toEqual({
       key: "outer",
     });
-    expect(db.get("SELECT key FROM settings WHERE key='inner'")).toBeUndefined();
+    expect(
+      db.get("SELECT key FROM settings WHERE key='inner'"),
+    ).toBeUndefined();
   });
 
   it("enforces foreign keys", () => {

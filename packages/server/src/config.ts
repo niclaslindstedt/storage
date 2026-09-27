@@ -112,7 +112,12 @@ export const DEFAULT_CONFIG: ServerConfig = {
     inviteSeconds: 7 * 24 * 3600,
     uploadSeconds: 24 * 3600,
   },
-  retention: { historyCount: 20, historyDays: 30, trashDays: 30, tombstoneDays: 90 },
+  retention: {
+    historyCount: 20,
+    historyDays: 30,
+    trashDays: 30,
+    tombstoneDays: 90,
+  },
   rateLimit: { publicPerMinute: 30, devicePerMinute: 1200 },
   defaultQuotaBytes: null,
   testMode: false,

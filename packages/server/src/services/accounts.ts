@@ -8,6 +8,7 @@ import { badRequest, conflict, notFound, quotaExceeded } from "../errors.ts";
 import { checkB64u } from "../validate.ts";
 import { importP256Public } from "../crypto.ts";
 import { newId } from "../util/random.ts";
+import { deleteNamespace } from "./namespaces.ts";
 import { type AccountRole, NAME_PATTERN, type Principal } from "./principal.ts";
 
 export type Account = {
@@ -49,7 +50,9 @@ function toAccount(ctx: Ctx, row: AccountRow): Account {
 }
 
 export function getAccountRow(ctx: Ctx, id: string): AccountRow | null {
-  return ctx.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", id) ?? null;
+  return (
+    ctx.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", id) ?? null
+  );
 }
 
 export function getAccount(ctx: Ctx, id: string): Account | null {
@@ -58,7 +61,10 @@ export function getAccount(ctx: Ctx, id: string): Account | null {
 }
 
 export function findAccountByName(ctx: Ctx, name: string): Account | null {
-  const row = ctx.db.get<AccountRow>("SELECT * FROM accounts WHERE name = ?", name);
+  const row = ctx.db.get<AccountRow>(
+    "SELECT * FROM accounts WHERE name = ?",
+    name,
+  );
   return row ? toAccount(ctx, row) : null;
 }
 
@@ -69,8 +75,14 @@ export function listAccounts(ctx: Ctx): Account[] {
 }
 
 export function checkAccountName(name: unknown): string {
-  if (typeof name !== "string" || !NAME_PATTERN.test(name) || name.trim() !== name) {
-    throw badRequest("name must be 1-64 printable characters without surrounding spaces");
+  if (
+    typeof name !== "string" ||
+    !NAME_PATTERN.test(name) ||
+    name.trim() !== name
+  ) {
+    throw badRequest(
+      "name must be 1-64 printable characters without surrounding spaces",
+    );
   }
   return name;
 }
@@ -103,7 +115,8 @@ export function createAccount(
         ? null
         : ctx.config.defaultQuotaBytes
       : checkQuota(input.quotaBytes);
-  if (findAccountByName(ctx, name)) throw conflict("an account with that name exists");
+  if (findAccountByName(ctx, name))
+    throw conflict("an account with that name exists");
   const id = newId("acc");
   ctx.db.run(
     "INSERT INTO accounts(id, name, role, quota_bytes, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -113,14 +126,24 @@ export function createAccount(
     quota,
     ctx.clock.now(),
   );
-  ctx.audit.append({ actor, action: "account.create", target: id, detail: { role } });
+  ctx.audit.append({
+    actor,
+    action: "account.create",
+    target: id,
+    detail: { role },
+  });
   return getAccount(ctx, id)!;
 }
 
 export function updateAccount(
   ctx: Ctx,
   id: string,
-  patch: { name?: string; role?: AccountRole; quotaBytes?: number | null; disabled?: boolean },
+  patch: {
+    name?: string;
+    role?: AccountRole;
+    quotaBytes?: number | null;
+    disabled?: boolean;
+  },
   actor: string | null,
 ): Account {
   const row = getAccountRow(ctx, id);
@@ -129,7 +152,8 @@ export function updateAccount(
     if (patch.name !== undefined) {
       const name = checkAccountName(patch.name);
       const other = findAccountByName(ctx, name);
-      if (other && other.id !== id) throw conflict("an account with that name exists");
+      if (other && other.id !== id)
+        throw conflict("an account with that name exists");
       ctx.db.run("UPDATE accounts SET name = ? WHERE id = ?", name, id);
     }
     if (patch.role !== undefined) {
@@ -138,7 +162,11 @@ export function updateAccount(
       ctx.db.run("UPDATE accounts SET role = ? WHERE id = ?", role, id);
     }
     if (patch.quotaBytes !== undefined) {
-      ctx.db.run("UPDATE accounts SET quota_bytes = ? WHERE id = ?", checkQuota(patch.quotaBytes), id);
+      ctx.db.run(
+        "UPDATE accounts SET quota_bytes = ? WHERE id = ?",
+        checkQuota(patch.quotaBytes),
+        id,
+      );
     }
     if (patch.disabled !== undefined) {
       if (patch.disabled && row.role === "admin") assertAnotherAdmin(ctx, id);
@@ -158,9 +186,19 @@ export function updateAccount(
       actor,
       action: "account.update",
       target: id,
-      detail: Object.fromEntries(Object.entries(patch).filter(([k]) => k !== "name")),
+      detail: Object.fromEntries(
+        Object.entries(patch).filter(([k]) => k !== "name"),
+      ),
     });
   });
+  if (patch.disabled) {
+    for (const d of ctx.db.all<{ id: string }>(
+      "SELECT id FROM devices WHERE account_id = ?",
+      id,
+    )) {
+      ctx.events.revokeDevice(d.id);
+    }
+  }
   return getAccount(ctx, id)!;
 }
 
@@ -183,19 +221,28 @@ export function accountUsage(ctx: Ctx, accountId: string): number {
 }
 
 /** Throw 507 if storing `extraBytes` more would exceed the owner's quota. */
-export function assertQuota(ctx: Ctx, ownerAccountId: string, extraBytes: number): void {
+export function assertQuota(
+  ctx: Ctx,
+  ownerAccountId: string,
+  extraBytes: number,
+): void {
   if (extraBytes <= 0) return;
   const row = getAccountRow(ctx, ownerAccountId);
   if (!row || row.quota_bytes === null) return;
   const used = accountUsage(ctx, ownerAccountId);
-  if (used + extraBytes > row.quota_bytes) throw quotaExceeded(used, row.quota_bytes);
+  if (used + extraBytes > row.quota_bytes)
+    throw quotaExceeded(used, row.quota_bytes);
 }
 
 export function getAccountKeys(
   ctx: Ctx,
   accountId: string,
   deviceId: string,
-): { aekPublic: string | null; recoveryWrap: string | null; deviceWrap: string | null } {
+): {
+  aekPublic: string | null;
+  recoveryWrap: string | null;
+  deviceWrap: string | null;
+} {
   const acc = getAccountRow(ctx, accountId);
   const dev = ctx.db.get<{ device_wrap: string | null }>(
     "SELECT device_wrap FROM devices WHERE id = ? AND account_id = ?",
@@ -218,7 +265,11 @@ export function getAccountKeys(
 export async function setAccountKeys(
   ctx: Ctx,
   principal: Principal,
-  input: { aekPublic?: string; recoveryWrap?: string; deviceWraps?: Record<string, string> },
+  input: {
+    aekPublic?: string;
+    recoveryWrap?: string;
+    deviceWraps?: Record<string, string>;
+  },
 ): Promise<void> {
   const acc = getAccountRow(ctx, principal.accountId);
   if (!acc) throw notFound("no such account");
@@ -228,7 +279,8 @@ export async function setAccountKeys(
       throw conflict("the account key is already set", { reason: "aek_set" });
     }
   }
-  if (input.recoveryWrap !== undefined) checkWrap(input.recoveryWrap, "recoveryWrap");
+  if (input.recoveryWrap !== undefined)
+    checkWrap(input.recoveryWrap, "recoveryWrap");
   const wraps = Object.entries(input.deviceWraps ?? {});
   for (const [deviceId, wrap] of wraps) {
     checkWrap(wrap, `deviceWraps.${deviceId}`);
@@ -239,18 +291,34 @@ export async function setAccountKeys(
     );
     if (!dev) throw badRequest(`deviceWraps: unknown device ${deviceId}`);
   }
-  if (acc.aek_public === null && input.aekPublic === undefined && wraps.length > 0) {
+  if (
+    acc.aek_public === null &&
+    input.aekPublic === undefined &&
+    wraps.length > 0
+  ) {
     throw badRequest("set aekPublic before wrapping it to devices");
   }
   ctx.db.tx(() => {
     if (input.aekPublic !== undefined && acc.aek_public === null) {
-      ctx.db.run("UPDATE accounts SET aek_public = ? WHERE id = ?", input.aekPublic, acc.id);
+      ctx.db.run(
+        "UPDATE accounts SET aek_public = ? WHERE id = ?",
+        input.aekPublic,
+        acc.id,
+      );
     }
     if (input.recoveryWrap !== undefined) {
-      ctx.db.run("UPDATE accounts SET recovery_wrap = ? WHERE id = ?", input.recoveryWrap, acc.id);
+      ctx.db.run(
+        "UPDATE accounts SET recovery_wrap = ? WHERE id = ?",
+        input.recoveryWrap,
+        acc.id,
+      );
     }
     for (const [deviceId, wrap] of wraps) {
-      ctx.db.run("UPDATE devices SET device_wrap = ? WHERE id = ?", wrap, deviceId);
+      ctx.db.run(
+        "UPDATE devices SET device_wrap = ? WHERE id = ?",
+        wrap,
+        deviceId,
+      );
     }
     ctx.audit.append({
       actor: principal.deviceId,
@@ -266,8 +334,38 @@ export async function setAccountKeys(
 }
 
 export function checkWrap(wrap: unknown, what: string): string {
-  if (typeof wrap !== "string" || wrap.length === 0) throw badRequest(`${what} is required`);
+  if (typeof wrap !== "string" || wrap.length === 0)
+    throw badRequest(`${what} is required`);
   const bytes = checkB64u(wrap, what);
-  if (bytes.byteLength > MAX_WRAP_BYTES) throw badRequest(`${what} is too large`);
+  if (bytes.byteLength > MAX_WRAP_BYTES)
+    throw badRequest(`${what} is too large`);
   return wrap;
+}
+
+/**
+ * Delete an account: its devices and memberships go with it, and so does
+ * every namespace it owns — for all members. Callers confirm first.
+ */
+export async function deleteAccount(
+  ctx: Ctx,
+  id: string,
+  actor: string | null,
+): Promise<void> {
+  const row = getAccountRow(ctx, id);
+  if (!row) throw notFound("no such account");
+  if (row.role === "admin") assertAnotherAdmin(ctx, id);
+  const owned = ctx.db.all<{ id: string }>(
+    "SELECT id FROM namespaces WHERE owner_account_id = ?",
+    id,
+  );
+  for (const ns of owned) await deleteNamespace(ctx, null, ns.id);
+  const devices = ctx.db.all<{ id: string }>(
+    "SELECT id FROM devices WHERE account_id = ?",
+    id,
+  );
+  ctx.db.tx(() => {
+    ctx.db.run("DELETE FROM accounts WHERE id = ?", id);
+    ctx.audit.append({ actor, action: "account.delete", target: id });
+  });
+  for (const d of devices) ctx.events.revokeDevice(d.id);
 }

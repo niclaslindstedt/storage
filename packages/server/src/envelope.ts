@@ -21,19 +21,27 @@ export function envelopeEpoch(bytes: Uint8Array, what: string): number {
       throw badRequest(`${what} is not an OSE1 envelope`);
     }
   }
-  if (bytes[4] !== 1) throw badRequest(`${what} has an unknown envelope version`);
+  if (bytes[4] !== 1)
+    throw badRequest(`${what} has an unknown envelope version`);
   return (
     ((bytes[5]! << 24) | (bytes[6]! << 16) | (bytes[7]! << 8) | bytes[8]!) >>> 0
   );
 }
 
 /** Enforce that a ciphertext was sealed under the namespace's current epoch. */
-export function requireEpoch(bytes: Uint8Array, epoch: number, what: string): void {
+export function requireEpoch(
+  bytes: Uint8Array,
+  epoch: number,
+  what: string,
+): void {
   const got = envelopeEpoch(bytes, what);
   if (got !== epoch) {
-    throw badRequest(`${what} is sealed under epoch ${got}; current is ${epoch}`, {
-      reason: "stale_epoch",
-      epoch,
-    });
+    throw badRequest(
+      `${what} is sealed under epoch ${got}; current is ${epoch}`,
+      {
+        reason: "stale_epoch",
+        epoch,
+      },
+    );
   }
 }

@@ -7,7 +7,13 @@
 // hashed, single-use and short-lived.
 
 import type { Ctx } from "../context.ts";
-import { badRequest, conflict, forbidden, notFound, unauthenticated } from "../errors.ts";
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  notFound,
+  unauthenticated,
+} from "../errors.ts";
 import { newId, newSecret, sha256B64u } from "../util/random.ts";
 import {
   type Account,
@@ -18,7 +24,12 @@ import {
   getAccountRow,
 } from "./accounts.ts";
 import { type DeviceInput, checkDeviceInput, insertDevice } from "./devices.ts";
-import { type AccountRole, type Principal, type RequestMeta, SECRET_PATTERN } from "./principal.ts";
+import {
+  type AccountRole,
+  type Principal,
+  type RequestMeta,
+  SECRET_PATTERN,
+} from "./principal.ts";
 
 export type PairingInput = {
   accountId?: string;
@@ -30,7 +41,11 @@ export type PairingInput = {
   transfer?: string;
 };
 
-export type PairingCreated = { pairingId: string; code?: string; expiresAt: number };
+export type PairingCreated = {
+  pairingId: string;
+  code?: string;
+  expiresAt: number;
+};
 
 export function createPairing(
   ctx: Ctx,
@@ -87,13 +102,19 @@ export function createPairing(
     actor,
     action: "pairing.create",
     target: id,
-    detail: { account: input.accountId ?? null, newAccount: input.newAccount?.role ?? null },
+    detail: {
+      account: input.accountId ?? null,
+      newAccount: input.newAccount?.role ?? null,
+    },
   });
   return { pairingId: id, ...(minted ? { code: minted } : {}), expiresAt };
 }
 
 /** A device may mint pairings for its own account; admins for anyone. */
-export function authorizePairing(principal: Principal, input: PairingInput): void {
+export function authorizePairing(
+  principal: Principal,
+  input: PairingInput,
+): void {
   if (principal.role === "admin") return;
   if (principal.role === "guest") throw forbidden("guests cannot add devices");
   if (input.newAccount || input.accountId !== principal.accountId) {
@@ -128,7 +149,11 @@ export async function redeemPairing(
     if (!row || row.used_at !== null || row.expires_at < ctx.clock.now()) {
       throw unauthenticated("invalid or expired pairing code");
     }
-    ctx.db.run("UPDATE pairings SET used_at = ? WHERE id = ?", ctx.clock.now(), row.id);
+    ctx.db.run(
+      "UPDATE pairings SET used_at = ? WHERE id = ?",
+      ctx.clock.now(),
+      row.id,
+    );
     let accountId = row.account_id;
     if (accountId === null) {
       if (findAccountByName(ctx, row.new_account_name!)) {
@@ -151,7 +176,8 @@ export async function redeemPairing(
       });
     }
     const acc = getAccountRow(ctx, accountId);
-    if (!acc || acc.disabled_at !== null) throw unauthenticated("account is disabled");
+    if (!acc || acc.disabled_at !== null)
+      throw unauthenticated("account is disabled");
     const deviceId = insertDevice(ctx, accountId, device, meta.origin);
     ctx.audit.append({
       actor: deviceId,

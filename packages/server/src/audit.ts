@@ -60,7 +60,15 @@ export class AuditLog {
       const detail = input.detail ? JSON.stringify(input.detail) : null;
       const target = input.target ?? null;
       const ip = input.ip ?? null;
-      const hash = entryHash(prev, at, input.actor, input.action, target, ip, detail);
+      const hash = entryHash(
+        prev,
+        at,
+        input.actor,
+        input.action,
+        target,
+        ip,
+        detail,
+      );
       this.db.run(
         "INSERT INTO audit(at, actor, action, target, ip, detail, prev_hash, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         at,
@@ -104,8 +112,9 @@ export class AuditLog {
   /** The newest entry's hash — the value to anchor elsewhere. */
   head(): string {
     return (
-      this.db.get<{ hash: string }>("SELECT hash FROM audit ORDER BY id DESC LIMIT 1")
-        ?.hash ?? GENESIS
+      this.db.get<{ hash: string }>(
+        "SELECT hash FROM audit ORDER BY id DESC LIMIT 1",
+      )?.hash ?? GENESIS
     );
   }
 
@@ -118,7 +127,15 @@ export class AuditLog {
       const page = this.list(after, 1000);
       if (page.length === 0) break;
       for (const e of page) {
-        const expected = entryHash(prev, e.at, e.actor, e.action, e.target, e.ip, e.detail);
+        const expected = entryHash(
+          prev,
+          e.at,
+          e.actor,
+          e.action,
+          e.target,
+          e.ip,
+          e.detail,
+        );
         if (e.prevHash !== prev || e.hash !== expected) {
           return { ok: false, count, brokenAt: e.id };
         }

@@ -41,9 +41,7 @@ for (const [name, make] of [
       expect(a).toEqual({ hash: sha256Hex(data), size: 5 });
       expect(b).toEqual(a);
       expect(await store.has(a.hash)).toBe(true);
-      expect(Buffer.from((await store.read(a.hash))!).toString()).toBe(
-        "hello",
-      );
+      expect(Buffer.from((await store.read(a.hash))!).toString()).toBe("hello");
       expect((await readStream(store, a.hash)).toString()).toBe("hello");
     });
 

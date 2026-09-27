@@ -23,7 +23,10 @@ function liveDevice(ctx: Ctx, deviceId: string): LiveDevice | null {
   );
 }
 
-export function createChallenge(ctx: Ctx, deviceId: string): { challenge: string; expiresAt: number } {
+export function createChallenge(
+  ctx: Ctx,
+  deviceId: string,
+): { challenge: string; expiresAt: number } {
   if (typeof deviceId !== "string" || !liveDevice(ctx, deviceId)) {
     throw unauthenticated("unknown or revoked device");
   }
@@ -51,7 +54,12 @@ export async function issueToken(
     input.challenge,
   );
   ctx.db.run("DELETE FROM challenges WHERE challenge = ?", input.challenge);
-  if (!device || !row || row.device_id !== device.id || row.expires_at < ctx.clock.now()) {
+  if (
+    !device ||
+    !row ||
+    row.device_id !== device.id ||
+    row.expires_at < ctx.clock.now()
+  ) {
     throw unauthenticated("invalid challenge");
   }
   const ok = await verifySignature(
@@ -74,12 +82,17 @@ export async function issueToken(
     now,
     expiresAt,
   );
-  ctx.db.run("UPDATE devices SET last_seen_at = ? WHERE id = ?", now, device.id);
+  ctx.db.run(
+    "UPDATE devices SET last_seen_at = ? WHERE id = ?",
+    now,
+    device.id,
+  );
   return { token, expiresAt, accountId: device.account_id };
 }
 
 export function authenticate(ctx: Ctx, token: string): Principal | null {
-  if (typeof token !== "string" || token.length < 20 || token.length > 100) return null;
+  if (typeof token !== "string" || token.length < 20 || token.length > 100)
+    return null;
   const row = ctx.db.get<{
     device_id: string;
     account_id: string;

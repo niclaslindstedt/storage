@@ -25,7 +25,10 @@ import { createPairing, redeemPairing } from "../src/services/pairing.ts";
 import { newSecret } from "../src/util/random.ts";
 import { deviceKeys, signChallenge, testContext } from "./helpers.ts";
 
-async function expectApiError(p: Promise<unknown> | (() => unknown), code: string) {
+async function expectApiError(
+  p: Promise<unknown> | (() => unknown),
+  code: string,
+) {
   try {
     await (typeof p === "function" ? p() : p);
   } catch (err) {
@@ -40,16 +43,28 @@ describe("accounts", () => {
   it("keeps at least one active admin", async () => {
     const ctx = testContext();
     const a = createAccount(ctx, { name: "root", role: "admin" });
-    await expectApiError(() => updateAccount(ctx, a.id, { role: "member" }, "cli"), "conflict");
-    await expectApiError(() => updateAccount(ctx, a.id, { disabled: true }, "cli"), "conflict");
+    await expectApiError(
+      () => updateAccount(ctx, a.id, { role: "member" }, "cli"),
+      "conflict",
+    );
+    await expectApiError(
+      () => updateAccount(ctx, a.id, { disabled: true }, "cli"),
+      "conflict",
+    );
   });
 
   it("creates accounts with unique, case-insensitive names", async () => {
     const ctx = testContext();
     const a = createAccount(ctx, { name: "Alice", role: "admin" });
     expect(a).toMatchObject({ name: "Alice", role: "admin", quotaBytes: null });
-    await expectApiError(() => createAccount(ctx, { name: "alice", role: "member" }), "conflict");
-    await expectApiError(() => createAccount(ctx, { name: "", role: "member" }), "invalid_request");
+    await expectApiError(
+      () => createAccount(ctx, { name: "alice", role: "member" }),
+      "conflict",
+    );
+    await expectApiError(
+      () => createAccount(ctx, { name: "", role: "member" }),
+      "invalid_request",
+    );
     await expectApiError(
       () => createAccount(ctx, { name: "bad\u0000name", role: "member" }),
       "invalid_request",
@@ -61,7 +76,12 @@ describe("accounts", () => {
     const ctx = testContext({ defaultQuotaBytes: 1000 });
     const a = createAccount(ctx, { name: "bob", role: "member" });
     expect(a.quotaBytes).toBe(1000);
-    const b = updateAccount(ctx, a.id, { quotaBytes: null, role: "guest" }, "cli");
+    const b = updateAccount(
+      ctx,
+      a.id,
+      { quotaBytes: null, role: "guest" },
+      "cli",
+    );
     expect(b).toMatchObject({ quotaBytes: null, role: "guest" });
     expect(accountUsage(ctx, a.id)).toBe(0);
   });
@@ -71,14 +91,22 @@ describe("pairing", () => {
   it("enrols a device into an existing account exactly once", async () => {
     const ctx = testContext();
     const acc = createAccount(ctx, { name: "alice", role: "admin" });
-    const { code, expiresAt } = createPairing(ctx, { accountId: acc.id }, "cli");
+    const { code, expiresAt } = createPairing(
+      ctx,
+      { accountId: acc.id },
+      "cli",
+    );
     expect(expiresAt).toBe(ctx.clock.now() + 600_000);
     const keys = await deviceKeys();
     const device = { name: "Phone", platform: "web", ...keys };
-    const out = await redeemPairing(ctx, { code: code!, device }, {
-      ip: "10.0.0.2",
-      origin: "https://notes.example",
-    });
+    const out = await redeemPairing(
+      ctx,
+      { code: code!, device },
+      {
+        ip: "10.0.0.2",
+        origin: "https://notes.example",
+      },
+    );
     expect(out.accountId).toBe(acc.id);
     expect(out.deviceId).toMatch(/^dev_/);
     await expectApiError(
@@ -93,10 +121,17 @@ describe("pairing", () => {
 
   it("creates a new account when the pairing says so", async () => {
     const ctx = testContext();
-    const { code } = createPairing(ctx, { newAccount: { name: "carol", role: "member" } }, "cli");
+    const { code } = createPairing(
+      ctx,
+      { newAccount: { name: "carol", role: "member" } },
+      "cli",
+    );
     const out = await redeemPairing(
       ctx,
-      { code: code!, device: { name: "Laptop", platform: "web", ...(await deviceKeys()) } },
+      {
+        code: code!,
+        device: { name: "Laptop", platform: "web", ...(await deviceKeys()) },
+      },
       { ip: null, origin: null },
     );
     expect(out.account).toMatchObject({ name: "carol", role: "member" });
@@ -109,7 +144,15 @@ describe("pairing", () => {
     await expectApiError(
       redeemPairing(
         ctx,
-        { code: code!, device: { name: "x", platform: "web", dskPublic: "AAAA", dekPublic: "AAAA" } },
+        {
+          code: code!,
+          device: {
+            name: "x",
+            platform: "web",
+            dskPublic: "AAAA",
+            dekPublic: "AAAA",
+          },
+        },
         { ip: null, origin: null },
       ),
       "invalid_request",
@@ -118,7 +161,10 @@ describe("pairing", () => {
     await expectApiError(
       redeemPairing(
         ctx,
-        { code: code!, device: { name: "x", platform: "web", ...(await deviceKeys()) } },
+        {
+          code: code!,
+          device: { name: "x", platform: "web", ...(await deviceKeys()) },
+        },
         { ip: null, origin: null },
       ),
       "unauthenticated",
@@ -129,7 +175,11 @@ describe("pairing", () => {
     const ctx = testContext();
     const acc = createAccount(ctx, { name: "a", role: "member" });
     const code = newSecret();
-    const res = createPairing(ctx, { accountId: acc.id, code, transfer: "c2VhbGVk" }, acc.id);
+    const res = createPairing(
+      ctx,
+      { accountId: acc.id, code, transfer: "c2VhbGVk" },
+      acc.id,
+    );
     expect(res.code).toBeUndefined();
     const out = await redeemPairing(
       ctx,
@@ -157,13 +207,25 @@ describe("auth", () => {
   it("issues a token for a valid signature over a fresh challenge", async () => {
     const { ctx, keys, deviceId, acc } = await paired();
     const { challenge } = createChallenge(ctx, deviceId);
-    const signature = await signChallenge(keys, ctx.serverId, deviceId, challenge);
-    const { token, expiresAt } = await issueToken(ctx, { deviceId, challenge, signature }, null);
+    const signature = await signChallenge(
+      keys,
+      ctx.serverId,
+      deviceId,
+      challenge,
+    );
+    const { token, expiresAt } = await issueToken(
+      ctx,
+      { deviceId, challenge, signature },
+      null,
+    );
     expect(expiresAt).toBe(ctx.clock.now() + 600_000);
     const p = authenticate(ctx, token);
     expect(p).toMatchObject({ accountId: acc.id, deviceId, role: "admin" });
     // challenges are single use
-    await expectApiError(issueToken(ctx, { deviceId, challenge, signature }, null), "unauthenticated");
+    await expectApiError(
+      issueToken(ctx, { deviceId, challenge, signature }, null),
+      "unauthenticated",
+    );
     // tokens expire
     ctx.clock.advance(600_001);
     expect(authenticate(ctx, token)).toBeNull();
@@ -174,35 +236,68 @@ describe("auth", () => {
     const other = await deviceKeys();
     const { challenge } = createChallenge(ctx, deviceId);
     const bad = await signChallenge(other, ctx.serverId, deviceId, challenge);
-    await expectApiError(issueToken(ctx, { deviceId, challenge, signature: bad }, null), "unauthenticated");
+    await expectApiError(
+      issueToken(ctx, { deviceId, challenge, signature: bad }, null),
+      "unauthenticated",
+    );
   });
 
   it("logs out and revokes devices", async () => {
     const { ctx, keys, deviceId, acc } = await paired();
     const { challenge } = createChallenge(ctx, deviceId);
-    const signature = await signChallenge(keys, ctx.serverId, deviceId, challenge);
-    const { token } = await issueToken(ctx, { deviceId, challenge, signature }, null);
+    const signature = await signChallenge(
+      keys,
+      ctx.serverId,
+      deviceId,
+      challenge,
+    );
+    const { token } = await issueToken(
+      ctx,
+      { deviceId, challenge, signature },
+      null,
+    );
     revokeToken(ctx, token);
     expect(authenticate(ctx, token)).toBeNull();
 
     const c2 = createChallenge(ctx, deviceId);
     const t2 = await issueToken(
       ctx,
-      { deviceId, challenge: c2.challenge, signature: await signChallenge(keys, ctx.serverId, deviceId, c2.challenge) },
+      {
+        deviceId,
+        challenge: c2.challenge,
+        signature: await signChallenge(
+          keys,
+          ctx.serverId,
+          deviceId,
+          c2.challenge,
+        ),
+      },
       null,
     );
     const principal = authenticate(ctx, t2.token)!;
     revokeDevice(ctx, principal, deviceId, null);
     expect(authenticate(ctx, t2.token)).toBeNull();
-    await expectApiError(() => createChallenge(ctx, deviceId), "unauthenticated");
+    await expectApiError(
+      () => createChallenge(ctx, deviceId),
+      "unauthenticated",
+    );
     expect(listDevices(ctx, acc.id)[0]!.revokedAt).not.toBeNull();
   });
 
   it("disabled accounts cannot authenticate", async () => {
     const { ctx, keys, deviceId, acc } = await paired();
     const { challenge } = createChallenge(ctx, deviceId);
-    const signature = await signChallenge(keys, ctx.serverId, deviceId, challenge);
-    const { token } = await issueToken(ctx, { deviceId, challenge, signature }, null);
+    const signature = await signChallenge(
+      keys,
+      ctx.serverId,
+      deviceId,
+      challenge,
+    );
+    const { token } = await issueToken(
+      ctx,
+      { deviceId, challenge, signature },
+      null,
+    );
     createAccount(ctx, { name: "second-admin", role: "admin" });
     updateAccount(ctx, acc.id, { disabled: true }, "cli");
     expect(authenticate(ctx, token)).toBeNull();
@@ -217,14 +312,22 @@ describe("account keys and devices", () => {
       const { code } = createPairing(ctx, { accountId: acc.id }, "cli");
       return redeemPairing(
         ctx,
-        { code: code!, device: { name, platform: "web", ...(await deviceKeys()) } },
+        {
+          code: code!,
+          device: { name, platform: "web", ...(await deviceKeys()) },
+        },
         { ip: null, origin: null },
       );
     };
     const d1 = await pair("one");
     const d2 = await pair("two");
     const aekPublic = (await deviceKeys()).dekPublic;
-    const principal1 = { accountId: acc.id, deviceId: d1.deviceId, role: "member" as const, accountName: "a" };
+    const principal1 = {
+      accountId: acc.id,
+      deviceId: d1.deviceId,
+      role: "member" as const,
+      accountName: "a",
+    };
     await setAccountKeys(ctx, principal1, {
       aekPublic,
       recoveryWrap: "cmVjb3Zlcnk",
@@ -241,18 +344,26 @@ describe("account keys and devices", () => {
 
     // the AEK cannot be silently replaced
     await expectApiError(
-      setAccountKeys(ctx, principal1, { aekPublic: (await deviceKeys()).dekPublic }),
+      setAccountKeys(ctx, principal1, {
+        aekPublic: (await deviceKeys()).dekPublic,
+      }),
       "conflict",
     );
     // wraps for devices of another account are refused
     await expectApiError(
-      setAccountKeys(ctx, principal1, { deviceWraps: { dev_AAAAAAAAAAAAAAAAAAAAAA: "eA" } }),
+      setAccountKeys(ctx, principal1, {
+        deviceWraps: { dev_AAAAAAAAAAAAAAAAAAAAAA: "eA" },
+      }),
       "invalid_request",
     );
-    await setAccountKeys(ctx, principal1, { deviceWraps: { [d2.deviceId]: "d3JhcDI" } });
+    await setAccountKeys(ctx, principal1, {
+      deviceWraps: { [d2.deviceId]: "d3JhcDI" },
+    });
     expect(pendingDevices(ctx, acc.id)).toEqual([]);
 
     renameDevice(ctx, principal1, d2.deviceId, "renamed");
-    expect(listDevices(ctx, acc.id).find((d) => d.id === d2.deviceId)!.name).toBe("renamed");
+    expect(
+      listDevices(ctx, acc.id).find((d) => d.id === d2.deviceId)!.name,
+    ).toBe("renamed");
   });
 });

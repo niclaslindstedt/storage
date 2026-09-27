@@ -37,7 +37,10 @@ export type ContextDeps = {
   blobStore?: BlobStore;
 };
 
-export function createContext(config: ServerConfig, deps: ContextDeps = {}): Ctx {
+export function createContext(
+  config: ServerConfig,
+  deps: ContextDeps = {},
+): Ctx {
   const clock = deps.clock ?? systemClock;
   let db = deps.db;
   let blobStore = deps.blobStore;
@@ -74,8 +77,10 @@ function ensureServerId(db: Db): string {
 
 export function getSetting(ctx: Ctx, key: string): string | null {
   return (
-    ctx.db.get<{ value: string }>("SELECT value FROM settings WHERE key = ?", key)
-      ?.value ?? null
+    ctx.db.get<{ value: string }>(
+      "SELECT value FROM settings WHERE key = ?",
+      key,
+    )?.value ?? null
   );
 }
 

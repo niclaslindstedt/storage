@@ -27,7 +27,12 @@ describe("EventHub", () => {
     const hub = new EventHub();
     const got: HubEvent[] = [];
     let closed = false;
-    hub.subscribe("acc_a", "dev_a", (e) => got.push(e), () => (closed = true));
+    hub.subscribe(
+      "acc_a",
+      "dev_a",
+      (e) => got.push(e),
+      () => (closed = true),
+    );
     hub.revokeDevice("dev_a");
     expect(got).toEqual([{ type: "device", deviceId: "dev_a", revoked: true }]);
     expect(closed).toBe(true);

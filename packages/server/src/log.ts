@@ -77,12 +77,14 @@ export function createLogger(options: LoggerOptions): Logger {
       out(message);
     },
     warn(message, err) {
-      const line = err === undefined ? message : `${message} (${describe(err)})`;
+      const line =
+        err === undefined ? message : `${message} (${describe(err)})`;
       file("WARN", line);
       errOut(`${style("33", "warning:", color)} ${line}`);
     },
     error(message, err) {
-      const line = err === undefined ? message : `${message} (${describe(err)})`;
+      const line =
+        err === undefined ? message : `${message} (${describe(err)})`;
       file("ERROR", line);
       errOut(`${style("31", "error:", color)} ${line}`);
     },

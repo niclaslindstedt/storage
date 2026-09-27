@@ -60,7 +60,8 @@ function toDevice(r: DeviceRow): Device {
 
 /** Validate a device's self-description and public keys. */
 export async function checkDeviceInput(input: unknown): Promise<DeviceInput> {
-  if (typeof input !== "object" || input === null) throw badRequest("device is required");
+  if (typeof input !== "object" || input === null)
+    throw badRequest("device is required");
   const d = input as Record<string, unknown>;
   if (typeof d.name !== "string" || !NAME_PATTERN.test(d.name)) {
     throw badRequest("device.name must be 1-64 printable characters");
@@ -74,7 +75,12 @@ export async function checkDeviceInput(input: unknown): Promise<DeviceInput> {
   await importP256Public(d.dskPublic, "ecdsa", "device.dskPublic");
   await importP256Public(d.dekPublic, "ecdh", "device.dekPublic");
   if (d.dskPublic === d.dekPublic) throw badRequest("device keys must differ");
-  return { name: d.name, platform: d.platform, dskPublic: d.dskPublic, dekPublic: d.dekPublic };
+  return {
+    name: d.name,
+    platform: d.platform,
+    dskPublic: d.dskPublic,
+    dekPublic: d.dekPublic,
+  };
 }
 
 /** Insert a device (inside the caller's transaction). */
@@ -114,12 +120,17 @@ export function learnOrigin(ctx: Ctx, origin: string): void {
 }
 
 export function getDeviceRow(ctx: Ctx, id: string): DeviceRow | null {
-  return ctx.db.get<DeviceRow>("SELECT * FROM devices WHERE id = ?", id) ?? null;
+  return (
+    ctx.db.get<DeviceRow>("SELECT * FROM devices WHERE id = ?", id) ?? null
+  );
 }
 
 export function listDevices(ctx: Ctx, accountId: string): Device[] {
   return ctx.db
-    .all<DeviceRow>("SELECT * FROM devices WHERE account_id = ? ORDER BY created_at", accountId)
+    .all<DeviceRow>(
+      "SELECT * FROM devices WHERE account_id = ? ORDER BY created_at",
+      accountId,
+    )
     .map(toDevice);
 }
 
@@ -129,13 +140,20 @@ export function getDevice(ctx: Ctx, id: string): Device | null {
 }
 
 /** Live devices still waiting for the account key, with their safety codes. */
-export function pendingDevices(ctx: Ctx, accountId: string): (Device & { safetyCode: string })[] {
+export function pendingDevices(
+  ctx: Ctx,
+  accountId: string,
+): (Device & { safetyCode: string })[] {
   return listDevices(ctx, accountId)
     .filter((d) => !d.hasAccountKey && d.revokedAt === null)
     .map((d) => ({ ...d, safetyCode: safetyCode(d.dskPublic, d.dekPublic) }));
 }
 
-function ownedOrAdmin(ctx: Ctx, principal: Principal, deviceId: string): DeviceRow {
+function ownedOrAdmin(
+  ctx: Ctx,
+  principal: Principal,
+  deviceId: string,
+): DeviceRow {
   const row = getDeviceRow(ctx, deviceId);
   if (!row) throw notFound("no such device");
   if (row.account_id !== principal.accountId && principal.role !== "admin") {
@@ -144,10 +162,17 @@ function ownedOrAdmin(ctx: Ctx, principal: Principal, deviceId: string): DeviceR
   return row;
 }
 
-export function renameDevice(ctx: Ctx, principal: Principal, deviceId: string, name: string): Device {
+export function renameDevice(
+  ctx: Ctx,
+  principal: Principal,
+  deviceId: string,
+  name: string,
+): Device {
   const row = ownedOrAdmin(ctx, principal, deviceId);
-  if (row.account_id !== principal.accountId) throw forbidden("rename your own devices only");
-  if (!NAME_PATTERN.test(name)) throw badRequest("name must be 1-64 printable characters");
+  if (row.account_id !== principal.accountId)
+    throw forbidden("rename your own devices only");
+  if (!NAME_PATTERN.test(name))
+    throw badRequest("name must be 1-64 printable characters");
   ctx.db.run("UPDATE devices SET name = ? WHERE id = ?", name, deviceId);
   return getDevice(ctx, deviceId)!;
 }
@@ -158,7 +183,9 @@ export function revokeDevice(
   deviceId: string,
   ip: string | null,
 ): void {
-  const row = principal ? ownedOrAdmin(ctx, principal, deviceId) : getDeviceRow(ctx, deviceId);
+  const row = principal
+    ? ownedOrAdmin(ctx, principal, deviceId)
+    : getDeviceRow(ctx, deviceId);
   if (!row) throw notFound("no such device");
   ctx.db.tx(() => {
     ctx.db.run(

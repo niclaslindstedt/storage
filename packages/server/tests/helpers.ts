@@ -27,16 +27,23 @@ export type TestDeviceKeys = {
 };
 
 export async function deviceKeys(): Promise<TestDeviceKeys> {
-  const dsk = await subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, false, [
-    "sign",
-    "verify",
-  ]);
-  const dek = await subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, false, [
-    "deriveBits",
-  ]);
+  const dsk = await subtle.generateKey(
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign", "verify"],
+  );
+  const dek = await subtle.generateKey(
+    { name: "ECDH", namedCurve: "P-256" },
+    false,
+    ["deriveBits"],
+  );
   return {
-    dskPublic: toB64u(new Uint8Array(await subtle.exportKey("raw", dsk.publicKey))),
-    dekPublic: toB64u(new Uint8Array(await subtle.exportKey("raw", dek.publicKey))),
+    dskPublic: toB64u(
+      new Uint8Array(await subtle.exportKey("raw", dsk.publicKey)),
+    ),
+    dekPublic: toB64u(
+      new Uint8Array(await subtle.exportKey("raw", dek.publicKey)),
+    ),
     async sign(message: string) {
       const sig = await subtle.sign(
         { name: "ECDSA", hash: "SHA-256" },
@@ -68,3 +75,31 @@ export function envelope(epoch = 1, bodyBytes = 16, fill = 7): Uint8Array {
 export function envelopeB64u(epoch = 1, bodyBytes = 16, fill = 7): string {
   return toB64u(envelope(epoch, bodyBytes, fill));
 }
+
+import { createAccount } from "../src/services/accounts.ts";
+import { insertDevice } from "../src/services/devices.ts";
+import type { AccountRole, Principal } from "../src/services/principal.ts";
+
+/** An account with one device, as the principal a request would carry. */
+export function principal(
+  ctx: Ctx,
+  name: string,
+  role: AccountRole = "member",
+): Principal {
+  const acc = createAccount(ctx, { name, role });
+  const deviceId = insertDevice(
+    ctx,
+    acc.id,
+    {
+      name: `${name}-device`,
+      platform: "test",
+      dskPublic: "x",
+      dekPublic: "y",
+    },
+    null,
+  );
+  return { accountId: acc.id, accountName: name, deviceId, role };
+}
+
+/** A fake key wrap (opaque base64url, as the server sees every wrap). */
+export const WRAP = "d3JhcHBlZC1rZXk";

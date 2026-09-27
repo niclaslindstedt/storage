@@ -36,7 +36,11 @@ export class EventHub {
   }
 
   /** A namespace moved to `seq`; tell its members' devices and wake pollers. */
-  publishNs(ns: string, seq: number, memberAccountIds: readonly string[]): void {
+  publishNs(
+    ns: string,
+    seq: number,
+    memberAccountIds: readonly string[],
+  ): void {
     const members = new Set(memberAccountIds);
     for (const sub of this.subscribers) {
       if (members.has(sub.accountId)) sub.send({ type: "ns", ns, seq });
@@ -68,7 +72,12 @@ export class EventHub {
   }
 
   /** Resolve when `ns` passes `after`, or after `timeoutMs` (false). */
-  waitForNs(ns: string, after: number, timeoutMs: number, signal?: AbortSignal): Promise<boolean> {
+  waitForNs(
+    ns: string,
+    after: number,
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<boolean> {
     return new Promise((resolve) => {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const waiter: Waiter = {

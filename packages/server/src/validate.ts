@@ -27,7 +27,12 @@ export function asObject(value: unknown, what = "body"): Json {
 export function str(
   obj: Json,
   key: string,
-  opts: { max?: number; min?: number; pattern?: RegExp; optional?: boolean } = {},
+  opts: {
+    max?: number;
+    min?: number;
+    pattern?: RegExp;
+    optional?: boolean;
+  } = {},
 ): string {
   const v = obj[key];
   if (v === undefined || v === null) {
@@ -66,8 +71,10 @@ export function int(
   if (typeof v !== "number" || !Number.isSafeInteger(v)) {
     throw badRequest(`${key} must be an integer`);
   }
-  if (opts.min !== undefined && v < opts.min) throw badRequest(`${key} too small`);
-  if (opts.max !== undefined && v > opts.max) throw badRequest(`${key} too large`);
+  if (opts.min !== undefined && v < opts.min)
+    throw badRequest(`${key} too small`);
+  if (opts.max !== undefined && v > opts.max)
+    throw badRequest(`${key} too large`);
   return v;
 }
 
@@ -85,7 +92,8 @@ export function oneOf<T extends string>(
   fallback?: T,
 ): T {
   const v = obj[key];
-  if ((v === undefined || v === null) && fallback !== undefined) return fallback;
+  if ((v === undefined || v === null) && fallback !== undefined)
+    return fallback;
   if (typeof v !== "string" || !values.includes(v as T)) {
     throw badRequest(`${key} must be one of ${values.join(", ")}`);
   }
@@ -99,8 +107,14 @@ export function b64u(obj: Json, key: string, maxBytes: number): string {
   return v;
 }
 
-export function optB64u(obj: Json, key: string, maxBytes: number): string | undefined {
-  return obj[key] === undefined || obj[key] === null ? undefined : b64u(obj, key, maxBytes);
+export function optB64u(
+  obj: Json,
+  key: string,
+  maxBytes: number,
+): string | undefined {
+  return obj[key] === undefined || obj[key] === null
+    ? undefined
+    : b64u(obj, key, maxBytes);
 }
 
 export function checkB64u(v: string, what: string): Uint8Array {
@@ -149,7 +163,8 @@ export function record<T>(
 ): Record<string, T> {
   const v = asObject(obj[key], key);
   const entries = Object.entries(v);
-  if (entries.length > maxEntries) throw badRequest(`${key} has too many entries`);
+  if (entries.length > maxEntries)
+    throw badRequest(`${key} has too many entries`);
   const out: Record<string, T> = {};
   for (const [k, val] of entries) out[k] = each(val, k);
   return out;

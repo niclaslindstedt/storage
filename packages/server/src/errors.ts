@@ -17,8 +17,10 @@ export class ApiError extends Error {
   }
 }
 
-export const badRequest = (message: string, details?: Record<string, unknown>) =>
-  new ApiError(400, "invalid_request", message, details);
+export const badRequest = (
+  message: string,
+  details?: Record<string, unknown>,
+) => new ApiError(400, "invalid_request", message, details);
 
 export const unauthenticated = (message = "authentication required") =>
   new ApiError(401, "unauthenticated", message);
@@ -26,8 +28,10 @@ export const unauthenticated = (message = "authentication required") =>
 export const forbidden = (message = "not allowed") =>
   new ApiError(403, "forbidden", message);
 
-export const notFound = (message = "not found", details?: Record<string, unknown>) =>
-  new ApiError(404, "not_found", message, details);
+export const notFound = (
+  message = "not found",
+  details?: Record<string, unknown>,
+) => new ApiError(404, "not_found", message, details);
 
 export const conflict = (message: string, details?: Record<string, unknown>) =>
   new ApiError(409, "conflict", message, details);
