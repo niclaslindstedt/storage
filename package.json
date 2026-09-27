@@ -9,7 +9,8 @@
   "workspaces": [
     "packages/server",
     "packages/testkit",
-    "e2e"
+    "e2e",
+    "apps/reference"
   ],
   "engines": {
     "node": ">=22.13"

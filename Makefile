@@ -7,13 +7,17 @@ FRAMEWORK_REF := $(shell cat e2e/framework-ref)
 OSS_FRAMEWORK_DIR ?= $(abspath ../oss-framework)
 export OSS_FRAMEWORK_DIR
 
-.PHONY: build test test-unit test-e2e lint fmt fmt-check release clean framework docker website website-dev man shellcheck actionlint validate
+.PHONY: build test test-app test-unit test-e2e lint fmt fmt-check release clean framework docker website website-dev man shellcheck actionlint validate
 
 build:
 	npm run build --workspace packages/server
 	npm run build --workspace packages/testkit
 
 test: build test-unit test-e2e
+
+# Browser tests of the reference app (needs Chromium; CI installs it).
+test-app: build
+	npm run test:e2e --workspace apps/reference
 
 test-unit:
 	npm run test --workspace packages/server
@@ -27,6 +31,7 @@ lint:
 	npx tsc --noEmit -p packages/server
 	npx tsc --noEmit -p packages/testkit
 	npx tsc --noEmit -p e2e
+	npx tsc --noEmit -p apps/reference
 
 fmt:
 	npx prettier --write .

@@ -105,6 +105,14 @@ export async function startTestServerProcess(
   });
 }
 
+/**
+ * Control a test server something else started (Playwright's `webServer`,
+ * docker, CI) from its URL and secret. `close()` is a no-op here.
+ */
+export function connectTestServer(url: string, secret: string): TestServer {
+  return controlClient(url, secret, async () => {});
+}
+
 /** Run `fn` against a fresh in-process server, always closing it. */
 export async function withTestServer<T>(
   fn: (server: TestServer) => Promise<T>,

@@ -8,3 +8,5 @@ coverage/
 /data/
 website/dist/
 website/src/generated/
+apps/reference/test-results/
+apps/reference/playwright-report/
