@@ -10,3 +10,5 @@ website/dist/
 website/src/generated/
 apps/reference/test-results/
 apps/reference/playwright-report/
+.lighthouseci/
+website/.ssr-build/

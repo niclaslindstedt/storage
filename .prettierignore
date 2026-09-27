@@ -7,3 +7,6 @@ CHANGELOG.md
 # Generated from src/cli/spec.ts (npm run gen:man); checked byte-for-byte by tests.
 man/
 **/__snapshots__/
+website/src/generated/
+website/.ssr-build/
+.lighthouseci/
