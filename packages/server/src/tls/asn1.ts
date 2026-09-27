@@ -49,7 +49,7 @@ export const implicit = (n: number, content: Uint8Array) =>
 export function uint(bytes: Uint8Array): Der {
   let i = 0;
   while (i < bytes.length - 1 && bytes[i] === 0) i++;
-  let b = bytes.slice(i);
+  let b: Uint8Array = bytes.slice(i);
   if (b[0]! & 0x80) b = concat([Uint8Array.of(0), b]);
   return tlv(0x02, b);
 }

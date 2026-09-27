@@ -98,7 +98,7 @@ async function fakeIgd(
   });
   await new Promise<void>((r) => ssdp.bind(0, "127.0.0.1", r));
   cleanups.push(() => new Promise((r) => http.close(() => r())));
-  cleanups.push(() => ssdp.close());
+  cleanups.push(() => void ssdp.close());
   return { mappings, ssdpPort: ssdp.address().port };
 }
 
@@ -126,7 +126,7 @@ async function fakeNatPmp(externalIp = "198.51.100.9") {
     }
   });
   await new Promise<void>((r) => sock.bind(0, "127.0.0.1", r));
-  cleanups.push(() => sock.close());
+  cleanups.push(() => void sock.close());
   return { mappings, port: sock.address().port };
 }
 
