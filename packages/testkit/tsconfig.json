@@ -10,5 +10,11 @@
       ]
     }
   },
-  "include": ["src", "tests", "tsup.config.ts", "vitest.config.ts"]
+  "include": [
+    "src",
+    "tests",
+    "tsup.config.ts",
+    "vitest.config.ts",
+    "../../../oss-framework/src/storage/folder/fsa.d.ts"
+  ]
 }

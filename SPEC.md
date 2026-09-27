@@ -5,7 +5,7 @@
 > interrupted, **resume from §15 (Progress)** — every task there points at the
 > section that defines it.
 
-- Status: **in development**
+- Status: **in development** — server, framework client (niclaslindstedt/oss-framework#162), testkit and e2e done; reference app and OSS_SPEC repository work in progress
 - Spec version: 1.0.0 (2026-09-27)
 - Owner: Niclas Lindstedt
 
@@ -187,8 +187,10 @@ payload (AEK private for pairing; NK epochs for invites).
 ```
 
 AAD = `oss-storage/v1|<namespaceId>|<kind>|<locator>` where
-`kind ∈ {file, meta, record, nsmeta}` and `locator` is the file id (files,
-metadata) or `<collectionCipher>/<keyCipher>` (records) or empty (nsmeta).
+`kind ∈ {file, meta, record, nsmeta}` and `locator` is the random content
+id `cid` (file bodies — `cid` lives in the sealed metadata, so copies and
+moves keep decrypting), the encrypted path (file metadata),
+`<collectionCipher>/<keyCipher>` (records), or empty (nsmeta).
 The AAD binds a ciphertext to its place: a server that swaps two blobs or
 two rows produces a decryption failure, never silently wrong data. The server
 reads the 9-byte plaintext header to enforce "writes use the current epoch".
@@ -200,9 +202,10 @@ encoded `"<epoch base36>." + b64u(iv ‖ ct)`. Equal plaintexts map to equal
 ciphertexts (prefix listing and lookups work); the server learns equality
 only. Path = encrypted segments joined by `/`.
 
-**File metadata** (sealed, kind `meta`): `{ path, id, size, mtime, mime?, tags?, app? }`
-— the client verifies `path` and `id` on read, so a server-side move without a
-matching sealed metadata update is detected.
+**File metadata** (sealed, kind `meta`, bound to the encrypted path):
+`{ v: 1, path, cid, size, mtime, mime?, tags? }` — the client checks `path` on
+read; a server that moves or swaps metadata or blobs causes a decryption
+failure. File ids are assigned by the server and survive overwrites and moves.
 
 **Monotonic floor**: the client persists the highest `seq` it has seen per
 namespace; a response with a lower `seq` is treated as a rollback
@@ -228,9 +231,13 @@ interface KeyVault {
   b64u) backed by Keychain (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`),
   Android Keystore, or Secure Enclave–wrapped storage; announced with the
   `oss:key-vault-host` event. Values are imported as non-extractable keys.
-- **Optional PIN lock**: `protectVault(vault, pin)` wraps entries with a
-  PBKDF2-SHA-256 (600 000 iterations) derived key; composes with the
-  framework's existing PIN lock UI.
+- **Local caches**: `client.localCacheKey()` is a non-extractable AES-GCM key
+  in the vault; `createIdbRecordCache({ encryptWith })` keeps row caches
+  encrypted at rest. App locks use the framework's existing PIN lock UI.
+- **What is stored**: device private keys, the account private key and
+  namespace subkeys — never raw bytes on the web (the account key's bytes are
+  reconstructed transiently from the device's sealed copy when a device must
+  be added).
 - **Memory**: `createMemoryKeyVault()` for tests.
 
 ## 5. Data model
@@ -297,13 +304,14 @@ or `If-None-Match: *`. Auth: `Authorization: Bearer <token>`.
   (only when unset) and later adding `deviceWraps`.
 - `GET /v1/me/devices`, `PATCH /v1/devices/:id {name}`, `DELETE /v1/devices/:id` (revoke; admins any, members own).
 - `GET /v1/me/pending-devices` → devices of this account without a `deviceWrap`, each with a
-  6-digit **safety code** = `SHA-256(dskPublic ‖ dekPublic)` → decimal, shown on both devices for approval.
+  25-digit **safety code** (five groups of five) from `SHA-256(dskPublic ‖ dekPublic)`; the approving
+  device recomputes it locally from the keys it will wrap to, never trusting the server's copy.
 
 ### 6.3 Namespaces, members, invites
 
 - `GET /v1/namespaces?app=<id>` → `[{ id, app, role, epoch, meta, seq, keys: {epoch: wrap} }]`
-- `POST /v1/namespaces {app, meta, wrap}` → namespace (creator is owner, epoch 1)
-- `GET|PATCH|DELETE /v1/namespaces/:ns` (`PATCH {meta, ifSeq?}`; delete = owner, soft then purge)
+- `POST /v1/namespaces {id?, app, meta, wrap}` → namespace (creator is owner, epoch 1; the client chooses `id` because it salts the key derivation)
+- `GET|PATCH|DELETE /v1/namespaces/:ns` (`PATCH {meta}` with optional `If-Match`; delete = owner, immediate)
 - `GET /v1/namespaces/:ns/members`, `PATCH …/members/:accountId {role}`, `DELETE …/members/:accountId`
 - `POST /v1/namespaces/:ns/invites {role, ttlSeconds, maxUses, code, payload}` → `{ inviteId, expiresAt }`
 - `GET /v1/namespaces/:ns/invites`, `DELETE /v1/namespaces/:ns/invites/:id`
@@ -326,9 +334,10 @@ or `If-None-Match: *`. Auth: `Authorization: Bearer <token>`.
 - `GET /v1/ns/:ns/history/:path` → revisions; `POST /v1/ns/:ns/history:restore {path, rev, meta}`
 - `GET /v1/ns/:ns/trash`, `POST /v1/ns/:ns/trash:restore {fileId}`, `DELETE /v1/ns/:ns/trash/:fileId`
 - Large files: `POST /v1/ns/:ns/uploads` → `{ uploadId }`; `PUT …/uploads/:id/parts/:n`;
-  `POST …/uploads/:id:commit {path, fileId, meta, ifMatch?}`; `DELETE …/uploads/:id`.
+  `POST …/uploads/:id/commit {path, meta, ifMatch?, ifNoneMatch?}`; `DELETE …/uploads/:id`.
 
 ### 6.5 Records (rows / key-value)
+- `GET /v1/ns/:ns/collections` → encrypted collection names with live row counts
 
 - `GET /v1/ns/:ns/records/:collection?cursor=&limit=&includeDeleted=1` → `{ records: [{ key, rev, value|null, updatedAt }], cursor?, seq }`
 - `GET|PUT|DELETE /v1/ns/:ns/records/:collection/:key` — `PUT` body `{ value }` (b64u OSE1), `If-Match` / `If-None-Match: *`
@@ -442,7 +451,7 @@ const pairing = await client.createDevicePairing();               // device-to-d
 `serve` (default) · `setup` · `pair` · `accounts {list,create,update,delete}` ·
 `devices {list,revoke}` · `namespaces list` · `audit {verify,tail}` ·
 `backup` · `cert {status,renew}` · `upnp {status,map,unmap}` · `doctor` ·
-`test-server` · plus OSS_SPEC §12 discoverability: `--help-agent`,
+`health` · `test-server` · plus OSS_SPEC §12 discoverability: `--help-agent`,
 `--debug-agent`, `commands [name] [--examples]`, `docs [topic]`, `man [cmd]`.
 Configuration precedence: flags > env (`STORAGE_*`) > `config.json` in the
 data dir > defaults. Logging per OSS_SPEC §19 (`status/warn/info/header/error`
@@ -501,48 +510,48 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 ### Server (`packages/server`)
 
-- [ ] S1 workspace scaffolding (tsconfig, vitest, eslint, prettier, Makefile)
-- [ ] S2 clock, ids, random, config, logging (§19)
-- [ ] S3 database schema + migrations (`node:sqlite`), blob store (fs + memory)
-- [ ] S4 HTTP core: router, validation, errors, CORS, security headers, rate limits, body limits
-- [ ] S5 auth: challenge/token, device signature verify, token store
-- [ ] S6 accounts, devices, pairing (server- and device-created), keys, pending devices
-- [ ] S7 namespaces, members, invites, key wraps, rotation, epoch enforcement
-- [ ] S8 files: CAS put/get/head/delete, list (prefix/recursive/cursor), move/copy, history, trash, uploads, quotas
-- [ ] S9 records: get/put/delete/list, batch (atomic / per-op), tombstones
-- [ ] S10 change feed (+ long-poll), SSE events hub
-- [ ] S11 audit log hash chain + verify
-- [ ] S12 retention / GC jobs (history, trash, tombstones, blobs, expired pairings/invites/tokens)
-- [ ] S13 admin API
-- [ ] S14 test mode (reset, snapshot/restore, faults, clock, accounts)
-- [ ] S15 QR encoder + terminal/SVG renderers
-- [ ] S16 ASN.1 DER, CSR, self-signed certs; TLS manager (files/self-signed/off)
-- [ ] S17 ACME client (http-01, tls-alpn-01, dns/ip identifiers) + fake CA tests
-- [ ] S18 UPnP IGD + NAT-PMP + CGNAT detection
-- [ ] S19 CLI (all commands + §12 discoverability) and loopback admin page
-- [ ] S20 Dockerfile, compose.yaml, healthcheck
+- [x] S1 workspace scaffolding (tsconfig, vitest, eslint, prettier, Makefile)
+- [x] S2 clock, ids, random, config, logging (§19)
+- [x] S3 database schema + migrations (`node:sqlite`), blob store (fs + memory)
+- [x] S4 HTTP core: router, validation, errors, CORS, security headers, rate limits, body limits
+- [x] S5 auth: challenge/token, device signature verify, token store
+- [x] S6 accounts, devices, pairing (server- and device-created), keys, pending devices
+- [x] S7 namespaces, members, invites, key wraps, rotation, epoch enforcement
+- [x] S8 files: CAS put/get/head/delete, list (prefix/recursive/cursor), move/copy, history, trash, uploads, quotas
+- [x] S9 records: get/put/delete/list, batch (atomic / per-op), tombstones
+- [x] S10 change feed (+ long-poll), SSE events hub
+- [x] S11 audit log hash chain + verify
+- [x] S12 retention / GC jobs (history, trash, tombstones, blobs, expired pairings/invites/tokens)
+- [x] S13 admin API
+- [x] S14 test mode (reset, snapshot/restore, faults, clock, accounts)
+- [x] S15 QR encoder + terminal/SVG renderers
+- [x] S16 ASN.1 DER, CSR, self-signed certs; TLS manager (files/self-signed/off)
+- [x] S17 ACME client (http-01, tls-alpn-01, dns/ip identifiers) + fake CA tests
+- [x] S18 UPnP IGD + NAT-PMP + CGNAT detection
+- [x] S19 CLI (all commands + §12 discoverability) and loopback admin page
+- [x] S20 Dockerfile, compose.yaml, healthcheck (image build verified in CI; Docker Hub rate-limits the dev sandbox)
 
 ### Framework (`oss-framework`)
 
-- [ ] F1 `src/qr` encoder + SVG + `<QrCode>`
-- [ ] F2 selfhosted crypto (envelopes, names, wraps, recovery key)
-- [ ] F3 KeyVault (memory, IndexedDB non-extractable, native host, PIN protect)
-- [ ] F4 transport (auth, retries, error mapping, SSE parser)
-- [ ] F5 client: pairing, account keys, recovery, device approval, device pairing
-- [ ] F6 namespaces, sharing (invites, members, rotation + re-encryption)
-- [ ] F7 FileStore + StorageAdapter (CAS, watch, probe, getRevision)
-- [ ] F8 merge (3-way), RecordStore, row-document adapter
-- [ ] F9 README, subpath exports, size budgets, changeset fragment, lint/test/build/size green
+- [x] F1 `src/qr` encoder + SVG + `<QrCode>`
+- [x] F2 selfhosted crypto (envelopes, names, wraps, recovery key)
+- [x] F3 KeyVault (memory, IndexedDB non-extractable, native host, PIN protect)
+- [x] F4 transport (auth, retries, error mapping, SSE parser)
+- [x] F5 client: pairing, account keys, recovery, device approval, device pairing
+- [x] F6 namespaces, sharing (invites, members, rotation + re-encryption)
+- [x] F7 FileStore + StorageAdapter (CAS, watch, probe, getRevision)
+- [x] F8 merge (3-way), RecordStore, row-document adapter
+- [x] F9 README, subpath exports, size budgets, changeset fragment, lint/test/build/size green
 
 ### Testkit & e2e
 
-- [ ] T1 `startTestServer` (in-process) + `startTestServerProcess` (subprocess) + helpers
-- [ ] T2 e2e: pairing / recovery / approval
-- [ ] T3 e2e: files CAS, history, trash, uploads, quotas
-- [ ] T4 e2e: records + row documents + concurrent devices
-- [ ] T5 e2e: sharing, revocation, rotation
-- [ ] T6 e2e: faults/offline, change feed, SSE watch
-- [ ] T7 e2e: app-shaped scenarios (meds, contacts, notes, calendar)
+- [x] T1 `startTestServer` (in-process) + `startTestServerProcess` (subprocess) + helpers
+- [x] T2 e2e: pairing / recovery / approval
+- [x] T3 e2e: files CAS, history, trash, uploads, quotas
+- [x] T4 e2e: records + row documents + concurrent devices
+- [x] T5 e2e: sharing, revocation, rotation
+- [x] T6 e2e: faults/offline, change feed, SSE watch
+- [x] T7 e2e: app-shaped scenarios (meds, contacts, notes, calendar)
 
 ### Reference app (`apps/reference`)
 
