@@ -1,0 +1,6 @@
+dist/
+node_modules/
+coverage/
+# Verbatim copy of the governing spec, fetched by scripts/validate.sh.
+OSS_SPEC.md
+CHANGELOG.md

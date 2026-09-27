@@ -1,0 +1,40 @@
+{
+  "name": "@niclaslindstedt/storage-server",
+  "version": "0.1.0",
+  "description": "Self-hosted, zero-knowledge storage server for local-first PWAs: end-to-end encrypted files and rows, QR pairing, per-namespace sharing, ACME certificates and UPnP.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Niclas Lindstedt <niclas@agilator.se>",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/niclaslindstedt/storage.git",
+    "directory": "packages/server"
+  },
+  "bin": {
+    "storage-server": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "man",
+    "docs"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}
