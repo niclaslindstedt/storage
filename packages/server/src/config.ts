@@ -19,8 +19,10 @@ export type ServerConfig = {
     port: number;
     /** Plain-HTTP port for ACME http-01 and redirects; `null` disables. */
     httpPort: number | null;
-    /** Loopback-only admin page port; `null` disables. */
+    /** Admin console port (SPEC §11.1); `null` disables. */
     adminPort: number | null;
+    /** Admin console interface; loopback unless published deliberately. */
+    adminHost: string;
   };
   tls: {
     mode: TlsMode;
@@ -83,7 +85,13 @@ export const DEFAULT_CONFIG: ServerConfig = {
   dataDir: null,
   publicUrl: null,
   appUrl: null,
-  listen: { host: "0.0.0.0", port: 8443, httpPort: null, adminPort: 8081 },
+  listen: {
+    host: "0.0.0.0",
+    port: 8443,
+    httpPort: null,
+    adminPort: 8081,
+    adminHost: "127.0.0.1",
+  },
   tls: {
     mode: "self-signed",
     domains: [],

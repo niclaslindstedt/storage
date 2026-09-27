@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Run a production server: HTTPS (or plain HTTP behind a proxy), ACME
-// challenges and HTTP→HTTPS redirects on the HTTP port, the loopback admin
-// page, router port mapping, and periodic housekeeping.
+// challenges and HTTP→HTTPS redirects on the HTTP port, the admin console
+// (SPEC §11.1), router port mapping, and periodic housekeeping.
 
 import { createServer as createHttp, type Server } from "node:http";
 import { createServer as createHttps } from "node:https";
 import type { AddressInfo } from "node:net";
 
+import { type AdminConsole, startAdminConsole } from "./admin/console.ts";
+import { LogBuffer, teeLogger } from "./admin/log-buffer.ts";
+import { Metrics } from "./admin/metrics.ts";
 import { createStorageServer, type StorageServer } from "./app.ts";
-import { startAdminPage } from "./admin/page.ts";
 import type { ServerConfig } from "./config.ts";
 import type { Logger } from "./log.ts";
 import { lanAddresses } from "./net/netinfo.ts";
@@ -21,7 +23,14 @@ import type { Clock } from "./util/clock.ts";
 export type RunningServer = {
   app: StorageServer;
   url: string;
+  /** The admin console's base URL (no token), or null when disabled. */
   adminUrl: string | null;
+  /** A sign-in link with the admin token — print it, never log it. */
+  adminLoginUrl(): string | null;
+  /** The server's logger (also feeds the console's log buffer). */
+  log: Logger;
+  logs: LogBuffer;
+  metrics: Metrics;
   tls: TlsManager;
   portmap: () => PortMapStatus | null;
   close(): Promise<void>;
@@ -38,13 +47,17 @@ function listen(server: Server, port: number, host: string): Promise<number> {
 
 export async function startServer(
   config: ServerConfig,
-  deps: { log: Logger; clock?: Clock },
+  deps: { log: Logger; clock?: Clock; logFile?: string | null },
 ): Promise<RunningServer> {
-  const { log } = deps;
+  const clock = deps.clock ?? { now: () => Date.now() };
+  // Everything the server logs also lands in the console's log buffer.
+  const logs = new LogBuffer({ clock });
+  const log = teeLogger(deps.log, logs);
+  const metrics = new Metrics(clock);
   const tls = new TlsManager({
     config,
     log,
-    clock: deps.clock ?? { now: () => Date.now() },
+    clock,
     extraNames: lanAddresses(),
   });
   const secure = config.tls.mode !== "off";
@@ -54,6 +67,7 @@ export async function startServer(
     clock: deps.clock,
     secure,
     tlsInfo: () => tls.info(),
+    metrics,
   });
   const servers: Server[] = [];
   const timers: ReturnType<typeof setInterval>[] = [];
@@ -149,27 +163,38 @@ export async function startServer(
     }
   }
 
-  let adminUrl: string | null = null;
+  const housekeepingNow = () => runRetention(app.ctx);
+
+  let admin: AdminConsole | null = null;
   if (config.listen.adminPort !== null) {
-    const admin = await startAdminPage(app.ctx, {
-      port: config.listen.adminPort,
-      publicUrl: () => url,
-      fp: () => (config.tls.mode === "self-signed" ? tls.info().fp : undefined),
-      status: () => ({
-        url,
-        tls: tls.info(),
-        portMapping: portmapper?.current() ?? "disabled",
-        audit: app.ctx.audit.verify(),
-      }),
-    });
+    admin = await startAdminConsole(
+      {
+        ctx: app.ctx,
+        metrics,
+        logs,
+        logFile: deps.logFile ?? null,
+        publicUrl: () => url,
+        tls: () => tls.info(),
+        portmap: () => portmapper?.current() ?? null,
+        actions: {
+          housekeeping: housekeepingNow,
+          renewCertificate:
+            config.tls.mode === "acme" ? () => tls.renew() : undefined,
+          refreshPortMapping: portmapper
+            ? () => portmapper!.refresh()
+            : undefined,
+        },
+      },
+      { host: config.listen.adminHost, port: config.listen.adminPort },
+    );
     servers.push(admin.server);
-    adminUrl = admin.url;
+    log.info(`admin console listening on ${admin.url}`);
   }
 
   // Housekeeping: now, then hourly.
   const housekeeping = async () => {
     try {
-      const r = await runRetention(app.ctx);
+      const r = await housekeepingNow();
       log.debug(`retention: ${JSON.stringify(r)}`);
     } catch (err) {
       log.error("retention failed", err);
@@ -188,7 +213,11 @@ export async function startServer(
   return {
     app,
     url,
-    adminUrl,
+    adminUrl: admin?.url ?? null,
+    adminLoginUrl: () => admin?.loginUrl() ?? null,
+    log,
+    logs,
+    metrics,
     tls,
     portmap: () => portmapper?.current() ?? null,
     async close() {

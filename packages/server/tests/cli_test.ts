@@ -296,6 +296,74 @@ describe("administration", () => {
     ).toBe(1); // not empty
   });
 
+  it("admin prints a sign-in link, keeps the token, and rotates it", async () => {
+    const dataDir = tmp();
+    const first = await cli(["admin", "--data-dir", dataDir]);
+    expect(first.code).toBe(0);
+    const token = readFileSync(join(dataDir, "admin.token"), "utf8").trim();
+    expect(first.out).toBe(`http://127.0.0.1:8081/login?token=${token}`);
+    expect(first.log).not.toContain(token);
+    expect((await cli(["admin", "--data-dir", dataDir])).out).toBe(first.out);
+
+    const rotated = await cli([
+      "admin",
+      "--data-dir",
+      dataDir,
+      "--rotate",
+      "--json",
+      "--admin-port",
+      "9001",
+    ]);
+    const j = JSON.parse(rotated.out) as { loginUrl: string; rotated: boolean };
+    expect(j.rotated).toBe(true);
+    expect(j.loginUrl).toMatch(/^http:\/\/127\.0\.0\.1:9001\/login\?token=/);
+    expect(j.loginUrl).not.toContain(token);
+
+    const exposed = await cli(["admin", "--data-dir", dataDir], {
+      STORAGE_ADMIN_HOST: "0.0.0.0",
+    });
+    expect(exposed.out).toMatch(/^http:\/\/127\.0\.0\.1:8081/);
+    expect(exposed.err).toMatch(/SSH tunnel/);
+    expect(
+      (await cli(["admin", "--data-dir", dataDir, "--admin-port", "-1"])).code,
+    ).toBe(1);
+  });
+
+  it("serve without a terminal keeps the admin token out of its output", async () => {
+    const dataDir = tmp();
+    const stop = new AbortController();
+    const run = cli(
+      [
+        "serve",
+        "--data-dir",
+        dataDir,
+        "--tls",
+        "off",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "0",
+        "--admin-port",
+        "0",
+      ],
+      {},
+      stop.signal,
+    );
+    const token = () =>
+      existsSync(join(dataDir, "admin.token"))
+        ? readFileSync(join(dataDir, "admin.token"), "utf8").trim()
+        : null;
+    for (let i = 0; i < 100 && !token(); i++)
+      await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 100));
+    stop.abort();
+    const r = await run;
+    expect(r.code).toBe(0);
+    expect(r.log).toMatch(/run `storage-server admin` for the sign-in link/);
+    for (const text of [r.out, r.err, r.log])
+      expect(text).not.toContain(token()!);
+  });
+
   it("config precedence: flags > env > config.json", async () => {
     const { loadServerConfig } = await import("../src/cli/config-load.ts");
     const dataDir = tmp();

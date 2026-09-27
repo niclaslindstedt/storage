@@ -22,7 +22,8 @@ Environment variables:
   STORAGE_HOST: Address to listen on.
   STORAGE_PORT: HTTPS (or plain HTTP with --tls off) port.
   STORAGE_HTTP_PORT: Plain-HTTP port for ACME http-01 challenges and HTTPS redirects (0 = any free port; unset = disabled).
-  STORAGE_ADMIN_PORT: Loopback-only admin page port (-1 disables).
+  STORAGE_ADMIN_PORT: Admin console port (-1 disables).
+  STORAGE_ADMIN_HOST: Interface the admin console listens on. Keep it on loopback. Only in a container with published ports use 0.0.0.0, published as -p 127.0.0.1:8081:8081.
   STORAGE_TLS: How HTTPS certificates are obtained.
   STORAGE_DOMAINS: DNS name or public IP to certify (repeatable; env is comma-separated).
   STORAGE_ACME_EMAIL: Contact address for the ACME account.
@@ -71,6 +72,7 @@ Commands:
   cert: Show or renew the TLS certificate.
   upnp: Inspect or change router port forwarding.
   doctor: Check the installation end to end.
+  admin: Print the admin console sign-in link, or rotate its token.
   health: Probe the local server (for container and service health checks).
   test-server: Run an in-memory server in test mode (for end-to-end tests).
   commands: List commands in a stable, grep-friendly format.

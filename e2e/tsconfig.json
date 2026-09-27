@@ -17,6 +17,7 @@
   "include": [
     "tests",
     "vitest.config.ts",
-    "../../oss-framework/src/storage/folder/fsa.d.ts"
+    "../../oss-framework/src/storage/folder/fsa.d.ts",
+    "../packages/server/src/md.d.ts"
   ]
 }

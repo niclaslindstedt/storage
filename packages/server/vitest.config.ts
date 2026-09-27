@@ -2,8 +2,11 @@ import { readFileSync } from "node:fs";
 
 import { defineConfig } from "vitest/config";
 
+import { viteUiPlugin } from "./scripts/ui-bundle.ts";
+
 export default defineConfig({
   plugins: [
+    viteUiPlugin(),
     {
       // Inline Markdown as a string, as the tsup "text" loader does in the build.
       name: "markdown-as-text",

@@ -10,7 +10,7 @@ storage-server doctor [server flags]
 
 ## Description
 
-Checks the data directory, database integrity, audit chain, certificate validity and expiry, router mapping and NAT type, and that the public URL answers. Exit code 1 when any check fails.
+Checks the data directory (writable, private), database integrity, the audit chain, that an admin exists, free disk space, the certificate, router mapping and NAT type, that the public URL answers, and network exposure — the same checks as the admin console's Troubleshoot page. Prints a fix for each problem; exit code 1 when any check fails.
 
 ## Options
 
@@ -22,7 +22,8 @@ Checks the data directory, database integrity, audit chain, certificate validity
 | `--host` | string | `0.0.0.0 (127.0.0.1 with --tls off)` | `STORAGE_HOST` | Address to listen on. |
 | `--port` | int | `8443` | `STORAGE_PORT` | HTTPS (or plain HTTP with --tls off) port. |
 | `--http-port` | int | — | `STORAGE_HTTP_PORT` | Plain-HTTP port for ACME http-01 challenges and HTTPS redirects (0 = any free port; unset = disabled). |
-| `--admin-port` | int | `8081` | `STORAGE_ADMIN_PORT` | Loopback-only admin page port (-1 disables). |
+| `--admin-port` | int | `8081` | `STORAGE_ADMIN_PORT` | Admin console port (-1 disables). |
+| `--admin-host` | string | `127.0.0.1` | `STORAGE_ADMIN_HOST` | Interface the admin console listens on. Keep it on loopback. Only in a container with published ports use 0.0.0.0, published as -p 127.0.0.1:8081:8081. |
 | `--tls` | string | `self-signed` | `STORAGE_TLS` | How HTTPS certificates are obtained. |
 | `--domain` | list | — | `STORAGE_DOMAINS` | DNS name or public IP to certify (repeatable; env is comma-separated). |
 | `--acme-email` | string | — | `STORAGE_ACME_EMAIL` | Contact address for the ACME account. |
@@ -58,6 +59,7 @@ Checks the data directory, database integrity, audit chain, certificate validity
 - `STORAGE_PORT`
 - `STORAGE_HTTP_PORT`
 - `STORAGE_ADMIN_PORT`
+- `STORAGE_ADMIN_HOST`
 - `STORAGE_TLS`
 - `STORAGE_DOMAINS`
 - `STORAGE_ACME_EMAIL`
@@ -82,4 +84,4 @@ storage-server doctor --public-url https://home.example.org
 
 ## See also
 
-[`storage-server cert`](cert.md), [`storage-server upnp`](upnp.md), [`storage-server audit`](audit.md)
+[`storage-server admin`](admin.md), [`storage-server cert`](cert.md), [`storage-server upnp`](upnp.md), [`storage-server audit`](audit.md)

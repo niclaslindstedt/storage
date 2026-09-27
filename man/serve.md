@@ -10,7 +10,7 @@ storage-server serve [--data-dir <dir>] [--tls <mode>] [--domain <name>]... [--u
 
 ## Description
 
-Starts the HTTPS API, the loopback admin page and background housekeeping. On first start, when no account exists, it prints a one-time QR code that enrols the first device as the admin.
+Starts the HTTPS API, the admin console (a local web UI to administer, monitor, read logs and troubleshoot; its sign-in link is printed to stderr) and background housekeeping. On first start, when no account exists, it prints a one-time QR code that enrols the first device as the admin.
 
 ## Options
 
@@ -22,7 +22,8 @@ Starts the HTTPS API, the loopback admin page and background housekeeping. On fi
 | `--host` | string | `0.0.0.0 (127.0.0.1 with --tls off)` | `STORAGE_HOST` | Address to listen on. |
 | `--port` | int | `8443` | `STORAGE_PORT` | HTTPS (or plain HTTP with --tls off) port. |
 | `--http-port` | int | — | `STORAGE_HTTP_PORT` | Plain-HTTP port for ACME http-01 challenges and HTTPS redirects (0 = any free port; unset = disabled). |
-| `--admin-port` | int | `8081` | `STORAGE_ADMIN_PORT` | Loopback-only admin page port (-1 disables). |
+| `--admin-port` | int | `8081` | `STORAGE_ADMIN_PORT` | Admin console port (-1 disables). |
+| `--admin-host` | string | `127.0.0.1` | `STORAGE_ADMIN_HOST` | Interface the admin console listens on. Keep it on loopback. Only in a container with published ports use 0.0.0.0, published as -p 127.0.0.1:8081:8081. |
 | `--tls` | string | `self-signed` | `STORAGE_TLS` | How HTTPS certificates are obtained. |
 | `--domain` | list | — | `STORAGE_DOMAINS` | DNS name or public IP to certify (repeatable; env is comma-separated). |
 | `--acme-email` | string | — | `STORAGE_ACME_EMAIL` | Contact address for the ACME account. |
@@ -58,6 +59,7 @@ Starts the HTTPS API, the loopback admin page and background housekeeping. On fi
 - `STORAGE_PORT`
 - `STORAGE_HTTP_PORT`
 - `STORAGE_ADMIN_PORT`
+- `STORAGE_ADMIN_HOST`
 - `STORAGE_TLS`
 - `STORAGE_DOMAINS`
 - `STORAGE_ACME_EMAIL`
@@ -102,4 +104,4 @@ behind Caddy, nginx or a tunnel
 
 ## See also
 
-[`storage-server setup`](setup.md), [`storage-server pair`](pair.md), [`storage-server doctor`](doctor.md)
+[`storage-server setup`](setup.md), [`storage-server pair`](pair.md), [`storage-server admin`](admin.md), [`storage-server doctor`](doctor.md)

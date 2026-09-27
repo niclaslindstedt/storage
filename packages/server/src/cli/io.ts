@@ -20,6 +20,8 @@ export type CliIo = {
   signal: AbortSignal;
   /** Whether stdout is a terminal (QR codes use ANSI colours only then). */
   tty: boolean;
+  /** The always-on debug log file (offered for download by the console). */
+  logFile?: string | null;
 };
 
 export function openContext(config: ServerConfig, log: Logger): Ctx {

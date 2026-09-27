@@ -2,6 +2,7 @@
 // The repository's docs/ topics, compiled into the binary (OSS_SPEC §12.3):
 // the bundler inlines each Markdown file as a string.
 
+import adminConsole from "../../../../docs/admin-console.md";
 import architecture from "../../../../docs/architecture.md";
 import configuration from "../../../../docs/configuration.md";
 import gettingStarted from "../../../../docs/getting-started.md";
@@ -16,6 +17,7 @@ export const DOC_TOPICS: Record<string, string> = {
   "getting-started": gettingStarted,
   configuration,
   "home-hosting": homeHosting,
+  "admin-console": adminConsole,
   security,
   sharing,
   protocol,

@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 
 import type { UserConfig } from "vitest/config";
 
+import { viteUiPlugin } from "./packages/server/scripts/ui-bundle.ts";
+
 const root = dirname(fileURLToPath(import.meta.url));
 
 /** Where the oss-framework checkout lives (CI clones it; locally a sibling). */
@@ -16,6 +18,7 @@ export const frameworkDir = resolve(
 
 export const sharedConfig: UserConfig = {
   plugins: [
+    viteUiPlugin(),
     {
       name: "markdown-as-text",
       transform(_code, id) {

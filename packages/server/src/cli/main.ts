@@ -22,6 +22,7 @@ import {
   runTestServer,
   runUpnp,
 } from "./commands/ops.ts";
+import { runAdmin } from "./commands/console.ts";
 import { runPair } from "./commands/pairing.ts";
 import { loadServerConfig } from "./config-load.ts";
 import { DOC_TOPICS } from "./docs.ts";
@@ -104,7 +105,7 @@ export async function runCli(
       err: deps.err,
       color: deps.tty,
     });
-  const io: CliIo = { ...deps, log };
+  const io: CliIo = { logFile: defaultLogFile(deps.env), ...deps, log };
 
   try {
     const config = (): ServerConfig => loadServerConfig(args.flags, deps.env);
@@ -131,6 +132,8 @@ export async function runCli(
         return await runUpnp(io, config(), args);
       case "doctor":
         return await runDoctor(io, config());
+      case "admin":
+        return runAdmin(io, config(), args);
       case "health":
         return await runHealth(config());
       case "test-server":

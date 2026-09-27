@@ -4,3 +4,10 @@ declare module "*.md" {
   const text: string;
   export default text;
 }
+
+// The admin console UI, bundled by scripts/ui-bundle.ts (tsup plugin in the
+// build, Vite plugin in tests).
+declare module "*?bundle" {
+  const ui: { js: string; css: string };
+  export default ui;
+}

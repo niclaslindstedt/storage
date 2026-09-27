@@ -33,9 +33,14 @@
     "build": "tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p .",
-    "gen:man": "node --experimental-strip-types --no-warnings scripts/gen-man.ts"
+    "gen:man": "node --experimental-strip-types --no-warnings scripts/gen-man.ts",
+    "test:browser": "playwright test"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "esbuild": "^0.27.0"
   }
 }

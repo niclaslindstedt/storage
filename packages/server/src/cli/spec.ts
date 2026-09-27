@@ -123,7 +123,17 @@ export const SERVER_FLAGS: FlagSpec[] = [
     env: "STORAGE_ADMIN_PORT",
     config: "listen.adminPort",
     default: "8081",
-    description: "Loopback-only admin page port (-1 disables).",
+    description: "Admin console port (-1 disables).",
+  },
+  {
+    name: "admin-host",
+    type: "string",
+    value: "<addr>",
+    env: "STORAGE_ADMIN_HOST",
+    config: "listen.adminHost",
+    default: "127.0.0.1",
+    description:
+      "Interface the admin console listens on. Keep it on loopback. Only in a container with published ports use 0.0.0.0, published as -p 127.0.0.1:8081:8081.",
   },
   {
     name: "tls",
@@ -249,7 +259,7 @@ export const COMMANDS: CommandSpec[] = [
     summary: "Run the storage server (the default command).",
     usage: `${BIN} serve [--data-dir <dir>] [--tls <mode>] [--domain <name>]... [--upnp] [flags]`,
     description:
-      "Starts the HTTPS API, the loopback admin page and background housekeeping. On first start, when no account exists, it prints a one-time QR code that enrols the first device as the admin.",
+      "Starts the HTTPS API, the admin console (a local web UI to administer, monitor, read logs and troubleshoot; its sign-in link is printed to stderr) and background housekeeping. On first start, when no account exists, it prints a one-time QR code that enrols the first device as the admin.",
     flags: SERVER_FLAGS,
     examples: [
       {
@@ -270,7 +280,7 @@ export const COMMANDS: CommandSpec[] = [
       },
     ],
     exitCodes: STANDARD_EXITS,
-    seeAlso: ["setup", "pair", "doctor"],
+    seeAlso: ["setup", "pair", "admin", "doctor"],
   },
   {
     name: "setup",
@@ -652,13 +662,46 @@ export const COMMANDS: CommandSpec[] = [
     summary: "Check the installation end to end.",
     usage: `${BIN} doctor [server flags]`,
     description:
-      "Checks the data directory, database integrity, audit chain, certificate validity and expiry, router mapping and NAT type, and that the public URL answers. Exit code 1 when any check fails.",
+      "Checks the data directory (writable, private), database integrity, the audit chain, that an admin exists, free disk space, the certificate, router mapping and NAT type, that the public URL answers, and network exposure — the same checks as the admin console's Troubleshoot page. Prints a fix for each problem; exit code 1 when any check fails.",
     flags: SERVER_FLAGS,
     examples: [
       { cmd: `${BIN} doctor --public-url https://home.example.org`, note: "" },
     ],
     exitCodes: STANDARD_EXITS,
-    seeAlso: ["cert", "upnp", "audit"],
+    seeAlso: ["admin", "cert", "upnp", "audit"],
+  },
+  {
+    name: "admin",
+    summary: "Print the admin console sign-in link, or rotate its token.",
+    usage: `${BIN} admin [--rotate] [--json]`,
+    description:
+      "The admin console is a local web UI that serve starts on 127.0.0.1:8081 (see --admin-host and --admin-port). It is unlocked by a token kept in admin.token in the data directory; this command prints a sign-in link carrying it. --rotate replaces the token, which signs out every open console session immediately (no restart needed).",
+    flags: [
+      {
+        name: "rotate",
+        type: "bool",
+        description: "Replace the admin token and end every console session.",
+      },
+      { name: "json", type: "bool", description: "Print JSON." },
+      ...pick("admin-port", "admin-host"),
+    ],
+    examples: [
+      {
+        cmd: `${BIN} admin`,
+        note: "open the printed link in a browser on this machine",
+      },
+      {
+        cmd: `ssh -L 8081:127.0.0.1:8081 pi@homeserver`,
+        note: "reach a home server's console from your laptop",
+      },
+      { cmd: `${BIN} admin --rotate`, note: "after sharing a link by mistake" },
+      {
+        cmd: `docker exec storage /nodejs/bin/node /app/dist/cli.js admin`,
+        note: "in the container",
+      },
+    ],
+    exitCodes: STANDARD_EXITS,
+    seeAlso: ["serve", "doctor"],
   },
   {
     name: "health",
