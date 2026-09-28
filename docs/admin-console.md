@@ -76,7 +76,36 @@ Prometheus scrape configurations keep working.
 | Traffic      | Requests, client and server errors and rate-limited requests per minute for the last hour, latency percentiles, open live connections, and a per-endpoint table.                                          |
 | Logs         | A live tail of the server log with a level filter, search and pause, plus a download of the full debug log file.                                                                                          |
 | Audit log    | The tamper-evident audit chain, newest first, filterable by action, with a **Verify chain** button.                                                                                                       |
+| Settings     | How long earlier versions of files and deleted files are kept (below).                                                                                                                                    |
 | Troubleshoot | Every health check with a fix for each problem; renew the certificate, refresh port mapping, run housekeeping, back up, download a diagnostics bundle; the effective settings.                            |
+
+## Settings
+
+When a file is overwritten, the server keeps the version it replaced, so
+people can compare versions and restore one from Storage Remote or the
+[web drive](drive.md). **Settings** decides for how long:
+
+| Setting                   | Default | Means                                                                             |
+| ------------------------- | ------- | --------------------------------------------------------------------------------- |
+| Keep earlier versions for | 30 days | Counted from the moment a version was replaced. 0 keeps no earlier versions.      |
+| At most                   | 100     | Versions per file; the oldest go first. A limit for files that change very often. |
+| Keep deleted files for    | 30 days | How long deleted files wait in their folder's trash.                              |
+
+A change applies at once and wins over the server's configuration
+(`--history-days`, `--history-versions`, `--trash-days`, or `retention` in
+`config.json`, see [Configuration](configuration.md#version-history)).
+The page shows each setting's configured value, and **Use that** goes back
+to it. Shortening a period removes older versions and trashed files for
+good, at the next housekeeping run (hourly, or **Run housekeeping** on
+Troubleshoot) or when the file is next written. Earlier versions count
+against the folder owner's quota. Every change is written to the audit log
+(`settings.update`).
+
+The versions stay end-to-end encrypted. The server keeps the older
+ciphertext and cannot read or compare it; people's devices do that.
+
+From a terminal: `storage settings` ([CLI](cli.md)). For AI agents:
+`server_settings` / `update_settings` ([MCP](mcp.md)).
 
 ## Health checks
 

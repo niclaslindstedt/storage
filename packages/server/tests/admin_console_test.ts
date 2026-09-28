@@ -482,6 +482,70 @@ describe("API", () => {
     expect(renew.status).toBe(409); // not in acme mode
   });
 
+  it("settings: version history and trash, changed at runtime and audited", async () => {
+    const h = await harness();
+    const before = await h.json<{
+      retention: Record<string, number>;
+      changed: string[];
+    }>("/api/settings");
+    expect(before.retention).toEqual({
+      historyDays: 30,
+      historyCount: 100,
+      trashDays: 30,
+    });
+    expect(before.changed).toEqual([]);
+
+    const after = await h.json<{
+      retention: Record<string, number>;
+      defaults: Record<string, number>;
+      changed: string[];
+    }>("/api/settings", {
+      method: "PATCH",
+      body: JSON.stringify({ historyDays: 90, trashDays: 14 }),
+    });
+    expect(after.retention).toMatchObject({ historyDays: 90, trashDays: 14 });
+    expect(after.defaults.historyDays).toBe(30);
+    expect(after.changed.sort()).toEqual(["historyDays", "trashDays"]);
+    // Apps learn it from /v1/info.
+    const info = (await (await fetch(`${h.apiUrl}/v1/info`)).json()) as {
+      retention: unknown;
+    };
+    expect(info.retention).toEqual({
+      historyDays: 90,
+      historyCount: 100,
+      trashDays: 14,
+    });
+
+    for (const bad of [
+      { historyDays: -1 },
+      { historyDays: 1.5 },
+      { historyCount: 0 },
+      { trashDays: "7" },
+      { tombstoneDays: 1 },
+      {},
+    ]) {
+      const res = await h.api("/api/settings", {
+        method: "PATCH",
+        body: JSON.stringify(bad),
+      });
+      expect(res.status, JSON.stringify(bad)).toBe(400);
+    }
+
+    // null goes back to the configuration's value.
+    const reset = await h.json<{ retention: Record<string, number> }>(
+      "/api/settings",
+      { method: "PATCH", body: JSON.stringify({ historyDays: null }) },
+    );
+    expect(reset.retention.historyDays).toBe(30);
+    const audit = await h.json<{ entries: { detail: unknown }[] }>(
+      "/api/audit?action=settings",
+    );
+    expect(audit.entries.map((e) => e.detail)).toEqual([
+      { historyDays: null },
+      { historyDays: 90, trashDays: 14 },
+    ]);
+  });
+
   it("backup writes a consistent copy under the data directory", async () => {
     const dataDir = mkdtempSync(join(tmpdir(), "storage-console-"));
     dirs.push(dataDir);

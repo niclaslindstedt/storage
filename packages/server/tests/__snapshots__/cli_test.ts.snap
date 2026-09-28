@@ -38,6 +38,9 @@ Environment variables:
   STORAGE_CORS: CORS policy: origins learnt at pairing (plus --cors-origin), or any origin.
   STORAGE_CORS_ORIGINS: Always-allowed app origin (repeatable; env is comma-separated).
   STORAGE_DEFAULT_QUOTA: Storage quota for new non-admin accounts (unset = unlimited).
+  STORAGE_HISTORY_DAYS: Keep earlier versions of a file this many days after they were replaced (0 = none). The console's Settings can change it at runtime.
+  STORAGE_HISTORY_VERSIONS: Keep at most this many versions of each file.
+  STORAGE_TRASH_DAYS: Keep deleted files in the trash this many days.
   STORAGE_LOG_FILE: Path of the always-on debug log file.
   XDG_DATA_HOME: Base for the default data directory.
   XDG_STATE_HOME: Base for the default log directory.

@@ -42,6 +42,8 @@ const CONSOLE: Record<string, string> = {
   "POST /api/audit/verify": "verify_audit_chain",
   "GET /api/checks": "server_checks",
   "GET /api/config": "server_config",
+  "GET /api/settings": "server_settings",
+  "PATCH /api/settings": "update_settings",
   "POST /api/actions/housekeeping": "run_housekeeping",
   "POST /api/actions/renew-certificate": "renew_certificate",
   "POST /api/actions/refresh-port-mapping": "refresh_port_mapping",
@@ -64,6 +66,8 @@ const REMOTE: Record<string, string> = {
   "files: delete": "delete_file",
   "files: versions": "file_history",
   "files: restore a version": "restore_file_version",
+  // Compared on the device: both versions are read, then diffed locally.
+  "files: compare two versions": "read_file_version",
   "files: trash": "list_trash",
   "files: restore from trash": "restore_from_trash",
   "files: delete for good": "purge_from_trash",
@@ -118,6 +122,9 @@ describe("parity", () => {
       "files/browser.ts",
       "files/drives.ts",
       "files/share.ts",
+      "files/versions.ts",
+      "files/upload.ts",
+      "files/preview.ts",
       "device.ts",
     ]
       .map((f) =>
@@ -133,6 +140,7 @@ describe("parity", () => {
       "files.delete",
       "files.history",
       "files.restore",
+      "files.readRevision",
       "restoreTrash",
       "purgeTrash",
       "invite(",
@@ -184,6 +192,27 @@ describe("admin tools", () => {
       { action: "accept", content: { confirm: "grandma" } },
     );
     expect(del.result!.isError).toBeUndefined();
+  });
+
+  it("reads and changes the version history settings, confirmed by the person", async () => {
+    const h = await home();
+    const a = await agent(h, { perms: ["console:write"], console: true });
+    const read = await a.call("server_settings");
+    expect(read.result!.structuredContent).toMatchObject({
+      retention: { historyDays: 30 },
+    });
+    const changed = await a.call(
+      "update_settings",
+      { historyDays: 60, reset: ["trashDays"] },
+      { action: "accept", content: { approve: true } },
+    );
+    expect((changed as { asked?: string }).asked).toMatch(
+      /historyDays → 60, trashDays → the configuration's value/,
+    );
+    expect(changed.result!.structuredContent).toMatchObject({
+      retention: { historyDays: 60, trashDays: 30 },
+      changed: ["historyDays"],
+    });
   });
 
   it("narrows another device's scope and runs maintenance", async () => {

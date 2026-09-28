@@ -55,6 +55,19 @@ http://127.0.0.1:8081/login?token=…`,
 # scan with Storage Remote: the phone is now an admin device`,
   },
   {
+    title: "Your files in any browser",
+    text: "Sign a browser in with a code and use your files like Dropbox: browse, upload, preview, share — and watch changes from your other devices sync in live. Everything is decrypted in the browser.",
+    code: `open ${SITE.url}/drive/
+# paste a sign-in code from your phone or the admin console`,
+  },
+  {
+    title: "Every version, 30 days back",
+    text: "Overwrite a file and the version it replaced is kept for 30 days — or however long the admin sets. Compare two versions of a text file line by line, and restore either.",
+    code: `$ storage settings set --history-days 90
+- buy milk
++ buy oat milk`,
+  },
+  {
     title: "The easiest backend to test",
     text: "Start a real server in-process in milliseconds. Inject faults, move the clock, snapshot and restore — from Vitest or Playwright.",
     code: `const server = await startTestServer();
@@ -82,6 +95,9 @@ function Hero() {
         <div className="cta">
           <a className="button primary" href={href("docs/getting-started/")}>
             Get started
+          </a>
+          <a className="button" href={href("drive/")}>
+            Open your files
           </a>
           <a className="button" href={href("docs/security/")}>
             Security model

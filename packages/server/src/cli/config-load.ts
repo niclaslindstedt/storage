@@ -11,11 +11,18 @@ import {
   resolveConfig,
   type ServerConfig,
 } from "../config.ts";
+import { RETENTION_LIMITS, type RetentionKey } from "../services/settings.ts";
 import { UsageError } from "./args.ts";
 import { defaultDataDir } from "./paths.ts";
 import { type FlagSpec, GLOBAL_FLAGS, SERVER_FLAGS } from "./spec.ts";
 
 type Flags = Record<string, unknown>;
+
+const RETENTION_FLAG: Record<RetentionKey, string> = {
+  historyDays: "--history-days",
+  historyCount: "--history-versions",
+  trashDays: "--trash-days",
+};
 
 function setPath(
   obj: Record<string, unknown>,
@@ -62,6 +69,19 @@ function normalize(key: string, value: unknown): unknown {
     if (["on", "true", "1", "yes"].includes(v)) return true;
     if (["off", "false", "0", "no"].includes(v)) return false;
     throw new UsageError("--remote-console must be on or off");
+  }
+  if (key.startsWith("retention.")) {
+    const k = key.slice("retention.".length) as RetentionKey;
+    const limits = RETENTION_LIMITS[k];
+    if (
+      limits &&
+      (!Number.isInteger(value) ||
+        (value as number) < limits[0] ||
+        (value as number) > limits[1])
+    )
+      throw new UsageError(
+        `${RETENTION_FLAG[k]} must be a whole number from ${limits[0]} to ${limits[1]}`,
+      );
   }
   if (key === "cors.mode" && !["paired", "any"].includes(String(value))) {
     throw new UsageError("--cors must be paired or any");

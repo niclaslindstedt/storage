@@ -50,7 +50,7 @@ The keys mirror the server configuration object:
   "defaultQuotaBytes": 10737418240,
   "remoteConsole": true,
   "retention": {
-    "historyCount": 20,
+    "historyCount": 100,
     "historyDays": 30,
     "trashDays": 30,
     "tombstoneDays": 90
@@ -60,7 +60,7 @@ The keys mirror the server configuration object:
 
 Keys only settable in `config.json`: `limits.*` (body, file, part, record and
 metadata sizes), `ttl.*` (token, challenge, pairing, invite and upload
-lifetimes), `retention.*` and `rateLimit.*`.
+lifetimes), `retention.tombstoneDays` and `rateLimit.*`.
 
 ## TLS modes
 
@@ -70,6 +70,24 @@ lifetimes), `retention.*` and `rateLimit.*`.
 | `acme`                  | Public server. `--domain` names a DNS name or a public IP. Needs port 80 (`--http-port 80`, `http-01`) or 443 (`tls-alpn-01`) reachable.       |
 | `files`                 | You manage certificates (`--cert`, `--key`); reloaded on change.                                                                               |
 | `off`                   | Behind Caddy, nginx, Traefik, Cloudflare Tunnel or Tailscale Funnel. Listens on 127.0.0.1 unless `--host` says otherwise; add `--trust-proxy`. |
+
+## Version history
+
+When a file is overwritten, the server keeps the version it replaced, so
+apps can show, compare and restore earlier versions.
+
+| Flag                     | Environment                | `config.json`            | Default | Means                                                              |
+| ------------------------ | -------------------------- | ------------------------ | ------- | ------------------------------------------------------------------ |
+| `--history-days <days>`  | `STORAGE_HISTORY_DAYS`     | `retention.historyDays`  | 30      | Keep a replaced version this long after it was replaced (0 = none) |
+| `--history-versions <n>` | `STORAGE_HISTORY_VERSIONS` | `retention.historyCount` | 100     | At most this many versions per file                                |
+| `--trash-days <days>`    | `STORAGE_TRASH_DAYS`       | `retention.trashDays`    | 30      | Keep deleted files in the trash this long                          |
+
+These are the defaults. An admin can change all three at runtime from the
+console's [Settings](admin-console.md#settings) page, `storage settings
+set` ([CLI](cli.md)) or an agent's `update_settings`. A value changed there
+is stored in the database, wins over the configuration, and survives
+restarts. `storage settings reset` goes back to the configuration. Apps
+read the effective values from `/v1/info` (`retention`).
 
 ## Remote console
 
@@ -90,6 +108,8 @@ open to any origin because they are protected by one-time secrets. The API
 uses bearer tokens, never cookies, so `--cors any` is safe too — `paired`
 just narrows the surface further. Private-network preflights (a public app
 talking to a LAN address) are answered.
+The [web drive](drive.md) at `https://niclaslindstedt.github.io/storage/drive/`
+is such an app: in `paired` mode it is allowed once a browser signs in from it.
 
 ## Logging
 

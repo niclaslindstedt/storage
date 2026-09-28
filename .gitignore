@@ -12,6 +12,8 @@ apps/reference/test-results/
 apps/reference/playwright-report/
 apps/remote/test-results/
 apps/remote/playwright-report/
+apps/drive/test-results/
+apps/drive/playwright-report/
 .lighthouseci/
 website/.ssr-build/
 packages/server/.admin-e2e/

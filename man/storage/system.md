@@ -125,4 +125,4 @@ storage system diagnostics -o report.json
 
 ## See also
 
-[`storage doctor`](doctor.md), [`storage status`](status.md)
+[`storage doctor`](doctor.md), [`storage settings`](settings.md), [`storage status`](status.md)

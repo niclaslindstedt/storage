@@ -19,14 +19,19 @@ src/
 ├── sse.ts            Server-Sent Events over fetch (bearer header)
 ├── hosts.ts          capabilities the native wrapper may offer
 ├── device.ts         This phone: approve devices, recovery key, sign out
-├── ui.ts             set-up screens, QR images, error wording
-├── styles.css        layout over the console's stylesheet and tokens
+├── ui.ts             set-up screens, QR images, error wording, app naming
+├── common.css        what the web drive shares: set-up screens, file lists, versions
+├── styles.css        the phone layout over the console's stylesheet and tokens
 └── files/
     ├── tree.ts       folders over flat paths (pure, tested)
     ├── drives.ts     the list of shared folders; join an invite
-    ├── browser.ts    inside a folder: upload, save, rename, versions, trash
+    ├── browser.ts    inside a folder: upload, open, rename, versions, trash
+    ├── upload.ts     uploads: replace (a new version) or keep both, in parts
+    ├── preview.ts    text and pictures, decrypted on the device
+    ├── versions.ts   versions: list, download, restore, compare
+    ├── diff.ts       the line diff behind Compare (pure, tested)
     └── share.ts      members and invites
-tests/                Vitest (node): tree, console transport, native bridge
+tests/                Vitest (node): tree, diff, console transport, native bridge
 browser-tests/        Playwright against `storage-server test-server`
 ```
 
@@ -34,6 +39,10 @@ The **Server** tab mounts the admin console's own pages
 (`packages/server/src/admin/ui`, aliased as `@storage/console/*`) and only
 swaps their transport. A console feature lands there and appears here too.
 Keep this app from growing a second console.
+
+The **web drive** (`apps/drive`) mounts the Files pages, the key set-up and
+This phone (as "This browser") unchanged, so keep them free of
+phone-only assumptions. `ui.ts`'s `app` names the app and the device.
 
 The framework is used from source like the reference app. Only its
 dependency-free parts are imported: the self-hosted client and the QR

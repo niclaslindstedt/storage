@@ -51,6 +51,35 @@ test("an admin device runs the server and keeps encrypted files", async ({
     buffer: Buffer.from("scan of my passport"),
   });
   await expect(page.getByTestId("file-passport.txt")).toBeVisible();
+  // Uploading it again replaces it; the version it replaced is kept.
+  await page.getByTestId("upload-input").setInputFiles({
+    name: "passport.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("scan of my new passport"),
+  });
+  await page.getByTestId("replace").click();
+  await expect(page.getByTestId("toast").last()).toContainText("1 replaced");
+  await page
+    .getByTestId("file-passport.txt")
+    .getByRole("button")
+    .first()
+    .click();
+  await expect(page.getByTestId("preview-text")).toHaveText(
+    "scan of my new passport",
+  );
+  await page
+    .getByTestId("preview-dialog")
+    .getByRole("button", { name: "Versions" })
+    .click();
+  const versions = page.getByTestId("versions-dialog");
+  await expect(versions.getByTestId("diff-del")).toContainText(
+    "scan of my passport",
+  );
+  await expect(versions.getByTestId("diff-add")).toContainText(
+    "scan of my new passport",
+  );
+  await versions.getByTestId("restore-1").click();
+  await expect(page.getByTestId("toast").last()).toContainText("Restored");
   await page.getByTestId("new-subfolder").click();
   await page.getByTestId("name-input").fill("Taxes");
   await page.getByTestId("name-submit").click();

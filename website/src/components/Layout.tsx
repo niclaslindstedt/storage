@@ -20,6 +20,9 @@ export function Header({ page }: { page: Page }) {
           {link("#features", "Features", false)}
           {link("#example", "Example", false)}
           {link("docs/", "Docs", page.kind !== "home")}
+          <a className="nav-drive" href={href("drive/")}>
+            Your files
+          </a>
           <a href={source.repo} rel="noopener">
             GitHub
           </a>

@@ -28,6 +28,12 @@ built to hold health data that nobody but its owners can read.
 - **Run it from your phone.** Storage Remote pairs your phone as an _admin
   device_: the whole admin console on the go, plus your own encrypted
   files, shared folder by folder, as an alternative to Dropbox.
+- **Your files in any browser, with every version.** The
+  [web drive](https://niclaslindstedt.github.io/storage/drive/) signs a
+  browser in with a code: browse, upload, preview and share, and watch
+  changes from your other devices sync in live. Overwritten files keep
+  their earlier versions for 30 days (an admin setting), and text files
+  can be compared version to version, line by line, in the browser.
 - **Let an AI agent use it — safely.** `storage-mcp` is an MCP server
   that gives Claude (or any MCP client) your files, app data and the
   admin console, as an _agent device_ the server holds to the permissions
@@ -180,6 +186,22 @@ Only the local console and the CLI can pair an admin device.
 `--remote-console off` disables remote administration entirely. See
 [docs/remote-app.md](docs/remote-app.md).
 
+### Your files in the browser
+
+The [web drive](https://niclaslindstedt.github.io/storage/drive/)
+([`apps/drive`](apps/drive)) is Dropbox for your server. Sign a browser in
+with a code from **This phone → Add a device** in Storage Remote, or from
+the console (`storage-server pair --account <you>`). Then browse your
+shared folders, drag files in, open text and pictures, compare and restore
+earlier versions, and follow changes on the **Activity** page as they
+sync. It decrypts in the browser, needs a server with a trusted
+certificate, and can be self-hosted (`make drive`). See
+[docs/drive.md](docs/drive.md).
+
+Replaced versions are kept for 30 days by default. Change it in the
+console's **Settings**, with `storage settings set --history-days 90`, or
+with `--history-days` at start.
+
 ### AI agents (MCP)
 
 [`packages/mcp`](packages/mcp) is `storage-mcp`, a zero-dependency MCP
@@ -262,6 +284,7 @@ defaults. The ones you are most likely to set:
 | `--admin-port`     | `STORAGE_ADMIN_PORT`     | `8081`                                              | Admin console port (`-1` disables)                       |
 | `--admin-host`     | `STORAGE_ADMIN_HOST`     | `127.0.0.1`                                         | Admin console interface; keep it on loopback             |
 | `--remote-console` | `STORAGE_REMOTE_CONSOLE` | `on`                                                | Let admin devices (Storage Remote) use the console       |
+| `--history-days`   | `STORAGE_HISTORY_DAYS`   | `30`                                                | Keep replaced file versions this long (console Settings) |
 
 All settings, with defaults: [docs/configuration.md](docs/configuration.md)
 or `storage-server man serve`.
@@ -306,7 +329,7 @@ More in [docs/troubleshooting.md](docs/troubleshooting.md).
 Hosted at **[niclaslindstedt.github.io/storage](https://niclaslindstedt.github.io/storage/)**,
 and embedded in the CLI (`storage-server docs <topic>`):
 
-- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Headless CLI](docs/cli.md) · [Storage Remote](docs/remote-app.md) · [AI agents (MCP)](docs/mcp.md) · [Configuration](docs/configuration.md)
+- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Headless CLI](docs/cli.md) · [Storage Remote](docs/remote-app.md) · [Web drive](docs/drive.md) · [AI agents (MCP)](docs/mcp.md) · [Configuration](docs/configuration.md)
 - [Security model](docs/security.md) · [Sharing a namespace](docs/sharing.md) · [Testing](docs/testing.md)
 - [Architecture](docs/architecture.md) · [Protocol (HTTP API v1)](docs/protocol.md) · [Troubleshooting](docs/troubleshooting.md)
 - [SPEC.md](SPEC.md) — the full design specification and progress tracker.

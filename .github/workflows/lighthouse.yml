@@ -24,6 +24,12 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: website/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            website/package-lock.json
+      # The web drive (apps/drive) is built into the site: it needs the
+      # workspace's dependencies and the framework client.
+      - run: npm ci --no-audit --no-fund
+      - run: make framework
       - run: make website
       - run: npx --yes @lhci/cli@0.15.1 autorun --config=./.github/lighthouse/lighthouserc.json

@@ -68,6 +68,14 @@ describe("admin device login", () => {
     expect(json(await sh(["status", "--json"])).server.name).toBe("home");
     expect((await sh(["account", "pair", "kid", "--no-qr"])).code).toBe(0);
     expect((await sh(["api", "overview"])).code).toBe(0);
+    const settings = await sh([
+      "settings",
+      "set",
+      "--history-versions",
+      "50",
+      "--json",
+    ]);
+    expect(json(settings).retention.historyCount).toBe(50);
 
     // Remote admin access is granted at the machine only.
     const refused = await sh(["account", "pair", "niclas", "--admin-app"]);

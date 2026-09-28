@@ -7,6 +7,19 @@ import { qrToSvg } from "@niclaslindstedt/oss-framework/qr/svg";
 
 import { type Child, h } from "@storage/console/dom.ts";
 
+/**
+ * What the app calls itself and the device it runs on, for the screens it
+ * shares: Storage Remote is a phone, the web drive (apps/drive) a browser.
+ */
+export const app = { name: "Storage Remote", device: "phone" };
+
+export function configureApp(c: Partial<typeof app>): void {
+  Object.assign(app, c);
+}
+
+/** "this phone" → "This phone". */
+export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** A centred set-up screen (connect, keys): title, lead, body. */
 export function screen(title: string, lead: Child, ...body: Child[]) {
   return h(
@@ -14,7 +27,7 @@ export function screen(title: string, lead: Child, ...body: Child[]) {
     { class: "setup", id: "main", tabindex: "-1" },
     h("div", { class: "brand setup-brand" }, [
       h("span", { class: "logo", "aria-hidden": "true" }),
-      h("span", null, "Storage Remote"),
+      h("span", null, app.name),
     ]),
     h("h1", null, title),
     h("p", { class: "lead" }, lead),

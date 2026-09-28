@@ -6,6 +6,7 @@ import adminConsole from "../../../../docs/admin-console.md";
 import architecture from "../../../../docs/architecture.md";
 import cli from "../../../../docs/cli.md";
 import configuration from "../../../../docs/configuration.md";
+import drive from "../../../../docs/drive.md";
 import gettingStarted from "../../../../docs/getting-started.md";
 import homeHosting from "../../../../docs/home-hosting.md";
 import mcp from "../../../../docs/mcp.md";
@@ -23,6 +24,7 @@ export const DOC_TOPICS: Record<string, string> = {
   "admin-console": adminConsole,
   cli,
   "remote-app": remoteApp,
+  drive,
   mcp,
   security,
   sharing,

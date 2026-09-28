@@ -258,6 +258,34 @@ export const SERVER_FLAGS: FlagSpec[] = [
     description:
       "Storage quota for new non-admin accounts (unset = unlimited).",
   },
+  {
+    name: "history-days",
+    type: "int",
+    value: "<days>",
+    env: "STORAGE_HISTORY_DAYS",
+    config: "retention.historyDays",
+    default: "30",
+    description:
+      "Keep earlier versions of a file this many days after they were replaced (0 = none). The console's Settings can change it at runtime.",
+  },
+  {
+    name: "history-versions",
+    type: "int",
+    value: "<n>",
+    env: "STORAGE_HISTORY_VERSIONS",
+    config: "retention.historyCount",
+    default: "100",
+    description: "Keep at most this many versions of each file.",
+  },
+  {
+    name: "trash-days",
+    type: "int",
+    value: "<days>",
+    env: "STORAGE_TRASH_DAYS",
+    config: "retention.trashDays",
+    default: "30",
+    description: "Keep deleted files in the trash this many days.",
+  },
 ];
 
 const pick = (...names: string[]) =>

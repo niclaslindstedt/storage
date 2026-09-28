@@ -27,6 +27,7 @@ import {
   requireRole,
 } from "./namespaces.ts";
 import type { Principal } from "./principal.ts";
+import { retention } from "./settings.ts";
 
 export type FileEntry = {
   path: string;
@@ -289,10 +290,15 @@ function dropRevision(ctx: Ctx, nsId: string, r: RevisionRow): void {
   );
 }
 
-/** Keep the newest `historyCount` versions and none older than `historyDays`
- *  — but never the version a live path or a trashed file still points at. */
+/**
+ * Keep every version for `historyDays` after it was replaced — a version's
+ * age counts from when a newer one took its place, so overwriting a file
+ * that has not changed in months still keeps the old content for the whole
+ * window — and never more than `historyCount` versions. The version a live
+ * path or a trashed file still points at is always kept.
+ */
 export function pruneHistory(ctx: Ctx, nsId: string, fileId: string): void {
-  const { historyCount, historyDays } = ctx.config.retention;
+  const { historyCount, historyDays } = retention(ctx);
   const cutoff = ctx.clock.now() - historyDays * DAY;
   const revs = ctx.db.all<RevisionRow>(
     "SELECT * FROM file_revisions WHERE namespace_id = ? AND file_id = ? ORDER BY rev DESC",
@@ -313,7 +319,11 @@ export function pruneHistory(ctx: Ctx, nsId: string, fileId: string): void {
   );
   revs.forEach((r, i) => {
     if (pinned.has(r.rev)) return;
-    if (i >= historyCount || r.created_at < cutoff) dropRevision(ctx, nsId, r);
+    // The newest version has not been replaced yet (a trashed file's is pinned).
+    const replacedAt = i === 0 ? null : revs[i - 1]!.created_at;
+    const expired =
+      replacedAt !== null && (historyDays === 0 || replacedAt < cutoff);
+    if (i >= historyCount || expired) dropRevision(ctx, nsId, r);
   });
 }
 

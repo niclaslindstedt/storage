@@ -2,7 +2,7 @@
 // Post-prerender SEO outputs (OSS_SPEC §11.3.6, §11.3.8), all from the same
 // page list and source data the pages render from:
 //   - sitemap.xml  with <lastmod> from git history (never the build time)
-//   - robots.txt   Allow: / plus an absolute Sitemap: line
+//   - robots.txt   Allow: / (but not the web drive app) plus an absolute Sitemap: line
 //   - llms.txt     llmstxt.org index of docs, commands and examples
 //   - og/<slug>.png and og-default.png — 1200×630 cards rendered from each
 //     page's title and description (satori → resvg)
@@ -66,7 +66,8 @@ ${all
 
 write(
   "robots.txt",
-  `User-agent: *\nAllow: /\n\nSitemap: ${abs(SITE.sitemap)}\n`,
+  // The web drive (dist/drive/, apps/drive) is an app, not a page.
+  `User-agent: *\nAllow: /\nDisallow: /storage/drive/\n\nSitemap: ${abs(SITE.sitemap)}\n`,
 );
 
 write(

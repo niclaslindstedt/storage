@@ -22,7 +22,7 @@ import {
 
 import { DRIVE_APP } from "../client.ts";
 import { scannerHost } from "../hosts.ts";
-import { explain, field } from "../ui.ts";
+import { app, explain, field } from "../ui.ts";
 import { nameProblem } from "./tree.ts";
 
 export const folderHref = (id: string, path = "") =>
@@ -200,7 +200,7 @@ export function renderDrives(
               h(
                 "p",
                 { class: "muted" },
-                "Create a shared folder for your files. Everything in it is encrypted on this phone before it is uploaded.",
+                `Create a shared folder for your files. Everything in it is encrypted on this ${app.device} before it is uploaded.`,
               ),
             )
           : h(

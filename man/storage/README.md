@@ -19,6 +19,7 @@ Generated from `packages/cli/src/spec.ts` (`make man`); see [docs/cli.md](../../
 | [`storage audit`](audit.md) | Read and verify the tamper-evident audit log. |
 | [`storage doctor`](doctor.md) | Run the server's health checks and print a fix for each problem. |
 | [`storage system`](system.md) | Configuration, housekeeping, backups, certificate renewal, port mapping and diagnostics. |
+| [`storage settings`](settings.md) | How long earlier file versions and deleted files are kept. |
 | [`storage api`](api.md) | Make an authenticated request to the console API. |
 | [`storage commands`](commands.md) | List commands in a stable, grep-friendly format. |
 | [`storage help`](help.md) | Show help for a command. |

@@ -269,6 +269,26 @@ test("namespaces, traffic and troubleshoot pages render", async ({ page }) => {
   );
 });
 
+test("settings: change how long file versions are kept, then go back", async ({
+  page,
+}) => {
+  await signIn(page);
+  await go(page, "Settings");
+  const days = page.getByTestId("setting-historyDays");
+  await expect(days).toHaveValue("30");
+  await days.fill("90");
+  await page.getByTestId("settings-save").click();
+  await expect(page.getByTestId("toast").last()).toContainText("saved");
+  await expect(page.getByTestId("setting-historyDays")).toHaveValue("90");
+  const info = (await (await fetch(`${API_URL}/v1/info`)).json()) as {
+    retention: { historyDays: number };
+  };
+  expect(info.retention.historyDays).toBe(90);
+  await page.getByTestId("reset-historyDays").click();
+  await expect(page.getByTestId("setting-historyDays")).toHaveValue("30");
+  await expect(page.getByTestId("reset-historyDays")).toHaveCount(0);
+});
+
 test("the console refuses to be driven from another site", async ({
   page,
   request,

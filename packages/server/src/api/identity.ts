@@ -24,6 +24,7 @@ import {
 } from "../services/pairing.ts";
 import { getNamespaceRow } from "../services/namespaces.ts";
 import { parseScope } from "../services/scope.ts";
+import { retention } from "../services/settings.ts";
 import { optString } from "./common.ts";
 
 export const PROTOCOL_VERSION = 1;
@@ -66,6 +67,13 @@ export function identityRoutes(
             ? [...CAPABILITIES, "console"]
             : CAPABILITIES,
         time: ctx.clock.now(),
+        // How long earlier versions and trashed files are kept, so apps
+        // can say so (an admin changes it at runtime: services/settings.ts).
+        retention: (({ historyDays, historyCount, trashDays }) => ({
+          historyDays,
+          historyCount,
+          trashDays,
+        }))(retention(ctx)),
         ...extras(),
       },
     }),

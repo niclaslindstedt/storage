@@ -6,6 +6,7 @@
 // in the pairing code and is wiped from the address bar at once.
 
 import "@storage/console/styles.css";
+import "./common.css";
 import "./styles.css";
 
 import { h, toast } from "@storage/console/dom.ts";

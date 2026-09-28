@@ -908,7 +908,66 @@ export const COMMANDS: CommandSpec[] = [
       { cmd: `${BIN} system diagnostics -o report.json`, note: "" },
     ],
     exitCodes: STANDARD_EXITS,
-    seeAlso: ["doctor", "status"],
+    seeAlso: ["doctor", "settings", "status"],
+  },
+  {
+    name: "settings",
+    group: "admin",
+    summary: "How long earlier file versions and deleted files are kept.",
+    usage: `${BIN} settings <show|set|reset> [flags]`,
+    description:
+      "The console's Settings page. When a file is overwritten, the server keeps the version it replaced for --history-days (default 30) after the replacement, at most --history-versions per file; deleted files wait in the trash for --trash-days. A value set here wins over the server's configuration (flags, environment, config.json) and applies at once; `reset` goes back to the configuration's value. The versions stay encrypted: only the account's devices can open or compare them.",
+    subcommands: [
+      {
+        name: "show",
+        usage: `${BIN} settings show [--json]`,
+        summary: "Print the settings and where each comes from.",
+        args: [0, 0],
+        flags: [JSON_FLAG],
+      },
+      {
+        name: "set",
+        usage: `${BIN} settings set [--history-days <days>] [--history-versions <n>] [--trash-days <days>] [--json]`,
+        summary: "Change one or more settings.",
+        args: [0, 0],
+        flags: [
+          {
+            name: "history-days",
+            type: "int",
+            value: "<days>",
+            description:
+              "Keep a replaced version this many days (0 = keep none).",
+          },
+          {
+            name: "history-versions",
+            type: "int",
+            value: "<n>",
+            description: "Keep at most this many versions per file.",
+          },
+          {
+            name: "trash-days",
+            type: "int",
+            value: "<days>",
+            description: "Keep deleted files this many days.",
+          },
+          JSON_FLAG,
+        ],
+      },
+      {
+        name: "reset",
+        usage: `${BIN} settings reset <history-days|history-versions|trash-days>... [--json]`,
+        summary: "Go back to the server configuration's value.",
+        args: [1, 3],
+        flags: [JSON_FLAG],
+      },
+    ],
+    examples: [
+      { cmd: `${BIN} settings set --history-days 90`, note: "" },
+      { cmd: `${BIN} settings reset history-days`, note: "" },
+      { cmd: `${BIN} settings show --json | jq .retention`, note: "" },
+    ],
+    exitCodes: STANDARD_EXITS,
+    seeAlso: ["system"],
   },
   {
     name: "api",

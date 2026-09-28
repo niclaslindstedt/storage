@@ -213,6 +213,7 @@ broken chain), `2` usage, `4` not logged in or credentials rejected.
 | `audit`     | Audit: `ls`, `verify`                                                                                  |
 | `doctor`    | Troubleshoot: the health checks with a fix for each problem                                            |
 | `system`    | Troubleshoot actions: `config`, `housekeeping`, `backup`, `renew-cert`, `refresh-ports`, `diagnostics` |
+| `settings`  | Settings: `show`, `set --history-days/--history-versions/--trash-days`, `reset <setting>…`             |
 | `api`       | Any console endpoint, like `gh api`                                                                    |
 | `auth`      | `login`, `logout`, `status`, `token`, `export`                                                         |
 | `context`   | `ls`, `use`, `show`, `rename`, `rm`                                                                    |
@@ -230,6 +231,15 @@ scope never widens:
 storage account pair niclas --agent --perms data:read --apps drive --no-qr
 storage device ls --agent
 storage device scope dev_QWdlbnQ --perms data:read --apps drive
+```
+
+How long earlier versions of files (and deleted files) are kept is a
+runtime setting, like the console's Settings page:
+
+```sh
+storage settings show
+storage settings set --history-days 90 --history-versions 200
+storage settings reset history-days   # back to the server's configuration
 ```
 
 `storage api` reaches endpoints the other commands do not wrap. The path is

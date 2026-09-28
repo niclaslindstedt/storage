@@ -40,11 +40,11 @@ phone but stop it running the server, choose **Remove admin access** there.
 
 ## What it shows
 
-| Tab        | What it is for                                                                                                                                                                                                                                                                                       |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Files      | Your shared folders. Upload from the phone (large files go up in parts), make folders, save or share a file, rename, delete, restore an earlier version, empty the trash. **Share** a folder with an invite QR code (view or edit, one use, expiring). Remove someone and the folder gets a new key. |
-| Server     | The admin console itself, every page: Overview, Accounts, Devices, Namespaces, Traffic, Logs (live), Audit log, Troubleshoot. Changes are audited under this phone's device id.                                                                                                                      |
-| This phone | What it is paired to and its safety code; approve your other devices; add a device by QR code; make a new recovery key; sign out.                                                                                                                                                                    |
+| Tab        | What it is for                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Files      | Your shared folders. Upload from the phone (large files go up in parts; a taken name is replaced or kept beside), make folders, open text and pictures, save or share a file, rename, delete, compare and restore earlier versions, empty the trash. **Share** a folder with an invite QR code (view or edit, one use, expiring). Remove someone and the folder gets a new key. |
+| Server     | The admin console itself, every page: Overview, Accounts, Devices, Namespaces, Traffic, Logs (live), Audit log, Troubleshoot. Changes are audited under this phone's device id.                                                                                                                                                                                                 |
+| This phone | What it is paired to and its safety code; approve your other devices; add a device by QR code; make a new recovery key; sign out.                                                                                                                                                                                                                                               |
 
 A shared folder is one namespace of the `drive` app, with its own key. File
 and folder names are sealed on the phone like the contents. The console's
@@ -52,6 +52,14 @@ Namespaces page shows the folder as an id, an owner and a size.
 
 A paired device that is not an admin device can use the Files and This
 phone tabs. The Server tab then explains how to pair it as an admin device.
+
+**Versions.** Replacing a file keeps the version it replaced for as long
+as the server's settings say (30 days by default; the console's
+[Settings](admin-console.md#settings)). **Versions** lists them, restores
+one, and for text files shows what changed, line by line, compared on the
+phone. The same folders, with the same file pages, are on the
+[web drive](drive.md) in any browser: use **Add a device** here to sign a
+browser in.
 
 ## Requirements
 
