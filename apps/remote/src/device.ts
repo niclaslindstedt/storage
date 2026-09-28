@@ -19,12 +19,17 @@ import {
 } from "@storage/console/dom.ts";
 
 import { showRecoveryKey } from "./keys.ts";
-import { explain, qrImage } from "./ui.ts";
+import { app, cap, explain, qrImage } from "./ui.ts";
 
 export function renderDevice(
   root: HTMLElement,
   client: SelfHostedClient,
-  opts: { admin: boolean; onSignedOut(): void; onReshow(): void },
+  opts: {
+    /** Whether this is an admin device; null leaves the row out (the web drive). */
+    admin: boolean | null;
+    onSignedOut(): void;
+    onReshow(): void;
+  },
 ): () => void {
   const s = client.session!;
   const pending = h("div", null, h("p", { class: "muted" }, "Loading…"));
@@ -105,7 +110,7 @@ export function renderDevice(
                   { class: "file-name" },
                   d.name,
                   d.id === s.deviceId
-                    ? [" ", badge("this phone", "info")]
+                    ? [" ", badge(`this ${app.device}`, "info")]
                     : null,
                 ),
                 h(
@@ -195,9 +200,8 @@ export function renderDevice(
 
   async function signOut() {
     const ok = await confirm({
-      title: "Sign out and forget this phone?",
-      message:
-        "This phone's keys are erased and it has to be paired again. Your files stay on the server.",
+      title: `Sign out and forget this ${app.device}?`,
+      message: `This ${app.device}'s keys are erased and it has to be paired again. Your files stay on the server.`,
       action: "Sign out",
       danger: true,
     });
@@ -208,19 +212,27 @@ export function renderDevice(
 
   clear(
     root,
-    h("div", { class: "page-header" }, h("h1", null, "This phone")),
+    h(
+      "div",
+      { class: "page-header" },
+      h("h1", null, cap(`this ${app.device}`)),
+    ),
     card(
       null,
       kv([
         ["Server", h("code", null, s.serverUrl)],
         ["Server name", s.serverName ?? "—"],
         ["Device", h("code", null, s.deviceId)],
-        [
-          "Admin",
-          opts.admin
-            ? badge("admin device", "info")
-            : badge("not an admin device", "warn"),
-        ],
+        ...(opts.admin === null
+          ? []
+          : [
+              [
+                "Admin",
+                opts.admin
+                  ? badge("admin device", "info")
+                  : badge("not an admin device", "warn"),
+              ] as [string, HTMLElement],
+            ]),
         ["Safety code", code],
       ]),
     ),

@@ -9,7 +9,7 @@ import type { SelfHostedClient } from "@niclaslindstedt/oss-framework/storage/se
 
 import { copy, h } from "@storage/console/dom.ts";
 
-import { explain, field, screen } from "./ui.ts";
+import { app, explain, field, screen } from "./ui.ts";
 
 /** Show a new recovery key once; resolves when the user has kept it. */
 export function showRecoveryKey(
@@ -180,7 +180,7 @@ export async function renderKeys(
   root.replaceChildren(
     screen(
       "Unlock your files",
-      "Your account already has an encryption key. Get it onto this phone in one of two ways.",
+      `Your account already has an encryption key. Get it onto this ${app.device} in one of two ways.`,
       error,
       h(
         "section",
@@ -189,7 +189,7 @@ export async function renderKeys(
         h(
           "p",
           null,
-          "On a device that already has your files, open its device settings and approve this phone. Check that it shows this safety code:",
+          `On a device that already has your files, open its device settings and approve this ${app.device}. Check that it shows this safety code:`,
         ),
         code,
         h(

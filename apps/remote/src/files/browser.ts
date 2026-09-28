@@ -18,22 +18,23 @@ import {
   dialog,
   h,
   toast,
-  when,
 } from "@storage/console/dom.ts";
 
-import { saveFile } from "../hosts.ts";
-import { explain, field } from "../ui.ts";
+import { saveFile, shareHost } from "../hosts.ts";
+import { app, explain, field } from "../ui.ts";
 import { folderHref } from "./drives.ts";
+import { canPreview, openPreview } from "./preview.ts";
 import { openSharing } from "./share.ts";
 import {
   crumbs,
   FOLDER_MARKER,
   folderView,
-  freeName,
   joinPath,
   nameProblem,
   parentOf,
 } from "./tree.ts";
+import { uploadFiles } from "./upload.ts";
+import { days, openVersions, serverRetention } from "./versions.ts";
 
 type Ctx = {
   client: SelfHostedClient;
@@ -92,36 +93,15 @@ function askName(title: string, initial: string, action: string) {
   });
 }
 
-async function upload(c: Ctx, list: FileList) {
-  const taken = new Set(
-    c.files
-      .filter((f) => parentOf(f.path) === c.folder)
-      .map((f) => f.path.slice(c.folder ? c.folder.length + 1 : 0)),
-  );
-  const all = [...list];
-  let done = 0;
-  for (const file of all) {
-    const name = freeName(file.name.replaceAll("/", "∕"), taken);
-    taken.add(name);
-    c.status(`Encrypting and uploading ${done + 1} of ${all.length}: ${name}`);
-    try {
-      await c.ns.files.write(
-        joinPath(c.folder, name),
-        new Uint8Array(await file.arrayBuffer()),
-        {
-          mime: file.type || undefined,
-          mtime: file.lastModified || undefined,
-          ifAbsent: true,
-        },
-      );
-      done++;
-    } catch (err) {
-      toast(`${name}: ${explain(err)}`, "fail");
-    }
-  }
-  c.status(null);
-  if (done) toast(`Uploaded ${done} file${done === 1 ? "" : "s"}`, "ok");
-  await c.reload();
+async function upload(c: Ctx, files: File[]) {
+  const done = await uploadFiles({
+    ns: c.ns,
+    folder: c.folder,
+    files,
+    existing: c.files,
+    status: c.status,
+  });
+  if (done) await c.reload();
 }
 
 async function save(c: Ctx, f: NamespaceFileInfo) {
@@ -165,11 +145,13 @@ async function remove(c: Ctx, path: string, isFolder: boolean) {
   const inside = isFolder
     ? c.files.filter((f) => f.path.startsWith(`${path}/`))
     : [];
+  const kept = await serverRetention(c.client);
+  const forHow = kept ? ` for ${days(kept.trashDays)}` : "";
   const ok = await confirm({
     title: `Delete ${name}?`,
     message: isFolder
-      ? `The folder and the ${inside.filter((f) => !f.path.endsWith(`/${FOLDER_MARKER}`)).length} file(s) in it go to the trash, where you can restore them for 30 days.`
-      : "It goes to the trash, where you can restore it for 30 days.",
+      ? `The folder and the ${inside.filter((f) => !f.path.endsWith(`/${FOLDER_MARKER}`)).length} file(s) in it go to the trash, where you can restore them${forHow}.`
+      : `It goes to the trash, where you can restore it${forHow}.`,
     action: "Delete",
     danger: true,
   });
@@ -182,58 +164,6 @@ async function remove(c: Ctx, path: string, isFolder: boolean) {
     toast(explain(err), "fail");
   }
   await c.reload();
-}
-
-async function versions(c: Ctx, f: NamespaceFileInfo) {
-  const body = h("div", null, h("p", { class: "muted" }, "Loading…"));
-  const d = dialog(`Versions of ${f.path}`, body, { wide: true });
-  try {
-    const revs = await c.ns.files.history(f.path);
-    clear(
-      body,
-      h(
-        "ul",
-        { class: "file-list compact" },
-        revs.map((r, i) =>
-          h(
-            "li",
-            null,
-            h(
-              "span",
-              { class: "file-text" },
-              h("span", { class: "file-name" }, when(r.createdAt)),
-              h(
-                "span",
-                { class: "file-sub" },
-                `${bytes(r.size)}${i === 0 ? " · current" : ""}`,
-              ),
-            ),
-            i === 0
-              ? null
-              : h(
-                  "button",
-                  {
-                    type: "button",
-                    async onclick() {
-                      try {
-                        await c.ns.files.restore(f.path, r.rev);
-                        toast("Restored that version", "ok");
-                        d.close();
-                        await c.reload();
-                      } catch (err) {
-                        toast(explain(err), "fail");
-                      }
-                    },
-                  },
-                  "Restore",
-                ),
-          ),
-        ),
-      ),
-    );
-  } catch (err) {
-    clear(body, h("p", { class: "alert" }, explain(err)));
-  }
 }
 
 async function trash(c: Ctx) {
@@ -414,25 +344,40 @@ export function renderBrowser(
             : []),
         ),
       ),
-      ...v.files.map((f) =>
-        row(
+      ...v.files.map((f) => {
+        const versions = () =>
+          void openVersions({
+            client: c.client,
+            ns: c.ns,
+            path: f.path,
+            mime: f.mime,
+            writable,
+            onRestored: c.reload,
+          });
+        return row(
           {
             icon: "file",
             name: f.name,
             sub: `${bytes(f.size)} · ${ago(f.mtime)}`,
             testid: `file-${f.name}`,
-            onOpen: () => void save(c, f),
+            onOpen: () =>
+              canPreview(f)
+                ? openPreview({ ns: c.ns, file: f, onVersions: versions })
+                : void save(c, f),
           },
-          action("Save or share", () => void save(c, f)),
-          action("Versions", () => void versions(c, f)),
+          action(
+            shareHost() ? "Save or share" : "Download",
+            () => void save(c, f),
+          ),
+          action("Versions", versions),
           ...(writable
             ? [
                 action("Rename", () => void rename(c, f.path, false)),
                 action("Delete", () => void remove(c, f.path, false), true),
               ]
             : []),
-        ),
-      ),
+        );
+      }),
     ];
     clear(
       list,
@@ -446,7 +391,7 @@ export function renderBrowser(
               ? h(
                   "p",
                   { class: "muted" },
-                  "Upload files from this phone. They are encrypted before they leave it.",
+                  `Upload files from this ${app.device}. They are encrypted before they leave it.`,
                 )
               : null,
           ),
@@ -454,8 +399,39 @@ export function renderBrowser(
   }
 
   picker.addEventListener("change", () => {
-    if (picker.files?.length) void upload(c, picker.files);
+    if (picker.files?.length) void upload(c, [...picker.files]);
     picker.value = "";
+  });
+
+  // Files dragged in from the desktop go into this folder.
+  const dropping = (on: boolean) => list.classList.toggle("dropping", on);
+  const canDrop = (e: DragEvent) =>
+    !!c.ns &&
+    c.ns.role !== "viewer" &&
+    !!e.dataTransfer?.types.includes("Files");
+  root.addEventListener("dragover", (e) => {
+    if (!canDrop(e)) return;
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "copy";
+    dropping(true);
+  });
+  root.addEventListener("dragleave", (e) => {
+    if (!root.contains(e.relatedTarget as Node | null)) dropping(false);
+  });
+  root.addEventListener("drop", (e) => {
+    dropping(false);
+    if (!canDrop(e)) return;
+    e.preventDefault();
+    // A dropped folder arrives as a file that cannot be read; leave it out.
+    const items = [...e.dataTransfer!.items].filter((i) => i.kind === "file");
+    const folders = items.filter((i) => i.webkitGetAsEntry()?.isDirectory);
+    const files = items
+      .filter((i) => !folders.includes(i))
+      .map((i) => i.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (folders.length)
+      toast("Folders cannot be dropped; drop the files inside them.", "warn");
+    if (files.length) void upload(c, files);
   });
 
   clear(
