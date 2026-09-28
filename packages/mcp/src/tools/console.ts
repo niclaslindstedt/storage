@@ -94,6 +94,16 @@ export const consoleTools: ToolDef[] = [
     run: async (_a, d) => json(await consoleJson(d.client, "GET", "config")),
   },
   {
+    name: "server_settings",
+    title: "Version history and trash settings",
+    description:
+      "How long the server keeps earlier versions of overwritten files (days after they were replaced, and a per-file maximum) and deleted files in the trash, with the configuration's defaults and which values were changed at runtime.",
+    groups: ["server"],
+    ...read,
+    input: empty,
+    run: async (_a, d) => json(await consoleJson(d.client, "GET", "settings")),
+  },
+  {
     name: "list_accounts",
     title: "List accounts",
     description:
@@ -339,6 +349,57 @@ export const consoleTools: ToolDef[] = [
           },
         ),
       ),
+  },
+  {
+    name: "update_settings",
+    title: "Change version history and trash settings",
+    description:
+      "Change how long earlier versions of files are kept (historyDays, 0 = none; historyCount per file) and how long deleted files stay in the trash (trashDays). Shortening them removes older versions and trashed files for good at the next housekeeping. `reset` goes back to the configuration's value.",
+    groups: ["admin"],
+    ...write,
+    destructive: true,
+    idempotent: true,
+    input: s.object(
+      {
+        historyDays: s.integer(
+          "Keep a replaced version this many days (0 = keep none).",
+          0,
+          3650,
+        ),
+        historyCount: s.integer(
+          "Keep at most this many versions per file.",
+          1,
+          10_000,
+        ),
+        trashDays: s.integer("Keep deleted files this many days.", 1, 3650),
+        reset: s.array(
+          "Settings to return to the configuration's value.",
+          s.enum("A setting.", ["historyDays", "historyCount", "trashDays"]),
+          3,
+        ),
+      },
+      [],
+    ),
+    confirm(a) {
+      const changes = [
+        ...["historyDays", "historyCount", "trashDays"]
+          .filter((k) => a[k] !== undefined)
+          .map((k) => `${k} → ${String(a[k])}`),
+        ...((a.reset as string[] | undefined) ?? []).map(
+          (k) => `${k} → the configuration's value`,
+        ),
+      ];
+      return {
+        message: `Change the server's retention settings: ${changes.join(", ") || "nothing"}? Shorter periods delete older file versions or trashed files for good.`,
+      };
+    },
+    run: async (a, d) => {
+      const body: Record<string, number | null> = {};
+      for (const k of ["historyDays", "historyCount", "trashDays"])
+        if (typeof a[k] === "number") body[k] = a[k] as number;
+      for (const k of (a.reset as string[] | undefined) ?? []) body[k] = null;
+      return json(await consoleJson(d.client, "PATCH", "settings", body));
+    },
   },
   {
     name: "delete_account",

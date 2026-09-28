@@ -27,6 +27,7 @@ import {
   system,
   traffic,
 } from "./commands/monitor.ts";
+import { settings } from "./commands/settings.ts";
 import { loadEnv } from "./env.ts";
 import { NetworkError } from "./http.ts";
 import {
@@ -182,6 +183,8 @@ export async function runCli(
         return await doctor(cli);
       case "system":
         return await system(cli, sub!.name);
+      case "settings":
+        return await settings(cli, sub!.name);
       case "api":
         return await api(cli);
       case "commands": {

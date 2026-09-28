@@ -446,6 +446,40 @@ describe("the console's pages", () => {
     expect(existsSync(sh.home)).toBe(true);
   });
 
+  it("Settings: version history and trash", async () => {
+    const { sh } = await loggedIn();
+    const shown = await sh(["settings", "show"]);
+    expect(shown.out).toMatch(
+      /^history-days\s+30\s+keep earlier versions 30 days \(from the configuration\)$/m,
+    );
+    const set = await sh([
+      "settings",
+      "set",
+      "--history-days",
+      "90",
+      "--trash-days",
+      "7",
+      "--json",
+    ]);
+    expect(set.code, set.err).toBe(0);
+    expect(json(set).retention).toEqual({
+      historyDays: 90,
+      historyCount: 100,
+      trashDays: 7,
+    });
+    expect((await sh(["settings", "show"])).out).toContain(
+      "(set here; configuration: 30)",
+    );
+    const bad = await sh(["settings", "set", "--history-days", "-3"]);
+    expect(bad.code).toBe(1);
+    expect(bad.err).toContain("historyDays must be a whole number");
+    expect((await sh(["settings", "set"])).code).toBe(2);
+    expect((await sh(["settings", "reset", "retention"])).code).toBe(2);
+    const reset = await sh(["settings", "reset", "history-days", "--json"]);
+    expect(json(reset).retention.historyDays).toBe(30);
+    expect(json(reset).changed).toEqual(["trashDays"]);
+  });
+
   it("Logs and Audit", async () => {
     const { h, sh } = await loggedIn();
     h.app.ctx.log.warn("disk is getting full");

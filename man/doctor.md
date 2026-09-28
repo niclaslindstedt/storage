@@ -38,6 +38,9 @@ Checks the data directory (writable, private), database integrity, the audit cha
 | `--cors` | string | `paired` | `STORAGE_CORS` | CORS policy: origins learnt at pairing (plus --cors-origin), or any origin. |
 | `--cors-origin` | list | — | `STORAGE_CORS_ORIGINS` | Always-allowed app origin (repeatable; env is comma-separated). |
 | `--default-quota` | int | — | `STORAGE_DEFAULT_QUOTA` | Storage quota for new non-admin accounts (unset = unlimited). |
+| `--history-days` | int | `30` | `STORAGE_HISTORY_DAYS` | Keep earlier versions of a file this many days after they were replaced (0 = none). The console's Settings can change it at runtime. |
+| `--history-versions` | int | `100` | `STORAGE_HISTORY_VERSIONS` | Keep at most this many versions of each file. |
+| `--trash-days` | int | `30` | `STORAGE_TRASH_DAYS` | Keep deleted files in the trash this many days. |
 | `--data-dir` | string | `$XDG_DATA_HOME/storage-server (~/.local/share/storage-server)` | `STORAGE_DATA_DIR` | Directory holding the database, blobs, certificates and config.json. |
 | `--debug` | bool | — | `STORAGE_DEBUG` | Also print debug-level log lines to stderr. |
 | `--help` | bool | — | — | Show help for the command. |
@@ -75,6 +78,9 @@ Checks the data directory (writable, private), database integrity, the audit cha
 - `STORAGE_CORS`
 - `STORAGE_CORS_ORIGINS`
 - `STORAGE_DEFAULT_QUOTA`
+- `STORAGE_HISTORY_DAYS`
+- `STORAGE_HISTORY_VERSIONS`
+- `STORAGE_TRASH_DAYS`
 - `STORAGE_DATA_DIR`
 - `STORAGE_DEBUG`
 

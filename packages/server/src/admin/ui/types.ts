@@ -176,3 +176,13 @@ export type Metrics = {
   latency: Overview["traffic"]["latency"];
   sseConnections: number;
 };
+
+export type RetentionKey = "historyDays" | "historyCount" | "trashDays";
+
+/** GET/PATCH /api/settings (services/settings.ts). */
+export type Settings = {
+  retention: Record<RetentionKey, number>;
+  defaults: Record<RetentionKey, number>;
+  changed: RetentionKey[];
+  limits: Record<RetentionKey, [number, number]>;
+};

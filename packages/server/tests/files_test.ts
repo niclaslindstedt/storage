@@ -20,6 +20,8 @@ import {
 } from "../src/services/files.ts";
 import { createNamespace, getNamespace } from "../src/services/namespaces.ts";
 import { updateAccount } from "../src/services/accounts.ts";
+import { runRetention } from "../src/services/retention.ts";
+import { getSettings, updateSettings } from "../src/services/settings.ts";
 import {
   envelope,
   envelopeB64u,
@@ -249,6 +251,80 @@ describe("files: delete, trash, history", () => {
     // usage counts only retained revisions
     const size = envelope(1, 4, 1).byteLength;
     expect(getNamespace(ctx, alice, ns.id).usedBytes).toBe(3 * size);
+  });
+
+  it("keeps a replaced version for historyDays after it was replaced, however old it is", async () => {
+    const { ctx, alice, ns } = await setup();
+    const DAY = 24 * 3600_000;
+    const put = async (fill: number) =>
+      (
+        await putFile(ctx, alice, ns.id, "f", {
+          data: envelope(1, 4, fill),
+          meta: META,
+        })
+      ).rev;
+    const v1 = await put(1);
+    ctx.clock.advance(90 * DAY); // untouched for three months
+    const v2 = await put(2);
+    // v1 is 90 days old but was replaced just now: it is kept.
+    expect(fileHistory(ctx, alice, ns.id, "f").map((h) => h.rev)).toEqual([
+      v2,
+      v1,
+    ]);
+    ctx.clock.advance(29 * DAY);
+    await runRetention(ctx);
+    expect(fileHistory(ctx, alice, ns.id, "f")).toHaveLength(2);
+    ctx.clock.advance(2 * DAY);
+    await runRetention(ctx);
+    expect(fileHistory(ctx, alice, ns.id, "f").map((h) => h.rev)).toEqual([v2]);
+  });
+
+  it("applies history settings changed at runtime", async () => {
+    const { ctx, alice, ns } = await setup();
+    const put = (fill: number) =>
+      putFile(ctx, alice, ns.id, "f", {
+        data: envelope(1, 4, fill),
+        meta: META,
+      });
+    for (let i = 1; i <= 4; i++) await put(i);
+    expect(fileHistory(ctx, alice, ns.id, "f")).toHaveLength(4);
+    updateSettings(ctx, { historyCount: 2 }, { actor: "test" });
+    await put(5);
+    expect(fileHistory(ctx, alice, ns.id, "f")).toHaveLength(2);
+    // 0 days: no earlier versions at all.
+    updateSettings(
+      ctx,
+      { historyCount: null, historyDays: 0 },
+      { actor: "test" },
+    );
+    await put(6);
+    expect(fileHistory(ctx, alice, ns.id, "f")).toHaveLength(1);
+    expect(getSettings(ctx).retention).toMatchObject({
+      historyDays: 0,
+      historyCount: 100,
+    });
+  });
+
+  it("keeps the overwritten file of a move in the trash", async () => {
+    const { ctx, alice, ns } = await setup();
+    const a = await putFile(ctx, alice, ns.id, "a", {
+      data: envelope(1, 4, 1),
+      meta: META,
+    });
+    const b = await putFile(ctx, alice, ns.id, "b", {
+      data: envelope(1, 4, 2),
+      meta: META,
+    });
+    await moveFile(ctx, alice, ns.id, {
+      from: "a",
+      to: "b",
+      meta: META,
+      overwrite: true,
+    });
+    expect(statFile(ctx, alice, ns.id, "b").fileId).toBe(a.fileId);
+    expect(listTrash(ctx, alice, ns.id)).toMatchObject([
+      { fileId: b.fileId, path: "b" },
+    ]);
   });
 
   it("purges trash and frees blobs", async () => {

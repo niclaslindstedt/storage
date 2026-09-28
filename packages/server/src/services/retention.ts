@@ -6,6 +6,7 @@
 import type { Ctx } from "../context.ts";
 import { pruneHistory, purgeTrash } from "./files.ts";
 import { prunePairings } from "./pairing.ts";
+import { retention } from "./settings.ts";
 import { dropUpload } from "./uploads.ts";
 
 const DAY = 24 * 3600_000;
@@ -18,7 +19,7 @@ export type RetentionReport = {
 
 export async function runRetention(ctx: Ctx): Promise<RetentionReport> {
   const now = ctx.clock.now();
-  const { trashDays, historyDays, tombstoneDays } = ctx.config.retention;
+  const { trashDays, historyDays, tombstoneDays } = retention(ctx);
 
   const trash = ctx.db.all<{ namespace_id: string; file_id: string }>(
     "SELECT namespace_id, file_id FROM trash WHERE deleted_at < ?",
@@ -26,6 +27,8 @@ export async function runRetention(ctx: Ctx): Promise<RetentionReport> {
   );
   for (const t of trash) await purgeTrash(ctx, null, t.namespace_id, t.file_id);
 
+  // A version expires `historyDays` after it was replaced, so it was
+  // created before the cutoff too: these files are the only candidates.
   ctx.db.tx(() => {
     for (const f of ctx.db.all<{ namespace_id: string; file_id: string }>(
       "SELECT DISTINCT namespace_id, file_id FROM file_revisions WHERE created_at < ?",

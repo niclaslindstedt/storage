@@ -32,6 +32,7 @@ import {
   parseScope,
   readScope,
 } from "../services/scope.ts";
+import { getSettings, updateSettings } from "../services/settings.ts";
 import { type CheckResult, runChecks } from "./checks.ts";
 import type { ConsoleDeps } from "./deps.ts";
 import { LOG_LEVELS, type LogEntry, type LogLevel } from "./log-buffer.ts";
@@ -642,6 +643,18 @@ export function apiRoutes(state: ConsoleState): Routes {
   });
 
   routes.add("GET", "/api/config", () => ({ json: redactedConfig() }));
+
+  // -- settings: version history and trash (runtime, over the config)
+
+  routes.add("GET", "/api/settings", () => ({ json: getSettings(ctx) }));
+
+  routes.add("PATCH", "/api/settings", async (req) => {
+    const out = updateSettings(ctx, await req.body(), {
+      actor: req.actor,
+      ip: req.ip,
+    });
+    return { json: out };
+  });
 
   routes.add("POST", "/api/actions/housekeeping", async (req) => {
     const report = await deps.actions.housekeeping();

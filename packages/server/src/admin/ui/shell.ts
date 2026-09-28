@@ -13,6 +13,7 @@ import { devicesPage } from "./pages/devices.ts";
 import { logsPage } from "./pages/logs.ts";
 import { namespacesPage } from "./pages/namespaces.ts";
 import { overviewPage } from "./pages/overview.ts";
+import { settingsPage } from "./pages/settings.ts";
 import { trafficPage } from "./pages/traffic.ts";
 import { troubleshootPage } from "./pages/troubleshoot.ts";
 import type { Overview } from "./types.ts";
@@ -25,6 +26,7 @@ export const PAGES: Page[] = [
   trafficPage,
   logsPage,
   auditPage,
+  settingsPage,
   troubleshootPage,
 ];
 

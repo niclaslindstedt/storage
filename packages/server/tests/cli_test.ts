@@ -399,6 +399,25 @@ describe("administration", () => {
       tls: { mode: "off" },
       listen: { host: "127.0.0.1" },
     });
+
+    const c4 = loadServerConfig(
+      { "data-dir": dataDir, "history-days": 90 },
+      { STORAGE_TRASH_DAYS: "7", STORAGE_HISTORY_VERSIONS: "5" },
+    );
+    expect(c4.retention).toMatchObject({
+      historyDays: 90,
+      historyCount: 5,
+      trashDays: 7,
+    });
+    expect(() =>
+      loadServerConfig({ "data-dir": dataDir, "history-days": -1 }, {}),
+    ).toThrow(/--history-days must be a whole number from 0 to 3650/);
+    expect(() =>
+      loadServerConfig(
+        { "data-dir": dataDir },
+        { STORAGE_HISTORY_VERSIONS: "0" },
+      ),
+    ).toThrow(/--history-versions/);
   });
 
   it("test-server prints its URL and secret and serves until aborted", async () => {

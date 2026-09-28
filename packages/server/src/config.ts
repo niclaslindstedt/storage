@@ -59,8 +59,14 @@ export type ServerConfig = {
     inviteSeconds: number;
     uploadSeconds: number;
   };
+  /**
+   * Defaults; an admin can change history and trash at runtime (console
+   * Settings, `storage settings`), which then wins (services/settings.ts).
+   */
   retention: {
+    /** At most this many versions per file. */
     historyCount: number;
+    /** Keep each earlier version this many days after it was replaced. */
     historyDays: number;
     trashDays: number;
     tombstoneDays: number;
@@ -127,7 +133,7 @@ export const DEFAULT_CONFIG: ServerConfig = {
     uploadSeconds: 24 * 3600,
   },
   retention: {
-    historyCount: 20,
+    historyCount: 100,
     historyDays: 30,
     trashDays: 30,
     tombstoneDays: 90,
