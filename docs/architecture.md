@@ -51,6 +51,7 @@ commands. See [Headless admin CLI](cli.md).
 | `packages/testkit` | A real server for tests, in process or as a subprocess, with faults, clock and snapshots                                                                                                        |
 | `packages/mcp`     | `storage-mcp`, the MCP server for AI agents: a client like any app (the framework's client bundled from source), paired as an agent device the server holds to a scope. See [AI agents](mcp.md) |
 | `apps/remote`      | Storage Remote, the hoster's app: the console's pages over `/v1/console` plus an encrypted drive                                                                                                |
+| `apps/drive`       | The web drive: Storage Remote's file pages in a desktop layout, sign-in by pairing, live sync status; on the website at `/storage/drive/`                                                       |
 
 ## Data model
 

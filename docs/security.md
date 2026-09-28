@@ -133,6 +133,34 @@ destructive, sharing and credential-minting actions, secrets kept out of
 the model's context, fenced untrusted content, one-origin TLS with pinning,
 an encrypted key vault and a local audit log. See [AI agents](mcp.md).
 
+## Earlier versions
+
+Overwriting a file keeps the version it replaced (30 days by default, an
+admin setting). The server keeps only the older ciphertext. Opening,
+comparing and restoring versions happens on a device, like everything else.
+When someone is removed from a folder, its key is rotated and the current
+files are re-encrypted, which adds a version of each. The earlier versions
+stay sealed under the old key. The removed person can no longer fetch
+anything from the folder. A server that colluded with them could open only
+versions from before the removal, which they could read anyway. To be rid
+of old versions sooner, shorten the history setting, or delete the file
+for good from the trash.
+
+## The web drive
+
+The [web drive](drive.md) is a page that holds your keys, served by the
+project's website (GitHub Pages) and built there by CI from this
+repository. Its keys are non-extractable WebCrypto keys in IndexedDB, in a
+vault of its own. A strict content security policy lets the page load only
+its own files and talk only to storage servers. No page is safer than
+whoever serves its code, though. Whoever controls the website could change
+the page and read what you open in it. That is true of every web app that
+encrypts in the browser. The server cannot change the page, so a
+malicious server still gets only ciphertext. If the website is not a party
+you want to trust, build the drive (`make drive`) and serve it yourself, or
+use Storage Remote's native app, which carries its page inside the
+download.
+
 ## Limits
 
 The server can deny service or withhold updates; it cannot read or forge

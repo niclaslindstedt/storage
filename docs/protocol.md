@@ -20,7 +20,7 @@ carry `Authorization: Bearer <token>`.
 
 ## Identity
 
-- `GET /v1/info` — server id, name, protocol, capabilities, TLS mode/fingerprint. `capabilities` includes `console` when admin devices can use the remote console.
+- `GET /v1/info` — server id, name, protocol, capabilities, TLS mode/fingerprint, and `retention: {historyDays, historyCount, trashDays}` (how long earlier file versions and trashed files are kept, so apps can say so). `capabilities` includes `console` when admin devices can use the remote console.
 - `POST /v1/pair {code, device}` — enrol a device (`device = {name, platform, dskPublic, dekPublic}`; keys are raw uncompressed P-256 points, base64url). The answer's `console` is `true` when the code enrolled an admin device.
 - `POST /v1/auth/challenge {deviceId}` → `{challenge}`; `POST /v1/auth/token {deviceId, challenge, signature}` → `{token, expiresAt}`. The signature is ECDSA P-256/SHA-256 (IEEE P1363) over `oss-storage/v1/auth|<serverId>|<deviceId>|<challenge>`.
 - `POST /v1/pairings` — mint a pairing (own account; admins: any/new). `console: true` is always refused here: admin devices are paired only from the local console or the CLI. `agent: {perms, apps}` makes the device it enrols an **agent device** (below).
@@ -46,6 +46,7 @@ the `agents` capability. See [AI agents](mcp.md).
 ## Admin
 
 - `GET|POST /v1/admin/accounts`, `PATCH|DELETE /v1/admin/accounts/:id`, `GET /v1/admin/audit`, `GET /v1/admin/stats` — any device of an admin account.
+- `GET|PATCH /v1/console/settings` (the console's `/api/settings`) — version history and trash retention, changed at runtime: `{historyDays?, historyCount?, trashDays?}`, a whole number each (0–3650 days, 1–10000 versions, 1–3650 days), `null` to go back to the configuration. Answers `{retention, defaults, changed, limits}`; audited `settings.update`.
 - `GET|POST|PATCH|DELETE /v1/console/<path>` — the admin console's own API (`/api/<path>` on the console, and `/v1/console/prometheus` for its Prometheus `/metrics`), for **admin devices** only: a device paired with a console pairing, whose account is an admin. Same requests and answers as on the console; changes are audited under the device's id. `404` when the server runs with `--remote-console off`. See [Storage Remote](remote-app.md).
 
 ## Namespaces and sharing
@@ -60,7 +61,7 @@ the `agents` capability. See [AI agents](mcp.md).
 - `GET /v1/ns/:ns/files?prefix=&recursive=1&cursor=&limit=`
 - `GET|HEAD|PUT|DELETE /v1/ns/:ns/files/<path>` — `X-Meta` carries the sealed metadata, `X-File-Id` the stable file id.
 - `POST /v1/ns/:ns/files:move {from, to, meta, ifMatch?, overwrite?}`, `files:copy {from, to, meta}`.
-- `GET /v1/ns/:ns/history/<path>`, `GET /v1/ns/:ns/revisions/:fileId/:rev`, `POST /v1/ns/:ns/history:restore {path, rev, meta}`.
+- `GET /v1/ns/:ns/history/<path>`, `GET /v1/ns/:ns/revisions/:fileId/:rev`, `POST /v1/ns/:ns/history:restore {path, rev, meta}`. Every write of a file (a `PUT`, an upload commit, a batch `file.put`, a move onto it, a restore) adds a version and keeps the ones before it: each for `historyDays` after the version that replaced it was written, at most `historyCount` per file, never the current one or a trashed file's last. A move with `overwrite` sends the file it replaces to the trash. Comparing versions is the client's job: the server holds ciphertext.
 - `GET /v1/ns/:ns/trash`, `POST /v1/ns/:ns/trash:restore {fileId[, path, meta]}`, `DELETE /v1/ns/:ns/trash/:fileId`.
 - `POST /v1/ns/:ns/uploads` → `{uploadId}`; `PUT …/uploads/:id/parts/:n`; `POST …/uploads/:id/commit {path, meta, ifMatch?}`; `DELETE …/uploads/:id`.
 

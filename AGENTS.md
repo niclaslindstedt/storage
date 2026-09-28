@@ -29,8 +29,9 @@ Use the Makefile (OSS_SPEC §9); CI invokes the same targets.
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `make build`                          | Bundle `packages/server`, `packages/testkit`, `packages/cli` and `packages/mcp` (tsup)          |
 | `make test`                           | Build, then server, testkit and CLI unit tests, full-stack e2e, the MCP server's tests          |
-| `make test-app`                       | Playwright tests of `apps/reference`, `apps/remote` and the console against a test server       |
+| `make test-app`                       | Playwright tests of `apps/reference`, `apps/remote`, `apps/drive` and the console               |
 | `make remote` / `make remote-native`  | Build Storage Remote (`apps/remote`) / install and type-check its native wrapper                |
+| `make drive`                          | Build the web drive (`apps/drive`); `make website` puts it at `/storage/drive/`                 |
 | `make examples`                       | Run every example in `examples/` (CI does too)                                                  |
 | `make lint`                           | ESLint (zero warnings) + `tsc --noEmit` for every workspace                                     |
 | `make fmt` / `make fmt-check`         | Prettier                                                                                        |
@@ -98,6 +99,8 @@ apps/reference/    reference PWA + Playwright tests
 apps/remote/       Storage Remote: the hoster's app (console + encrypted drive),
                    an admin device (§11.2); native/ is its Expo wrapper, a
                    separate npm project
+apps/drive/        the web drive: Storage Remote's file pages in a browser
+                   layout, sign-in by pairing, sync status; on the website
 examples/          runnable examples (run by `make examples` in CI)
 website/           showcase + hosted docs (Vite + React, prerendered, SEO)
 scripts/           release, changelog, version, validation and CI helpers
@@ -147,6 +150,7 @@ Rules:
 | A headless CLI command         | `packages/cli/src/spec.ts` (registry) + `src/commands/*.ts` + a test in `packages/cli/tests/` (both transports), then `make man`; `docs/cli.md`                                                                      |
 | A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                                                                     |
 | Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                                                            |
+| Web drive behaviour            | Shared file pages: `apps/remote/src/files/` (both apps get it); drive-only: `apps/drive/src/` (+ `tests/`, `browser-tests/`) → `docs/drive.md`                                                                       |
 | A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`                                               |
 | A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                                                                    |
 | A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                                                             |
@@ -166,6 +170,7 @@ Rules:
 | An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md`                                                              |
 | A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                                                                     |
 | Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                                                            |
+| Web drive behaviour            | Shared file pages: `apps/remote/src/files/` (both apps get it); drive-only: `apps/drive/src/` (+ `tests/`, `browser-tests/`) → `docs/drive.md`                                                                       |
 | A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`                                               |
 | A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                                                                    |
 | A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                                                             |
