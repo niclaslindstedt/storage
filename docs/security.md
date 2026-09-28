@@ -71,6 +71,37 @@ and the client re-encrypts existing data.
   cookie (HttpOnly, SameSite=Strict) and guards against DNS rebinding and
   CSRF. A strict CSP applies. It shows only what the server already sees.
 
+## Admin devices (Storage Remote)
+
+The [remote app](remote-app.md) runs the admin console from a phone. It
+reaches the console's API through the device API (`/v1/console`) as an
+**admin device**, and the rules keep that from widening who can administer
+the server:
+
+- **Granted at the machine only.** An admin device is paired with a code
+  minted by the local console or `storage-server pair --console`. Those are
+  places only someone who can already administer the server reaches. The
+  device API refuses to mint such a code for anyone, admin devices included,
+  so a stolen phone cannot create more of them.
+- **Admin accounts only.** A console pairing is refused for other accounts.
+  A device is an admin device only while its account is an admin: demoting
+  or disabling the account ends its console access at once.
+- **Device-bound, like every sign-in.** The phone signs challenges with its
+  own non-extractable key (kept in the Keychain / Android Keystore by the
+  native app). There is no admin token on the phone and no password.
+- **Revocable in two steps.** _Remove admin access_ drops console access
+  but leaves the device paired, and access cannot be granted back except by
+  pairing again at the machine. _Revoke_ signs it out.
+- **Audited by name.** Every change an admin device makes is recorded under
+  its device id, not a shared "admin-console" actor.
+- **Switchable.** `--remote-console off` disables `/v1/console` for every
+  device. Until an admin device is paired, the endpoint answers `403` to
+  everyone.
+
+The remote console sees exactly what the local one does: names, sizes and
+counts, never content. The app's own files are end-to-end encrypted like
+any other app's.
+
 ## Limits
 
 The server can deny service or withhold updates; it cannot read or forge

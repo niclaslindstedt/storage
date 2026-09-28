@@ -15,6 +15,10 @@ const alice = await server.createAccount("alice"); // { account, pairingUri, pai
 await server.close();
 ```
 
+Test servers mount the remote console (`/v1/console`, SPEC §11.2), so an
+admin device paired with `server.pairingFor(account.id, { console: true })`
+can drive the admin console's API in tests.
+
 ## As a process (Playwright, any language)
 
 ```sh
@@ -29,6 +33,7 @@ or `startTestServerProcess()` from the testkit, which returns the same API.
 | Call                                            | Effect                                                                                                                                                      |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST /__test/accounts {name, role}`            | Create an account and a pairing code/URI                                                                                                                    |
+| `POST /__test/accounts/:id/pairings {console?}` | Another pairing for an account; `console: true` enrols an admin device (admin accounts), as `server.pairingFor(id, { console: true })` does                 |
 | `POST /__test/faults {rules}`                   | Inject faults: `offline` (drop the connection), `status` (e.g. 503, 429 with `retryAfter`), `delay` — matched by method and path prefix, optionally `times` |
 | `DELETE /__test/faults`                         | Clear faults                                                                                                                                                |
 | `POST /__test/clock {advanceMs}`                | Move time (token expiry, invites, retention)                                                                                                                |

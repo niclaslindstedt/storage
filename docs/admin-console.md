@@ -70,8 +70,8 @@ Prometheus scrape configurations keep working.
 | Page         | What it is for                                                                                                                                                                 |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Overview     | A health verdict with the failing checks, uptime, traffic charts, counts, storage and disk, TLS certificate, port mapping, recent warnings and recent administration.          |
-| Accounts     | Create accounts, show a **pairing QR code** for a new device, rename, change role or quota, disable/enable, delete (you type the name to confirm).                             |
-| Devices      | Every device with its account, platform, state (active, pending keys, revoked), app origin and last activity. **Revoke** signs a lost device out for good.                     |
+| Accounts     | Create accounts, show a **pairing QR code** for a new device, **pair the admin app** on your phone, rename, change role or quota, disable/enable, delete (type the name).      |
+| Devices      | Every device with its account, platform, state (active, pending keys, revoked), app origin and last activity. **Revoke** signs a lost device out; admin devices are marked.    |
 | Namespaces   | Each app bucket's owner, members and roles, pending invites, size, change count and key epoch. Names and contents are end-to-end encrypted and are not shown.                  |
 | Traffic      | Requests, client and server errors and rate-limited requests per minute for the last hour, latency percentiles, open live connections, and a per-endpoint table.               |
 | Logs         | A live tail of the server log with a level filter, search and pause, plus a download of the full debug log file.                                                               |
@@ -141,7 +141,9 @@ curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8081/api/checks
 | `PATCH /api/accounts/:id`                                                           | `name`, `role`, `quotaBytes` (null = unlimited), `disabled`                                      |
 | `DELETE /api/accounts/:id`                                                          | Body `{"confirm": "<account name>"}`                                                             |
 | `POST /api/accounts/:id/pairing`, `POST /api/pairing`                               | A pairing QR (`svg`) and `payload`; the second creates the account on redemption                 |
-| `GET /api/devices`, `DELETE /api/devices/:id`                                       | List, revoke                                                                                     |
+| `POST /api/accounts/:id/pairing {"console": true}`                                  | An **admin device** pairing for an admin account (this console only, never remotely)             |
+| `GET /api/devices`, `DELETE /api/devices/:id`                                       | List (with `console` for admin devices), revoke                                                  |
+| `PATCH /api/devices/:id {"console": false}`                                         | Take an admin device's console access away; it stays paired                                      |
 | `GET /api/namespaces`                                                               | Namespace metadata                                                                               |
 | `GET /api/logs?after=&level=&q=&limit=`                                             | Log entries; `/api/logs/stream` is the live SSE stream; `/api/logs/file` downloads the debug log |
 | `GET /api/audit?before=&action=&limit=`, `POST /api/audit/verify`                   | Audit entries, newest first; verify the chain                                                    |
@@ -150,12 +152,32 @@ curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8081/api/checks
 | `GET /api/diagnostics`                                                              | A JSON bundle for bug reports                                                                    |
 
 Every change made through the console is recorded in the audit log with the
-actor `admin-console`.
+actor `admin-console`, or with the admin device's id when it came from the
+remote app.
+
+## From your phone
+
+The same console, with every page and action, is available on your phone
+through **Storage Remote**, an app paired as an _admin device_:
+
+1. On **Accounts**, press **Pair admin app** on your own (admin) account, or
+   run `storage-server pair --account <you> --console`.
+2. Scan the code with Storage Remote.
+
+The phone then reaches this console's API through the device API
+(`/v1/console`), signed in with its own device key instead of the admin
+token. Only this console and the CLI can pair an admin device: an admin
+device can add people and pair their ordinary devices, but never another
+admin device. On **Devices**, **Remove admin access** turns an admin device
+back into an ordinary one, and **Revoke** signs it out. `--remote-console off`
+switches the remote console off entirely. See [Storage Remote](remote-app.md).
 
 ## Security
 
-- The console is a separate listener. It shares no port, cookie or code path
-  with the device API that apps use.
+- The console is a separate listener. It shares no port or cookie with the
+  device API that apps use. Admin devices reach the same API handlers
+  through the device API instead, authenticated by their device key (see
+  above), never with the admin token.
 - It only accepts a `Host` header that is an IP address or `localhost`. This
   defeats DNS-rebinding attacks from web pages you visit.
 - Writes made with the session cookie need a custom header and a same-origin

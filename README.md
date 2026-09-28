@@ -25,6 +25,9 @@ built to hold health data that nobody but its owners can read.
   router port mapping (UPnP / NAT-PMP), QR pairing, and a local admin
   console to manage accounts and devices, watch traffic and logs, and fix
   problems.
+- **Run it from your phone.** Storage Remote pairs your phone as an _admin
+  device_: the whole admin console on the go, plus your own encrypted
+  files, shared folder by folder, as an alternative to Dropbox.
 - **The easiest backend to test against.** Start a real server in-process
   in milliseconds, inject faults, move the clock, snapshot and restore.
 
@@ -130,6 +133,21 @@ ssh -L 8081:127.0.0.1:8081 you@homeserver     # from another computer
 
 See [docs/admin-console.md](docs/admin-console.md), including Docker.
 
+### Storage Remote (your phone)
+
+[`apps/remote`](apps/remote) is the hoster's own app for iOS and Android
+(and the web). It gives you every page of the admin console from anywhere,
+plus a drive for your own files, encrypted on the phone and shareable
+folder by folder. Pair it as an **admin device** from the machine itself:
+
+```sh
+storage-server pair --account <you> --console   # or "Pair admin app" in the console
+```
+
+Only the local console and the CLI can pair an admin device.
+`--remote-console off` disables remote administration entirely. See
+[docs/remote-app.md](docs/remote-app.md).
+
 ### From an app (oss-framework)
 
 ```ts
@@ -179,17 +197,18 @@ Every setting is a flag, a `STORAGE_*` environment variable, or a key in
 `<data-dir>/config.json`; precedence is flags > environment > config.json >
 defaults. The ones you are most likely to set:
 
-| Flag           | Environment          | Default                                             | Purpose                                                  |
-| -------------- | -------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| `--data-dir`   | `STORAGE_DATA_DIR`   | `~/.local/share/storage-server` (`/data` in Docker) | Database, ciphertext blobs, certificates                 |
-| `--public-url` | `STORAGE_PUBLIC_URL` | —                                                   | URL devices use from outside; goes into QR codes         |
-| `--port`       | `STORAGE_PORT`       | `8443`                                              | HTTPS port                                               |
-| `--tls`        | `STORAGE_TLS`        | `self-signed`                                       | `acme`, `files`, `self-signed` or `off` (behind a proxy) |
-| `--domain`     | `STORAGE_DOMAINS`    | —                                                   | Certificate names for ACME                               |
-| `--upnp`       | `STORAGE_UPNP`       | off                                                 | Ask the router to forward the ports                      |
-| `--cors`       | `STORAGE_CORS`       | `paired`                                            | Allow browser origins that paired, or `any`              |
-| `--admin-port` | `STORAGE_ADMIN_PORT` | `8081`                                              | Admin console port (`-1` disables)                       |
-| `--admin-host` | `STORAGE_ADMIN_HOST` | `127.0.0.1`                                         | Admin console interface; keep it on loopback             |
+| Flag               | Environment              | Default                                             | Purpose                                                  |
+| ------------------ | ------------------------ | --------------------------------------------------- | -------------------------------------------------------- |
+| `--data-dir`       | `STORAGE_DATA_DIR`       | `~/.local/share/storage-server` (`/data` in Docker) | Database, ciphertext blobs, certificates                 |
+| `--public-url`     | `STORAGE_PUBLIC_URL`     | —                                                   | URL devices use from outside; goes into QR codes         |
+| `--port`           | `STORAGE_PORT`           | `8443`                                              | HTTPS port                                               |
+| `--tls`            | `STORAGE_TLS`            | `self-signed`                                       | `acme`, `files`, `self-signed` or `off` (behind a proxy) |
+| `--domain`         | `STORAGE_DOMAINS`        | —                                                   | Certificate names for ACME                               |
+| `--upnp`           | `STORAGE_UPNP`           | off                                                 | Ask the router to forward the ports                      |
+| `--cors`           | `STORAGE_CORS`           | `paired`                                            | Allow browser origins that paired, or `any`              |
+| `--admin-port`     | `STORAGE_ADMIN_PORT`     | `8081`                                              | Admin console port (`-1` disables)                       |
+| `--admin-host`     | `STORAGE_ADMIN_HOST`     | `127.0.0.1`                                         | Admin console interface; keep it on loopback             |
+| `--remote-console` | `STORAGE_REMOTE_CONSOLE` | `on`                                                | Let admin devices (Storage Remote) use the console       |
 
 All settings, with defaults: [docs/configuration.md](docs/configuration.md)
 or `storage-server man serve`.
@@ -208,6 +227,8 @@ or `storage-server man serve`.
 
 [`apps/reference`](apps/reference) is a complete React app on this backend
 with Playwright tests that pair separate browser contexts as devices.
+[`apps/remote`](apps/remote) is Storage Remote, with its native wrapper in
+[`apps/remote/native`](apps/remote/native).
 
 ## Troubleshooting
 
@@ -232,7 +253,7 @@ More in [docs/troubleshooting.md](docs/troubleshooting.md).
 Hosted at **[niclaslindstedt.github.io/storage](https://niclaslindstedt.github.io/storage/)**,
 and embedded in the CLI (`storage-server docs <topic>`):
 
-- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Configuration](docs/configuration.md)
+- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Storage Remote](docs/remote-app.md) · [Configuration](docs/configuration.md)
 - [Security model](docs/security.md) · [Sharing a namespace](docs/sharing.md) · [Testing](docs/testing.md)
 - [Architecture](docs/architecture.md) · [Protocol (HTTP API v1)](docs/protocol.md) · [Troubleshooting](docs/troubleshooting.md)
 - [SPEC.md](SPEC.md) — the full design specification and progress tracker.
