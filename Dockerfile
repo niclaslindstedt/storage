@@ -11,6 +11,7 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 COPY packages/server/package.json packages/server/package.json
 COPY packages/testkit/package.json packages/testkit/package.json
+COPY packages/cli/package.json packages/cli/package.json
 COPY e2e/package.json e2e/package.json
 COPY apps/reference/package.json apps/reference/package.json
 COPY apps/remote/package.json apps/remote/package.json

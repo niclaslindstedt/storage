@@ -30,7 +30,7 @@ carry `Authorization: Bearer <token>`.
 ## Admin
 
 - `GET|POST /v1/admin/accounts`, `PATCH|DELETE /v1/admin/accounts/:id`, `GET /v1/admin/audit`, `GET /v1/admin/stats` — any device of an admin account.
-- `GET|POST|PATCH|DELETE /v1/console/<path>` — the admin console's own API (`/api/<path>` on the console, and `/v1/console/metrics` for `/metrics`), for **admin devices** only: a device paired with a console pairing, whose account is an admin. Same requests and answers as on the console; changes are audited under the device's id. `404` when the server runs with `--remote-console off`. See [Storage Remote](remote-app.md).
+- `GET|POST|PATCH|DELETE /v1/console/<path>` — the admin console's own API (`/api/<path>` on the console, and `/v1/console/prometheus` for its Prometheus `/metrics`), for **admin devices** only: a device paired with a console pairing, whose account is an admin. Same requests and answers as on the console; changes are audited under the device's id. `404` when the server runs with `--remote-console off`. See [Storage Remote](remote-app.md).
 
 ## Namespaces and sharing
 

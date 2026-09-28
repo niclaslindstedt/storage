@@ -45,7 +45,7 @@ make man          # regenerate man/ from the CLI registry
 ```
 
 Run one test file: `npx vitest run tests/files_test.ts` inside the workspace
-(`packages/server`, `packages/testkit` or `e2e`).
+(`packages/server`, `packages/testkit`, `packages/cli` or `e2e`).
 
 ## Development workflow
 
@@ -83,7 +83,8 @@ Run one test file: `npx vitest run tests/files_test.ts` inside the workspace
 
 If your change touches user-visible behaviour, update the relevant
 `docs/` topic, the README, and — for CLI changes — the registry in
-`packages/server/src/cli/spec.ts` followed by `make man`. See `AGENTS.md`
+`packages/server/src/cli/spec.ts` (or, for the headless `storage` CLI,
+`packages/cli/src/spec.ts`) followed by `make man`. See `AGENTS.md`
 for the full "if you change X, update Y" table.
 
 ## Pull request review

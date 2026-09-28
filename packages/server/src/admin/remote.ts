@@ -15,9 +15,13 @@ export const REMOTE_CONSOLE_PREFIX = "/v1/console";
 
 const METHODS = ["GET", "POST", "PATCH", "DELETE"] as const;
 
-/** The console API path a remote path maps to (`/v1/console/x` → `/api/x`). */
+/**
+ * The console API path a remote path maps to: `/v1/console/x` → `/api/x`
+ * for every x (so `/v1/console/metrics` is the Traffic page's JSON), and
+ * `/v1/console/prometheus` → the Prometheus text at `/metrics`.
+ */
 export function consolePath(rest: string): string {
-  return rest === "metrics" ? "/metrics" : `/api/${rest}`;
+  return rest === "prometheus" ? "/metrics" : `/api/${rest}`;
 }
 
 function toRes(out: ApiResult, method: string): Res {

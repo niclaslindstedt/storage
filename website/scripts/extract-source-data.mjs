@@ -223,6 +223,7 @@ const DOC_ORDER = [
   "getting-started",
   "home-hosting",
   "admin-console",
+  "cli",
   "remote-app",
   "configuration",
   "security",

@@ -124,8 +124,10 @@ or payload is recorded.
 
 ## Scripting
 
-Everything the UI does goes through a JSON API on the same port. Scripts
-authenticate with `Authorization: Bearer <admin token>`:
+Everything the UI does goes through a JSON API on the same port. The
+[headless CLI](cli.md) `storage` wraps all of it (`storage status`,
+`storage account ls --json`, `storage logs -f`, …). Scripts can also call
+it directly with `Authorization: Bearer <admin token>`:
 
 ```sh
 TOKEN=$(cat ~/.local/share/storage-server/admin.token)
@@ -153,7 +155,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8081/api/checks
 
 Every change made through the console is recorded in the audit log with the
 actor `admin-console`, or with the admin device's id when it came from the
-remote app.
+remote app or an admin-device CLI.
 
 ## From your phone
 
@@ -171,6 +173,8 @@ device can add people and pair their ordinary devices, but never another
 admin device. On **Devices**, **Remove admin access** turns an admin device
 back into an ordinary one, and **Revoke** signs it out. `--remote-console off`
 switches the remote console off entirely. See [Storage Remote](remote-app.md).
+The headless CLI can be paired the same way (`storage auth login <payload>`,
+see [Headless admin CLI](cli.md)).
 
 ## Security
 

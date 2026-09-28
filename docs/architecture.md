@@ -34,6 +34,16 @@ the audit log.
 | `app.ts`                   | Embeddable server (routes + handler) — what tests and the testkit run |
 | `serve.ts`                 | Production runtime (HTTPS, ACME, redirects, UPnP, jobs)               |
 
+## Headless admin CLI (`packages/cli`)
+
+`storage` is a client of the admin console's API and nothing else: the
+console listener with the admin token, or `/v1/console` on the device API
+as an admin device with its own signing key. `src/spec.ts` is its command
+registry; `client.ts` resolves credentials (flags, environment, `.env`,
+saved contexts, the local `admin.token`) and picks the transport;
+`http.ts` pins self-signed servers; `commands/` maps console pages to
+commands. See [Headless admin CLI](cli.md).
+
 ## Data model
 
 Namespaces own files (one row per encrypted path, plus revisions and a

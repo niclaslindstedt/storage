@@ -1,0 +1,31 @@
+{
+  "name": "@niclaslindstedt/storage-cli",
+  "version": "0.1.0",
+  "description": "Administer a storage server headlessly: accounts, devices, namespaces, traffic, logs, audit and troubleshooting from the terminal, a script or a container.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Niclas Lindstedt <niclas@agilator.se>",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/niclaslindstedt/storage.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "storage": "./dist/storage.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p .",
+    "gen:man": "node --experimental-strip-types --no-warnings scripts/gen-man.ts"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}

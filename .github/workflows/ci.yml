@@ -131,7 +131,8 @@ jobs:
       - run: make build
       - run: make examples
 
-  # The production image builds, starts as non-root and reports healthy.
+  # The production images build, start as non-root and work: the server
+  # reports healthy, and the CLI image administers it.
   docker:
     runs-on: ubuntu-latest
     permissions:
@@ -148,6 +149,16 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Smoke test
         run: scripts/docker-smoke.sh storage-server:ci
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: packages/cli/Dockerfile
+          load: true
+          tags: storage-cli:ci
+          cache-from: type=gha,scope=cli
+          cache-to: type=gha,mode=max,scope=cli
+      - name: CLI image drives the server image
+        run: scripts/docker-smoke-cli.sh storage-server:ci storage-cli:ci
 
   # Composition analysis: fail on high-severity advisories (OSS_SPEC §14).
   audit:

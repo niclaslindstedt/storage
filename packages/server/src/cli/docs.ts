@@ -4,6 +4,7 @@
 
 import adminConsole from "../../../../docs/admin-console.md";
 import architecture from "../../../../docs/architecture.md";
+import cli from "../../../../docs/cli.md";
 import configuration from "../../../../docs/configuration.md";
 import gettingStarted from "../../../../docs/getting-started.md";
 import homeHosting from "../../../../docs/home-hosting.md";
@@ -19,6 +20,7 @@ export const DOC_TOPICS: Record<string, string> = {
   configuration,
   "home-hosting": homeHosting,
   "admin-console": adminConsole,
+  cli,
   "remote-app": remoteApp,
   security,
   sharing,

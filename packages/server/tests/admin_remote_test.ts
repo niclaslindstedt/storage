@@ -146,9 +146,13 @@ describe("/v1/console", () => {
     ).json()) as { server: { name: string }; counts: { accounts: number } };
     expect(overview.server.name).toBe("home");
     expect(overview.counts.accounts).toBe(1);
+    const prometheus = await phone.call("/v1/console/prometheus");
+    expect(prometheus.headers.get("content-type")).toMatch(/^text\/plain/);
+    expect(await prometheus.text()).toContain("storage_accounts 1");
+    // The Traffic page's JSON, like every other /api/<path>.
     const metrics = await phone.call("/v1/console/metrics");
-    expect(metrics.headers.get("content-type")).toMatch(/^text\/plain/);
-    expect(await metrics.text()).toContain("storage_accounts 1");
+    expect(metrics.headers.get("content-type")).toMatch(/json/);
+    expect(await metrics.json()).toHaveProperty("totals.since");
     expect((await phone.call("/v1/console/nope")).status).toBe(404);
     expect(
       (await phone.call("/v1/console/overview", { method: "DELETE" })).status,

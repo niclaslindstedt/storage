@@ -27,17 +27,17 @@ Use the Makefile (OSS_SPEC §9); CI invokes the same targets.
 
 | Command                               | What it does                                                                                    |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `make build`                          | Bundle `packages/server` and `packages/testkit` (tsup)                                          |
-| `make test`                           | Build, then server unit tests, testkit tests, full-stack e2e                                    |
+| `make build`                          | Bundle `packages/server`, `packages/testkit` and `packages/cli` (tsup)                          |
+| `make test`                           | Build, then server, testkit and CLI unit tests, full-stack e2e                                  |
 | `make test-app`                       | Playwright tests of `apps/reference`, `apps/remote` and the console against a test server       |
 | `make remote` / `make remote-native`  | Build Storage Remote (`apps/remote`) / install and type-check its native wrapper                |
 | `make examples`                       | Run every example in `examples/` (CI does too)                                                  |
 | `make lint`                           | ESLint (zero warnings) + `tsc --noEmit` for every workspace                                     |
 | `make fmt` / `make fmt-check`         | Prettier                                                                                        |
-| `make man`                            | Regenerate `man/*.md` from the CLI registry                                                     |
+| `make man`                            | Regenerate `man/*.md` and `man/storage/*.md` from the two CLI registries                        |
 | `make framework`                      | Clone oss-framework to `$OSS_FRAMEWORK_DIR` (default `../oss-framework`) at `e2e/framework-ref` |
 | `make website` / `make website-dev`   | Build / serve the website (runs the source extractor first)                                     |
-| `make docker`                         | Build the container image                                                                       |
+| `make docker` / `make docker-cli`     | Build the server / headless CLI container image                                                 |
 | `make shellcheck` / `make actionlint` | Lint shell scripts / workflows                                                                  |
 | `make hooks`                          | Install the git hooks in `.githooks/`                                                           |
 | `make validate`                       | Run the OSS_SPEC validator (`scripts/validate.sh`)                                              |
@@ -84,6 +84,9 @@ packages/server/src/
 ├── app.ts       embeddable server (what tests and the testkit run)
 └── serve.ts     production runtime (HTTPS, ACME, redirects, UPnP, jobs)
 packages/testkit/  in-process / subprocess test server + framework helpers
+packages/cli/      `storage`, the headless admin CLI (SPEC §11.3): spec.ts
+                   (registry) → args/env/config/client/http → commands/;
+                   speaks only the console API (token or admin device)
 e2e/               framework client ⇄ real server (Vitest)
 apps/reference/    reference PWA + Playwright tests
 apps/remote/       Storage Remote: the hoster's app (console + encrypted drive),
@@ -96,7 +99,12 @@ scripts/           release, changelog, version, validation and CI helpers
 
 Rules:
 
-- **Zero runtime dependencies in `packages/server`.** Node built-ins only.
+- **Zero runtime dependencies in `packages/server` and `packages/cli`.**
+  Node built-ins only; the CLI bundles the few pure server modules it
+  reuses (QR encoder, default paths, version, console response types).
+- `packages/cli` talks to a server over HTTP only: it never opens a data
+  directory's database (it may read `admin.token`, like the console's
+  own sign-in).
 - `services/` never imports from `http/` or `api/`; `api/` never touches the
   database directly.
 - The server must never receive plaintext or key material. Anything
@@ -120,7 +128,8 @@ Rules:
 | A schema change                | Append a migration to `db/schema.ts` (never edit a shipped one)                                                                                                          |
 | A CLI command or flag          | `cli/spec.ts` (registry) + `cli/commands/*.ts`, then `make man`                                                                                                          |
 | A config key                   | `config.ts` + `cli/spec.ts` (flag/env) + `docs/configuration.md`                                                                                                         |
-| An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md`                  |
+| An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md` → the CLI        |
+| A headless CLI command         | `packages/cli/src/spec.ts` (registry) + `src/commands/*.ts` + a test in `packages/cli/tests/` (both transports), then `make man`; `docs/cli.md`                          |
 | A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                         |
 | Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                |
 | A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`   |
@@ -157,6 +166,11 @@ Rules:
 - The console UI (`src/admin/ui`) is type-checked on its own
   (`tsc -p packages/server/src/admin/ui`, DOM lib) and never imports server
   code; `ui/types.ts` mirrors the API's response shapes.
+- The headless CLI: `packages/cli/tests/` runs `runCli` in-process against
+  a real server with its console listener (`tests/helpers.ts`: `harness`,
+  `shell`) — token transport in `cli_test.ts`, admin device in
+  `remote_test.ts`; `scripts/docker-smoke-cli.sh` drives the server image
+  with the CLI image in CI.
 - Storage Remote: unit tests in `apps/remote/tests/` (Vitest, node), browser
   tests in `apps/remote/browser-tests/` (Playwright, `make test-app`),
   server side in `packages/server/tests/admin_remote_test.ts` and
@@ -171,6 +185,8 @@ Rules:
 | An endpoint, request or response shape     | `docs/protocol.md`, SPEC §6, the framework client, an e2e test                    |
 | The cryptography or key handling           | SPEC §4, `docs/security.md`, both repositories                                    |
 | CLI commands / flags / env vars            | `cli/spec.ts`, then `make man`; README "Usage" table                              |
+| Headless CLI (`storage`) commands or flags | `packages/cli/src/spec.ts`, then `make man`; `docs/cli.md`                        |
+| A console API endpoint                     | the matching `storage` command (console parity), `docs/cli.md`                    |
 | Config defaults                            | `config.ts`, `docs/configuration.md`                                              |
 | Test-mode controls                         | `docs/testing.md`, testkit README section in `README.md`                          |
 | Docs topics                                | `cli/docs.ts` (embedding list), `DOC_ORDER` in the website extractor              |
@@ -185,7 +201,10 @@ Rules:
   framework ref in `e2e/framework-ref`, and keep e2e green.
 - The QR encoder exists twice (server `src/qr`, framework `src/qr`); fix
   bugs in both.
-- `man/*.md` must equal the rendered registry (a test enforces it).
+- `man/*.md` and `man/storage/*.md` must equal the rendered registries
+  (tests enforce it).
+- The headless CLI covers every console page and action: a console
+  feature lands with its `storage` command.
 
 ## Website staleness (OSS_SPEC §11.2)
 

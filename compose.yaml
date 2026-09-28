@@ -26,5 +26,27 @@ services:
       # The admin console stays on the host's loopback (127.0.0.1:8081), which
       # host networking shares. Never set 0.0.0.0 here: it would reach the LAN.
       STORAGE_ADMIN_HOST: 127.0.0.1
+
+  # The headless admin CLI, next to the server: it reads the admin token from
+  # the server's data volume (read-only) and talks to the console on the
+  # host's loopback. Run it with e.g.:
+  #   docker compose run --rm cli status
+  #   docker compose run --rm cli account create grandma --pair
+  #   docker compose run --rm cli logs -f --level warn
+  cli:
+    image: ghcr.io/niclaslindstedt/storage-cli:latest
+    build:
+      context: .
+      dockerfile: packages/cli/Dockerfile
+    profiles: [cli]
+    network_mode: host
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - storage-data:/data:ro
+    environment:
+      STORAGE_URL: http://127.0.0.1:8081
+      STORAGE_TOKEN_FILE: /data/admin.token
 volumes:
   storage-data:

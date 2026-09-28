@@ -51,12 +51,16 @@ Container image (GitHub Container Registry, linux/amd64 and linux/arm64):
 docker pull ghcr.io/niclaslindstedt/storage-server:latest
 ```
 
-npm packages (GitHub Packages) — the server and the test kit:
+npm packages (GitHub Packages) — the server, the test kit and the headless
+admin CLI:
 
 ```sh
 echo "@niclaslindstedt:registry=https://npm.pkg.github.com" >> .npmrc
 npm install @niclaslindstedt/storage-server @niclaslindstedt/storage-testkit
+npm install -g @niclaslindstedt/storage-cli    # the `storage` command
 ```
+
+The CLI also ships as an image: `ghcr.io/niclaslindstedt/storage-cli`.
 
 From source:
 
@@ -132,6 +136,28 @@ ssh -L 8081:127.0.0.1:8081 you@homeserver     # from another computer
 ```
 
 See [docs/admin-console.md](docs/admin-console.md), including Docker.
+
+### Headless admin CLI (`storage`)
+
+`storage` does everything the console does from a terminal, a script or a
+container, in the style of `gh` and `docker`. On the server it works with
+no setup (it reads the admin token from the data directory). Elsewhere,
+pair it as an admin device, or pass credentials in the environment or a
+`.env` file:
+
+```sh
+storage status                                   # the Overview page
+storage account create grandma --quota 10G --pair
+storage device ls --state pending -q | xargs storage device revoke -y
+storage logs -f --level warn
+storage auth login "$(ssh home storage-server pair --account you --console --json | jq -r .uri)"
+docker run --rm --env-file storage.env ghcr.io/niclaslindstedt/storage-cli doctor
+```
+
+`STORAGE_TOKEN` (+ `STORAGE_URL`) or `STORAGE_SESSION` (from
+`storage auth export`) in the environment or `.env` supply credentials to
+scripts and containers. See [docs/cli.md](docs/cli.md) and
+[`man/storage/`](man/storage/README.md).
 
 ### Storage Remote (your phone)
 
@@ -253,7 +279,7 @@ More in [docs/troubleshooting.md](docs/troubleshooting.md).
 Hosted at **[niclaslindstedt.github.io/storage](https://niclaslindstedt.github.io/storage/)**,
 and embedded in the CLI (`storage-server docs <topic>`):
 
-- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Storage Remote](docs/remote-app.md) · [Configuration](docs/configuration.md)
+- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Headless CLI](docs/cli.md) · [Storage Remote](docs/remote-app.md) · [Configuration](docs/configuration.md)
 - [Security model](docs/security.md) · [Sharing a namespace](docs/sharing.md) · [Testing](docs/testing.md)
 - [Architecture](docs/architecture.md) · [Protocol (HTTP API v1)](docs/protocol.md) · [Troubleshooting](docs/troubleshooting.md)
 - [SPEC.md](SPEC.md) — the full design specification and progress tracker.

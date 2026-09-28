@@ -7,11 +7,12 @@ FRAMEWORK_REF := $(shell cat e2e/framework-ref)
 OSS_FRAMEWORK_DIR ?= $(abspath ../oss-framework)
 export OSS_FRAMEWORK_DIR
 
-.PHONY: build test test-app test-unit test-e2e remote remote-native examples lint fmt fmt-check release clean framework hooks docker website website-dev man shellcheck actionlint validate
+.PHONY: build test test-app test-unit test-e2e remote remote-native examples lint fmt fmt-check release clean framework hooks docker docker-cli website website-dev man shellcheck actionlint validate
 
 build:
 	npm run build --workspace packages/server
 	npm run build --workspace packages/testkit
+	npm run build --workspace packages/cli
 
 test: build test-unit test-e2e
 
@@ -25,6 +26,7 @@ test-app: build
 test-unit:
 	npm run test --workspace packages/server
 	npm run test --workspace packages/testkit
+	npm run test --workspace packages/cli
 	npm run test --workspace apps/remote
 
 # Storage Remote (apps/remote): the web build, and its native wrapper's
@@ -49,6 +51,7 @@ lint:
 	npx tsc --noEmit -p packages/server
 	npx tsc --noEmit -p packages/server/src/admin/ui
 	npx tsc --noEmit -p packages/testkit
+	npx tsc --noEmit -p packages/cli
 	npx tsc --noEmit -p e2e
 	npx tsc --noEmit -p apps/reference
 	npx tsc --noEmit -p apps/remote
@@ -63,6 +66,7 @@ fmt-check:
 release: clean
 	NODE_ENV=production npm run build --workspace packages/server
 	NODE_ENV=production npm run build --workspace packages/testkit
+	NODE_ENV=production npm run build --workspace packages/cli
 
 clean:
 	rm -rf packages/*/dist apps/*/dist website/dist coverage
@@ -77,6 +81,10 @@ framework:
 docker:
 	docker build -t storage-server:dev .
 
+# The headless admin CLI (`storage`) as an image.
+docker-cli:
+	docker build -f packages/cli/Dockerfile -t storage-cli:dev .
+
 # Install the pre-commit and commit-msg hooks (OSS_SPEC §16).
 hooks:
 	git config core.hooksPath .githooks
@@ -90,6 +98,7 @@ website-dev:
 
 man:
 	npm run gen:man --workspace packages/server
+	npm run gen:man --workspace packages/cli
 
 shellcheck:
 	shellcheck scripts/*.sh .githooks/* examples/*/*.sh
