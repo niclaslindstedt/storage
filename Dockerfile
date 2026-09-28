@@ -6,7 +6,7 @@
 #        -e STORAGE_ADMIN_HOST=0.0.0.0 -p 127.0.0.1:8081:8081
 # (loopback on the host only); with --network host it is on 127.0.0.1:8081.
 
-FROM node:24-bookworm-slim AS build
+FROM node:26-bookworm-slim AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY packages/server/package.json packages/server/package.json
