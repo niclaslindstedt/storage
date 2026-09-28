@@ -1,0 +1,31 @@
+{
+  "name": "@niclaslindstedt/storage-mcp",
+  "version": "0.1.0",
+  "description": "An MCP server that lets an AI agent use your self-hosted storage server — as a scoped, end-to-end encrypted agent device, with every permission granted at the machine and enforced by the server.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Niclas Lindstedt <niclas@agilator.se>",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/niclaslindstedt/storage.git",
+    "directory": "packages/mcp"
+  },
+  "bin": {
+    "storage-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}

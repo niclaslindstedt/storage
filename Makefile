@@ -7,14 +7,15 @@ FRAMEWORK_REF := $(shell cat e2e/framework-ref)
 OSS_FRAMEWORK_DIR ?= $(abspath ../oss-framework)
 export OSS_FRAMEWORK_DIR
 
-.PHONY: build test test-app test-unit test-e2e remote remote-native examples lint fmt fmt-check release clean framework hooks docker docker-cli website website-dev man shellcheck actionlint validate
+.PHONY: build test test-app test-unit test-e2e test-mcp remote remote-native examples lint fmt fmt-check release clean framework hooks docker docker-cli website website-dev man shellcheck actionlint validate
 
 build:
 	npm run build --workspace packages/server
 	npm run build --workspace packages/testkit
 	npm run build --workspace packages/cli
+	npm run build --workspace packages/mcp
 
-test: build test-unit test-e2e
+test: build test-unit test-e2e test-mcp
 
 # Browser tests: the reference app, Storage Remote and the admin console
 # (needs Chromium; CI installs it).
@@ -40,6 +41,11 @@ remote-native:
 test-e2e:
 	npm run test --workspace e2e
 
+# The MCP server (packages/mcp): unit, a real server in process, and the
+# built binary over stdio. Runs the framework client from source.
+test-mcp:
+	npm run test --workspace packages/mcp
+
 # Run every example (OSS_SPEC §13). Needs `make framework build`.
 examples:
 	npm run start --prefix examples/node-quickstart
@@ -52,6 +58,7 @@ lint:
 	npx tsc --noEmit -p packages/server/src/admin/ui
 	npx tsc --noEmit -p packages/testkit
 	npx tsc --noEmit -p packages/cli
+	npx tsc --noEmit -p packages/mcp
 	npx tsc --noEmit -p e2e
 	npx tsc --noEmit -p apps/reference
 	npx tsc --noEmit -p apps/remote
@@ -67,6 +74,7 @@ release: clean
 	NODE_ENV=production npm run build --workspace packages/server
 	NODE_ENV=production npm run build --workspace packages/testkit
 	NODE_ENV=production npm run build --workspace packages/cli
+	NODE_ENV=production npm run build --workspace packages/mcp
 
 clean:
 	rm -rf packages/*/dist apps/*/dist website/dist coverage
