@@ -160,6 +160,35 @@ test("accounts: create with a pairing QR, pair a device, revoke it, disable and 
   await expect(page.getByTestId("audit-verdict")).toContainText("chain intact");
 });
 
+test("admin app: pair a phone as an admin device, then take its access away", async ({
+  page,
+}) => {
+  await signIn(page);
+  await go(page, "Accounts");
+  await page.getByTestId("new-account").click();
+  const form = page.getByTestId("account-dialog");
+  await form.getByLabel("Name").fill("owner");
+  await form.getByTestId("role-select").selectOption("admin");
+  await form.getByTestId("pair-now").uncheck();
+  await form.getByTestId("submit").click();
+
+  const row = page.getByTestId("account-owner");
+  await row.getByTestId("pair-admin-app").click();
+  const pairing = page.getByTestId("pairing-dialog");
+  await expect(pairing).toContainText("admin device");
+  const payload = await pairing.getByTestId("pairing-payload").inputValue();
+  await pairing.getByRole("button", { name: "Close" }).click();
+
+  await pairDevice(payload, "Owner's phone");
+  await go(page, "Devices");
+  const device = page.getByTestId("device-Owner's phone");
+  await expect(device).toContainText("admin device");
+  await device.getByTestId("drop-console").click();
+  await page.getByTestId("confirm-button").click();
+  await expect(device).not.toContainText("admin device");
+  await expect(device.getByTestId("drop-console")).toHaveCount(0);
+});
+
 test("logs: live tail with filter", async ({ page }) => {
   await signIn(page);
   await go(page, "Logs");

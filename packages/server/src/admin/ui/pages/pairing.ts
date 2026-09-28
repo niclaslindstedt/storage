@@ -2,7 +2,11 @@ import { copy, dialog, h, when } from "../dom.ts";
 import type { Pairing } from "../types.ts";
 
 /** Show a pairing QR code with its expiry countdown and copyable payload. */
-export function showPairing(p: Pairing, who: string): void {
+export function showPairing(
+  p: Pairing,
+  who: string,
+  kind: "device" | "admin" = "device",
+): void {
   const left = h("strong", { "data-testid": "pairing-countdown" });
   const tick = () => {
     const s = Math.max(0, Math.round((p.expiresAt - Date.now()) / 1000));
@@ -15,7 +19,7 @@ export function showPairing(p: Pairing, who: string): void {
   const timer = setInterval(tick, 1000);
   const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(p.svg)}`;
   const d = dialog(
-    `Pair a device — ${who}`,
+    kind === "admin" ? `Pair the admin app — ${who}` : `Pair a device — ${who}`,
     h(
       "div",
       { class: "pairing" },
@@ -30,15 +34,25 @@ export function showPairing(p: Pairing, who: string): void {
       h(
         "div",
         null,
-        h(
-          "p",
-          null,
-          "Open the app, choose ",
-          h("strong", null, "Self-hosted"),
-          ", and scan this code. It works once and expires in ",
-          left,
-          ` (${when(p.expiresAt)}).`,
-        ),
+        kind === "admin"
+          ? h(
+              "p",
+              null,
+              "Open the storage remote app on your phone and scan this code. The phone becomes an ",
+              h("strong", null, "admin device"),
+              ": it can do everything this console does, from anywhere. The code works once and expires in ",
+              left,
+              ` (${when(p.expiresAt)}).`,
+            )
+          : h(
+              "p",
+              null,
+              "Open the app, choose ",
+              h("strong", null, "Self-hosted"),
+              ", and scan this code. It works once and expires in ",
+              left,
+              ` (${when(p.expiresAt)}).`,
+            ),
         h(
           "p",
           { class: "muted" },

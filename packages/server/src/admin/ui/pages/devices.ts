@@ -1,4 +1,4 @@
-import { del, get } from "../api.ts";
+import { del, get, patch } from "../api.ts";
 import { ago, badge, confirm, h, table, toast, toneOf, when } from "../dom.ts";
 import { type Page, pageHeader, refresh } from "../page.ts";
 import type { Device } from "../types.ts";
@@ -46,6 +46,24 @@ export const devicesPage: Page = {
       await load();
     }
 
+    async function dropConsole(d: Device) {
+      const ok = await confirm({
+        title: `Remove admin access from ${d.name}?`,
+        message:
+          "The device stays paired as an ordinary device but can no longer use the console. To give admin access back, pair the admin app again from the local console.",
+        action: "Remove admin access",
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await patch(`/api/devices/${d.id}`, { console: false });
+        toast(`${d.name} is no longer an admin device`, "ok");
+      } catch (err) {
+        toast((err as Error).message, "fail");
+      }
+      await load();
+    }
+
     function view() {
       const q = search.value.trim().toLowerCase();
       const rows = devices.filter(
@@ -56,7 +74,13 @@ export const devicesPage: Page = {
       );
       return table(
         [
-          { label: "Device", cell: (d) => h("strong", null, d.name) },
+          {
+            label: "Device",
+            cell: (d) => [
+              h("strong", null, d.name),
+              d.console ? [" ", badge("admin device", "info")] : null,
+            ],
+          },
           { label: "Account", cell: (d) => d.account },
           { label: "Platform", cell: (d) => d.platform },
           {
@@ -90,14 +114,29 @@ export const devicesPage: Page = {
               d.state === "revoked"
                 ? null
                 : h(
-                    "button",
-                    {
-                      type: "button",
-                      class: "danger",
-                      onclick: () => revoke(d),
-                      "data-testid": "revoke",
-                    },
-                    "Revoke",
+                    "div",
+                    { class: "row-actions" },
+                    d.console
+                      ? h(
+                          "button",
+                          {
+                            type: "button",
+                            onclick: () => dropConsole(d),
+                            "data-testid": "drop-console",
+                          },
+                          "Remove admin access",
+                        )
+                      : null,
+                    h(
+                      "button",
+                      {
+                        type: "button",
+                        class: "danger",
+                        onclick: () => revoke(d),
+                        "data-testid": "revoke",
+                      },
+                      "Revoke",
+                    ),
                   ),
           },
         ],
