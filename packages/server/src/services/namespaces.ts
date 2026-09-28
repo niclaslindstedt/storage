@@ -88,7 +88,7 @@ export function requireRole(
         principal.accountId,
       )
     : undefined;
-  // An agent device sees only the apps its scope names (SPEC §11.3); to it,
+  // An agent device sees only the apps its scope names (SPEC §11.4); to it,
   // any other namespace does not exist.
   if (!ns || !member || !appAllowed(principal.scope, ns.app))
     throw notFound("no such namespace");

@@ -152,7 +152,7 @@ export function identityRoutes(
         deviceId: p.deviceId,
         // An admin device may use the console API (/v1/console, SPEC §11.2).
         console: p.console,
-        // An agent device's scope (SPEC §11.3), null for ordinary devices.
+        // An agent device's scope (SPEC §11.4), null for ordinary devices.
         agent: p.scope,
         keys: getAccountKeys(ctx, p.accountId, p.deviceId),
       },

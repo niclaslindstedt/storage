@@ -3,7 +3,7 @@ import { dialog, h, toast } from "../dom.ts";
 import type { Account, AgentScope, Pairing } from "../types.ts";
 import { showPairing } from "./pairing.ts";
 
-/** What each agent permission lets an agent do (SPEC §11.3). */
+/** What each agent permission lets an agent do (SPEC §11.4). */
 const PERMS: [perm: string, label: string, hint: string, on: boolean][] = [
   [
     "data:read",

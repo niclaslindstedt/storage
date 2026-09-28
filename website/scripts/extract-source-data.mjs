@@ -225,6 +225,7 @@ const DOC_ORDER = [
   "admin-console",
   "cli",
   "remote-app",
+  "mcp",
   "configuration",
   "security",
   "sharing",

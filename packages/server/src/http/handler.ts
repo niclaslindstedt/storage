@@ -267,7 +267,7 @@ export function createHandler(ctx: Ctx, router: Router, opts: HandlerOptions) {
       const principal =
         token && route.auth !== "none" ? authenticate(ctx, token) : null;
       if (route.auth === "required" && !principal) throw unauthenticated();
-      // Agent devices (SPEC §11.3): the scope is checked before any handler.
+      // Agent devices (SPEC §11.4): the scope is checked before any handler.
       if (principal)
         enforceRouteScope(principal, route.method, route.pattern, params);
 

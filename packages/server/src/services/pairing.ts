@@ -47,7 +47,7 @@ export type PairingInput = {
    */
   console?: boolean;
   /**
-   * Enrol an agent device (SPEC §11.3): the device gets this scope and the
+   * Enrol an agent device (SPEC §11.4): the device gets this scope and the
    * server holds it to it on every request. Console permissions need
    * `console`.
    */

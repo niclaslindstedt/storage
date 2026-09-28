@@ -3,7 +3,7 @@
 // this agent is offered at all. Two layers decide what an agent can do:
 //
 // 1. The device's scope, granted at the machine when it was paired and
-//    enforced by the storage server on every request (SPEC §11.3). It
+//    enforced by the storage server on every request (SPEC §11.4). It
 //    cannot be widened from here — or from anywhere but a new pairing.
 // 2. This policy (config.json and flags): switch groups of tools off, cap
 //    them at read-only, deny single tools, limit apps or folders. It can

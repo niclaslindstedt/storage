@@ -28,7 +28,7 @@ export type Device = {
   hasAccountKey: boolean;
   /** An admin device (SPEC §11.2). */
   console: boolean;
-  /** An agent device's scope (SPEC §11.3); null for ordinary devices. */
+  /** An agent device's scope (SPEC §11.4); null for ordinary devices. */
   agent: AgentScope | null;
   createdAt: number;
   lastSeenAt: number | null;
@@ -218,7 +218,7 @@ export function dropConsoleAccess(
 }
 
 /**
- * Narrow a device's scope (SPEC §11.3): make an ordinary device an agent
+ * Narrow a device's scope (SPEC §11.4): make an ordinary device an agent
  * device, or take permissions or apps away from an agent. Never widens —
  * a wider scope is a new pairing made at the machine.
  */

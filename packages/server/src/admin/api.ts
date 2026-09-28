@@ -56,7 +56,7 @@ export type ApiRequest = {
   /** Reached through the device API by an admin device (SPEC §11.2). */
   remote: boolean;
   /**
-   * The calling admin device's agent scope (SPEC §11.3), or null. Pairings
+   * The calling admin device's agent scope (SPEC §11.4), or null. Pairings
    * a scoped device mints are never wider than the device itself.
    */
   scope: AgentScope | null;
@@ -427,7 +427,7 @@ export function apiRoutes(state: ConsoleState): Routes {
         "forbidden",
         "admin devices are paired from the local console or the CLI",
       );
-    // An agent device (SPEC §11.3): `agent: {perms, apps}` scopes it.
+    // An agent device (SPEC §11.4): `agent: {perms, apps}` scopes it.
     const scope = inherit(
       req,
       b.agent === undefined || b.agent === null
@@ -501,7 +501,7 @@ export function apiRoutes(state: ConsoleState): Routes {
   }));
 
   // Only ever takes access away: console access (SPEC §11.2) or part of an
-  // agent's scope (§11.3). Granting either is a pairing made at the machine.
+  // agent's scope (§11.4). Granting either is a pairing made at the machine.
   routes.add("PATCH", "/api/devices/:id", async (req) => {
     const b = await req.body();
     const keys = Object.keys(b);

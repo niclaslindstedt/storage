@@ -1,4 +1,4 @@
-// Agent devices (SPEC §11.3): a pairing may carry a scope — permissions and
+// Agent devices (SPEC §11.4): a pairing may carry a scope — permissions and
 // apps — that the server holds the device to on every request. Scopes are
 // minted at the machine (console, CLI) or narrowed from a wider device,
 // never widened.

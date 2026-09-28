@@ -13,7 +13,7 @@ export type Principal = {
   /** An admin device: may use the admin console's API remotely (SPEC §11.2). */
   console: boolean;
   /**
-   * An agent device's scope (SPEC §11.3): what it may do, enforced on every
+   * An agent device's scope (SPEC §11.4): what it may do, enforced on every
    * request. null for ordinary devices.
    */
   scope: AgentScope | null;

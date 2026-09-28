@@ -289,7 +289,7 @@ export async function setAccountKeys(
   if (input.recoveryWrap !== undefined)
     checkWrap(input.recoveryWrap, "recoveryWrap");
   const wraps = Object.entries(input.deviceWraps ?? {});
-  // An agent device without the devices permission (SPEC §11.3) may only
+  // An agent device without the devices permission (SPEC §11.4) may only
   // store its own, first copy of the account key — after recovery or after
   // another device approved it. It cannot set up keys, replace the recovery
   // key or hand the account key to another device.

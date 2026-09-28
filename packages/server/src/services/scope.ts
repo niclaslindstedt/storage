@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Agent scopes (SPEC §11.3). An agent device — an AI agent's MCP server,
+// Agent scopes (SPEC §11.4). An agent device — an AI agent's MCP server,
 // a script, anything that should not hold a whole account — is paired with
 // a scope: the permissions it has and, optionally, the apps whose
 // namespaces it may see. The server enforces the scope on every request, so

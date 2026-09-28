@@ -28,6 +28,11 @@ built to hold health data that nobody but its owners can read.
 - **Run it from your phone.** Storage Remote pairs your phone as an _admin
   device_: the whole admin console on the go, plus your own encrypted
   files, shared folder by folder, as an alternative to Dropbox.
+- **Let an AI agent use it — safely.** `storage-mcp` is an MCP server
+  that gives Claude (or any MCP client) your files, app data and the
+  admin console, as an _agent device_ the server holds to the permissions
+  you grant. Deleting, sharing and minting credentials need your
+  confirmation; secrets never reach the model.
 - **The easiest backend to test against.** Start a real server in-process
   in milliseconds, inject faults, move the clock, snapshot and restore.
 
@@ -51,13 +56,14 @@ Container image (GitHub Container Registry, linux/amd64 and linux/arm64):
 docker pull ghcr.io/niclaslindstedt/storage-server:latest
 ```
 
-npm packages (GitHub Packages) — the server, the test kit and the headless
-admin CLI:
+npm packages (GitHub Packages) — the server, the test kit, the headless
+admin CLI and the MCP server for AI agents:
 
 ```sh
 echo "@niclaslindstedt:registry=https://npm.pkg.github.com" >> .npmrc
 npm install @niclaslindstedt/storage-server @niclaslindstedt/storage-testkit
 npm install -g @niclaslindstedt/storage-cli    # the `storage` command
+npm install -g @niclaslindstedt/storage-mcp    # the `storage-mcp` MCP server
 ```
 
 The CLI also ships as an image: `ghcr.io/niclaslindstedt/storage-cli`.
@@ -174,6 +180,26 @@ Only the local console and the CLI can pair an admin device.
 `--remote-console off` disables remote administration entirely. See
 [docs/remote-app.md](docs/remote-app.md).
 
+### AI agents (MCP)
+
+[`packages/mcp`](packages/mcp) is `storage-mcp`, a zero-dependency MCP
+server. Pair it as an **agent device** — the server enforces the
+permissions and apps you grant on every request — then add it to your MCP
+client:
+
+```sh
+storage-server pair --account <you> --agent --perms data:read --apps drive  # on the server
+storage-mcp pair 'oss-storage://pair?…'                                     # where the agent runs
+claude mcp add storage -- storage-mcp serve
+```
+
+It has tools for everything the admin console and Storage Remote do, and
+you decide which the agent sees (`--read-only`, `--disable logs,sharing`,
+`config.json`). Destructive, sharing and credential-minting actions ask you
+to confirm in your MCP client; pairing codes, invites and recovery keys go
+to a private file, never to the model; file contents are fenced as
+untrusted data. See [docs/mcp.md](docs/mcp.md).
+
 ### From an app (oss-framework)
 
 ```ts
@@ -279,7 +305,7 @@ More in [docs/troubleshooting.md](docs/troubleshooting.md).
 Hosted at **[niclaslindstedt.github.io/storage](https://niclaslindstedt.github.io/storage/)**,
 and embedded in the CLI (`storage-server docs <topic>`):
 
-- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Headless CLI](docs/cli.md) · [Storage Remote](docs/remote-app.md) · [Configuration](docs/configuration.md)
+- [Getting started](docs/getting-started.md) · [Hosting at home](docs/home-hosting.md) · [Admin console](docs/admin-console.md) · [Headless CLI](docs/cli.md) · [Storage Remote](docs/remote-app.md) · [AI agents (MCP)](docs/mcp.md) · [Configuration](docs/configuration.md)
 - [Security model](docs/security.md) · [Sharing a namespace](docs/sharing.md) · [Testing](docs/testing.md)
 - [Architecture](docs/architecture.md) · [Protocol (HTTP API v1)](docs/protocol.md) · [Troubleshooting](docs/troubleshooting.md)
 - [SPEC.md](SPEC.md) — the full design specification and progress tracker.
