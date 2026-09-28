@@ -31,8 +31,8 @@ built to hold health data that nobody but its owners can read.
 - **Let an AI agent use it — safely.** `storage-mcp` is an MCP server
   that gives Claude (or any MCP client) your files, app data and the
   admin console, as an _agent device_ the server holds to the permissions
-  you grant. Deleting, sharing and minting credentials need your
-  confirmation; secrets never reach the model.
+  you grant. Deleting and sharing need your confirmation; keys and
+  credentials are handed out by you, never by the agent.
 - **The easiest backend to test against.** Start a real server in-process
   in milliseconds, inject faults, move the clock, snapshot and restore.
 
@@ -195,10 +195,11 @@ claude mcp add storage -- storage-mcp serve
 
 It has tools for everything the admin console and Storage Remote do, and
 you decide which the agent sees (`--read-only`, `--disable logs,sharing`,
-`config.json`). Destructive, sharing and credential-minting actions ask you
-to confirm in your MCP client; pairing codes, invites and recovery keys go
-to a private file, never to the model; file contents are fenced as
-untrusted data. See [docs/mcp.md](docs/mcp.md).
+`config.json`). Destructive and sharing actions ask you to confirm in your
+MCP client; pairing, approving devices, invites and recovery keys are not
+tools at all — you run them at a terminal (`storage-mcp device approve`,
+`storage-mcp invite`, …); file contents are fenced as untrusted data. See
+[docs/mcp.md](docs/mcp.md).
 
 ### From an app (oss-framework)
 

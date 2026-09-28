@@ -3,7 +3,7 @@
 // the server-enforced scope, the local policy, human confirmation, secrets
 // kept out of the model's context, untrusted content fenced.
 
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -74,9 +74,9 @@ describe("what an agent is offered", () => {
     });
     const tools = await a.tools();
     expect(tools).toContain("write_file");
-    expect(tools).toContain("create_invite");
+    expect(tools).toContain("remove_member");
     expect(tools).not.toContain("purge_from_trash");
-    expect(tools).not.toContain("approve_device");
+    expect(tools).not.toContain("list_pending_devices");
     const ro = await agent(h, {
       perms: ["data:write"],
       flags: { readOnly: true },
@@ -102,7 +102,7 @@ describe("what an agent is offered", () => {
       unscoped: true,
       config: { allowUnscoped: true },
     });
-    expect(await a.tools()).toContain("approve_device");
+    expect(await a.tools()).toContain("list_pending_devices");
   });
 
   it("without the account key, data tools say how to get it — until approved", async () => {
@@ -382,85 +382,38 @@ describe("a person confirms, not the model", () => {
     const del = await a.call("delete_namespace", { namespace: ns.id }, "no-ui");
     expect(textOf(del)).toMatch(/cannot ask them/);
   });
-
-  it("approving a device needs the safety code typed by the person", async () => {
-    const h = await home();
-    const a = await agent(h, { perms: ["devices", "data:read"] });
-    // Someone pairs a new device to the account (server-made code).
-    const code = (
-      await import("../../server/src/services/pairing.ts")
-    ).createPairing(h.app.ctx, { accountId: h.account.id }, "cli").code!;
-    const { createSelfHostedClient, createMemoryKeyVault } =
-      await import("@niclaslindstedt/oss-framework/storage/selfhosted");
-    const laptop = createSelfHostedClient({
-      vault: createMemoryKeyVault(),
-      app: "drive",
-    });
-    await laptop.pair(
-      (await import("../../server/src/payload.ts")).pairingUri({
-        server: h.url,
-        code,
-      }),
-      {
-        name: "laptop",
-      },
-    );
-    const deviceId = laptop.session!.deviceId;
-    const pending = await a.call("list_pending_devices");
-    expect(JSON.stringify(pending.result!.structuredContent)).toContain(
-      deviceId,
-    );
-    const wrong = await a.call(
-      "approve_device",
-      { deviceId },
-      {
-        action: "accept",
-        content: { answer: "11111 22222 33333 44444 55555" },
-      },
-    );
-    expect(textOf(wrong)).toMatch(/do not match/);
-    expect(await laptop.refreshKeys()).toBe("needs-keys");
-    const noUi = await a.call("approve_device", { deviceId }, "no-ui");
-    expect(textOf(noUi)).toMatch(/cannot ask them/);
-    const right = await a.call(
-      "approve_device",
-      { deviceId },
-      { action: "accept", content: { answer: await laptop.safetyCode() } },
-    );
-    expect(right.result!.isError).toBeUndefined();
-    expect(await laptop.refreshKeys()).toBe("ready");
-  });
 });
 
-describe("secrets never reach the model", () => {
-  it("an invite goes to a private file; the result only says where", async () => {
+describe("keys and credentials are not the agent's to hand out", () => {
+  it("offers no tool that pairs, approves, invites or makes a recovery key", async () => {
     const h = await home();
-    const ns = await drive(h.phone, "Shared", { "a.md": "a" });
-    const a = await agent(h, { perms: ["sharing"] });
-    const r = await a.call(
-      "create_invite",
-      { namespace: ns.id, role: "viewer" },
-      { action: "accept", content: { approve: true } },
-    );
-    const t = textOf(r);
-    expect(t).not.toMatch(/oss-storage:\/\/invite/);
-    const file = /written for the person to (\S+) \(QR/.exec(t)![1]!;
-    expect(readFileSync(file, "utf8")).toMatch(/oss-storage:\/\/invite\?v=1/);
-    if (process.platform !== "win32")
-      expect(statSync(file).mode & 0o777).toBe(0o600);
-    expect(JSON.stringify(a.sent)).not.toMatch(/oss-storage:\/\/invite/);
-  });
-
-  it("secrets: off removes the tools that mint them", async () => {
-    const h = await home();
+    // Every permission there is, and an admin device: still none of them.
     const a = await agent(h, {
-      perms: ["sharing", "devices"],
-      config: { secrets: "off" },
+      perms: ["data:write", "sharing", "devices", "console:write"],
+      console: true,
     });
     const tools = await a.tools();
-    for (const t of ["create_invite", "add_device", "new_recovery_key"])
+    for (const t of [
+      "create_pairing",
+      "add_device",
+      "approve_device",
+      "new_recovery_key",
+      "create_invite",
+    ])
       expect(tools).not.toContain(t);
+    // The read-only halves stay, and say who does the rest.
+    expect(tools).toContain("list_pending_devices");
     expect(tools).toContain("list_invites");
+    expect(a.mcp).toBeDefined();
+    const init = await a.rpc("server/discover", {
+      _meta: {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+      },
+    });
+    expect(String(init.result!.instructions)).toMatch(
+      /storage-mcp device approve/,
+    );
   });
 });
 

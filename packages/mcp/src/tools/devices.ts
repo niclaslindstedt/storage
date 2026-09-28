@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// This account's devices, as Storage Remote's "This phone" page has them:
-// devices waiting for the account key (approved only after a person
-// compares safety codes — typed by the person, never by the model), adding
-// a device by QR (the payload carries the account key: outbox only), a new
-// recovery key (outbox only), renaming and revoking.
+// This account's devices, as Storage Remote's "This phone" page lists them:
+// which devices exist and which wait for the account key, renaming and
+// revoking. Approving a device, adding one by QR and a new recovery key
+// hand out the account key or a credential: a person does those at a
+// terminal (`storage-mcp device approve|add`, `storage-mcp recovery-key`),
+// never the agent.
 
 import { s } from "../protocol/schema.ts";
 import { cleanName } from "../text.ts";
@@ -11,8 +12,6 @@ import { arg, iso } from "./common.ts";
 import { json, text, type ToolDef, ToolError } from "./registry.ts";
 
 const base = { groups: ["devices"], perm: "devices" } as const;
-
-const digits = (code: string) => code.replace(/\D/g, "");
 
 export const deviceTools: ToolDef[] = [
   {
@@ -42,7 +41,7 @@ export const deviceTools: ToolDef[] = [
     name: "list_pending_devices",
     title: "Devices waiting for the key",
     description:
-      "Devices of this account that were paired but have no account key yet. Approve one with approve_device — the person compares the safety codes.",
+      "Devices of this account that were paired but have no account key yet. Only a person approves one, after comparing safety codes: in Storage Remote, or with `storage-mcp device approve` at a terminal. Tell them; you cannot approve it.",
     ...base,
     access: "read",
     input: s.object({}),
@@ -56,80 +55,6 @@ export const deviceTools: ToolDef[] = [
           paired: iso(x.createdAt),
         })),
       });
-    },
-  },
-  {
-    name: "approve_device",
-    title: "Approve a waiting device",
-    description:
-      "Give a waiting device the account key. The person is asked to type the safety code the new device shows; it must match the code computed here from the keys the account key will be sealed to. Needs a client that can ask the person.",
-    ...base,
-    access: "write",
-    keys: true,
-    input: s.object({ deviceId: arg.id("The waiting device's id (dev_…).") }, [
-      "deviceId",
-    ]),
-    async confirm(a, d) {
-      const x = (await d.client.pendingDevices()).find(
-        (p) => p.id === a.deviceId,
-      );
-      if (!x) throw new ToolError("no such waiting device");
-      return {
-        message: `Approve "${cleanName(x.name)}" (${cleanName(x.platform)})? Only if that device shows the safety code you type below. If you did not just pair a device, someone else is trying to join your account: revoke it instead.`,
-        input: {
-          label: `Safety code shown on ${cleanName(x.name, 60)}`,
-          description: "25 digits, as the new device shows them",
-        },
-        always: true,
-      };
-    },
-    async run(a, d, extra) {
-      // Computed here, from the keys the account key would be sealed to —
-      // never the server's copy of the code.
-      const x = (await d.client.pendingDevices()).find(
-        (p) => p.id === a.deviceId,
-      );
-      if (!x) throw new ToolError("no such waiting device");
-      if (!extra.answer || digits(extra.answer) !== digits(x.safetyCode))
-        throw new ToolError(
-          "The safety codes do not match; the device was NOT approved. If the person did not just pair it, revoke it.",
-        );
-      await d.client.approveDevice(x.id);
-      return text(`${cleanName(x.name)} can now open the account's data.`, {
-        approved: x.id,
-      });
-    },
-  },
-  {
-    name: "add_device",
-    title: "Add a device by QR",
-    description:
-      "A one-time QR payload that pairs a new device to this account with the account key sealed inside it, so the new device is ready at once.",
-    ...base,
-    access: "write",
-    keys: true,
-    secret: true,
-    input: s.object({
-      ttlMinutes: s.integer("Valid for this many minutes (default 10).", 1, 60),
-    }),
-    confirm: () => ({
-      message:
-        "Create a one-time code that adds a device to your account and gives it your account key (everything you can read)? It will be written to a private file for you to scan.",
-    }),
-    async run(a, d) {
-      const out = await d.client.addDevicePayload({
-        ttlSeconds: ((a.ttlMinutes as number | undefined) ?? 10) * 60,
-      });
-      const delivered = d.outbox.deliver("add-device", out.payload, {
-        title: "Add a device (single use)",
-        note: "Scan the QR code (the .svg next to this file) with the new device's app.",
-        expiresAt: out.expiresAt,
-        qr: true,
-      });
-      return text(
-        `The code was written for the person to ${delivered.file} (QR: ${delivered.qr}); it expires ${delivered.expiresAt}. Tell them where it is; do not open it.`,
-        { delivered },
-      );
     },
   },
   {
@@ -175,34 +100,6 @@ export const deviceTools: ToolDef[] = [
     async run(a, d) {
       await d.client.revokeDevice(a.deviceId as string);
       return text("Revoked.", { revoked: a.deviceId });
-    },
-  },
-  {
-    name: "new_recovery_key",
-    title: "Make a new recovery key",
-    description:
-      "Replace the account's recovery key; the old one stops working at once. The new key is written to a private file for the person.",
-    ...base,
-    access: "write",
-    keys: true,
-    secret: true,
-    destructive: true,
-    input: s.object({}),
-    confirm: () => ({
-      message:
-        "Make a new recovery key? The old one stops working at once. The new one will be written to a private file for you to store safely.",
-      always: true,
-    }),
-    async run(_a, d) {
-      const key = await d.client.regenerateRecoveryKey();
-      const delivered = d.outbox.deliver("recovery-key", key, {
-        title: "Your new recovery key",
-        note: "The only way back to your data if every device is lost. Store it in a password manager or on paper, then delete this file.",
-      });
-      return text(
-        `The new recovery key was written for the person to ${delivered.file}. Tell them to store it safely and delete the file; do not open it.`,
-        { delivered: { file: delivered.file } },
-      );
     },
   },
 ];

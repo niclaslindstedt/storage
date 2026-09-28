@@ -74,8 +74,6 @@ export type McpConfig = {
    * `host`: rely on the client's own per-call approval prompt instead.
    */
   confirm: "require" | "host";
-  /** `outbox`: secrets go to a private file for the human; `off`: tools that mint them are not offered. */
-  secrets: "outbox" | "off";
   limits: Limits;
   /** Keep a local audit log of every tool call. */
   audit: boolean;
@@ -106,7 +104,6 @@ export function defaultConfig(): McpConfig {
     apps: null,
     folders: null,
     confirm: "require",
-    secrets: "outbox",
     limits: { ...DEFAULT_LIMITS },
     audit: true,
     allowUnscoped: false,
@@ -186,11 +183,6 @@ export function parseConfig(raw: unknown): McpConfig {
         if (v !== "require" && v !== "host")
           throw new ConfigError("confirm must be require or host");
         c.confirm = v;
-        break;
-      case "secrets":
-        if (v !== "outbox" && v !== "off")
-          throw new ConfigError("secrets must be outbox or off");
-        c.secrets = v;
         break;
       case "limits": {
         if (typeof v !== "object" || v === null)

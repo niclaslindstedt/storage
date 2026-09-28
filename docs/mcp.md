@@ -87,14 +87,35 @@ has the key; `storage-mcp tools` lists every tool with why it is on or off.
 | --------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `data:read`     | `files`, `records` | `list_namespaces`, `list_files`, `file_info`, `read_file`, `file_history`, `read_file_version`, `list_trash`, `watch_changes`, `list_collections`, `list_records`, `get_record`, `list_members`                                |
 | `data:write`    | `files`, `records` | `create_namespace`, `rename_namespace`, `delete_namespace`, `write_file`, `make_folder`, `move`, `copy_file`, `delete_file`, `restore_file_version`, `restore_from_trash`, `purge_from_trash`, `put_record`, `delete_record`   |
-| `sharing`       | `sharing`          | `list_invites`, `create_invite`, `revoke_invite`, `set_member_role`, `remove_member`, `rotate_namespace_key`, `join_shared_folder`, `leave_namespace`                                                                          |
-| `devices`       | `devices`          | `list_my_devices`, `list_pending_devices`, `approve_device`, `add_device`, `rename_device`, `revoke_my_device`, `new_recovery_key`                                                                                             |
+| `sharing`       | `sharing`          | `list_invites`, `revoke_invite`, `set_member_role`, `remove_member`, `rotate_namespace_key`, `join_shared_folder`, `leave_namespace`                                                                                           |
+| `devices`       | `devices`          | `list_my_devices`, `list_pending_devices`, `rename_device`, `revoke_my_device`                                                                                                                                                 |
 | `console:read`  | `server`, `logs`   | `server_overview`, `server_checks`, `server_traffic`, `server_config`, `list_accounts`, `list_all_devices`, `list_all_namespaces`, `read_logs`, `read_debug_log`, `read_audit_log`, `verify_audit_chain`, `diagnostics_bundle` |
-| `console:write` | `admin`            | `create_account`, `update_account`, `delete_account`, `create_pairing`, `revoke_device`, `remove_admin_access`, `narrow_device_scope`, `run_housekeeping`, `renew_certificate`, `refresh_port_mapping`, `create_backup`        |
+| `console:write` | `admin`            | `create_account`, `update_account`, `delete_account`, `revoke_device`, `remove_admin_access`, `narrow_device_scope`, `run_housekeeping`, `renew_certificate`, `refresh_port_mapping`, `create_backup`                          |
 | —               | —                  | `whoami` — what the agent is paired to and may do                                                                                                                                                                              |
 
-That is every page of the admin console and everything Storage Remote does,
-tool for tool (a test keeps it that way). Namespaces are referenced by id
+That is every page of the admin console and everything Storage Remote does
+(a test keeps it that way) — except what hands out keys or credentials.
+
+## What only you do
+
+Approving a device, adding one by QR code, a new recovery key, an invite
+and a pairing code each hand out a key or a credential. They are not
+tools: the agent never starts one and never sees what it prints. You run
+them at a terminal (or in Storage Remote and the admin console):
+
+```sh
+storage-mcp device approve        # type the safety code the new device shows
+storage-mcp device add            # a QR code that adds a device, key included
+storage-mcp recovery-key          # replace the recovery key; shown once
+storage-mcp invite --role editor  # an invite to a folder you own (QR + link)
+storage account pair <name>       # a pairing code (headless admin CLI)
+```
+
+The `storage-mcp` commands run as the agent's device, so they need its
+`devices` (or `sharing`) permission, and they refuse to run unless stdin
+and stdout are an interactive terminal — an agent running commands in a
+shell has none, so it cannot use them to read a secret. That is a speed
+bump rather than the boundary; the device's scope is the boundary. Namespaces are referenced by id
 (`ns_…`); `list_namespaces` shows them with their decrypted names. The drive
 is the `drive` app; other apps' namespaces (notes, meds, calendar …) are
 reached the same way, files and rows alike.
@@ -119,8 +140,7 @@ policy allows. Keep the policy in `~/.config/storage-mcp/default/config.json`
   "deny": ["read_file_version"],
   "apps": ["drive"],
   "folders": ["ns_AAAAAAAAAAAAAAAAAAAAAA"],
-  "confirm": "require",
-  "secrets": "outbox"
+  "confirm": "require"
 }
 ```
 
@@ -131,7 +151,6 @@ policy allows. Keep the policy in `~/.config/storage-mcp/default/config.json`
 | `allow`             | when set, only these tools (or groups) are offered                                                                                                      |
 | `apps`, `folders`   | only namespaces of these apps / with these ids are touched                                                                                              |
 | `confirm`           | `require` (default): confirmations are asked through the client and refused if it cannot ask. `host`: rely on your client's own per-call prompt instead |
-| `secrets`           | `outbox` (default): pairing codes, invites and recovery keys go to a private file. `off`: the tools that make them are not offered                      |
 | `limits`            | `callsPerMinute` (60), `burst` (20), `maxConcurrent` (4), `maxReadBytes` (256 KiB), `maxWriteBytes` (10 MiB), `maxListEntries` (500)                    |
 | `audit`             | keep the local audit log (default `true`)                                                                                                               |
 | `allowUnscoped`     | serve with an ordinary, unscoped device (default `false`)                                                                                               |
@@ -178,21 +197,20 @@ listed, so the model cannot be talked into calling them. The tool list is
 fixed for the life of the process (no `list_changed`, no rug pulls).
 
 **People confirm, through the client.** Actions that delete for good,
-share, change accounts or mint credentials ask the person with an MCP
+share or change accounts ask the person with an MCP
 [elicitation](https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation)
 — a form shown by the client, answered by the person. With the 2026-07-28
 protocol the answer comes back with a `requestState` sealed with HMAC-SHA-256
 and bound to the exact tool and arguments; it expires after 10 minutes and
-works once. Deleting an account or a folder needs its name typed.
-Approving a device needs the safety code the new device shows, typed by the
-person and compared with the code computed here from the keys the account
-key would be sealed to. If the client cannot ask, the action is refused.
+works once. Deleting an account or a folder needs its name typed. If the
+client cannot ask, the action is refused.
 
-**Secrets stay out of the model's context.** Pairing codes, device-adding
-QR codes, invites and new recovery keys are written to
-`<profile>/outbox/` (mode 0600, pruned after a day, with a QR `.svg`); the
-model is told only where the file is. Nothing the tools return contains a
-token or key material.
+**Keys and credentials are not the agent's to hand out.** No tool pairs or
+approves a device, creates an invite or a recovery key (see
+[What only you do](#what-only-you-do)); nothing a tool returns contains a
+token or key material. Approving a device means typing the safety code the
+new device shows, compared with the code computed from the keys the
+account key will be sealed to.
 
 **Content is data.** File contents, rows, names and log lines are wrapped in
 `<untrusted-… id="…">` fences whose boundary is random per result, so text
@@ -248,14 +266,13 @@ Per profile (`--profile <name>`, default `default`) under
 `$STORAGE_MCP_HOME`, else `$XDG_CONFIG_HOME/storage-mcp`, else
 `~/.config/storage-mcp`:
 
-| File           | Holds                                                  |
-| -------------- | ------------------------------------------------------ |
-| `vault.json`   | device keys, the account key, the session (encrypted)  |
-| `vault.key`    | the vault's key (absent with a passphrase)             |
-| `profile.json` | the server URL and certificate pin                     |
-| `config.json`  | the local policy (optional)                            |
-| `audit.log`    | every tool call, content redacted                      |
-| `outbox/`      | secrets for you: pairing codes, invites, recovery keys |
+| File           | Holds                                                 |
+| -------------- | ----------------------------------------------------- |
+| `vault.json`   | device keys, the account key, the session (encrypted) |
+| `vault.key`    | the vault's key (absent with a passphrase)            |
+| `profile.json` | the server URL and certificate pin                    |
+| `config.json`  | the local policy (optional)                           |
+| `audit.log`    | every tool call, content redacted                     |
 
 `storage-mcp unpair` revokes the device on the server and erases all of it.
 
@@ -270,6 +287,9 @@ Per profile (`--profile <name>`, default `default`) under
   client does not support elicitation. Do it in the console or Storage
   Remote, or set `"confirm": "host"` if your client asks before every call.
 - **A tool is missing**: `storage-mcp tools` says whether the scope or the
-  local policy turned it off.
+  local policy turned it off. Pairing, approving, inviting and recovery
+  keys are never tools: see [What only you do](#what-only-you-do).
+- **"runs only at an interactive terminal"**: run the command yourself, in
+  a terminal, not through the agent or a pipe.
 - **403 from the server**: the device's scope does not allow it. That is
   the point — pair a new agent if it should.

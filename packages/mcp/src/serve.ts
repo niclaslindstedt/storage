@@ -5,7 +5,6 @@ import type { Readable, Writable } from "node:stream";
 
 import { createAuditLog } from "./audit.ts";
 import type { McpConfig } from "./config.ts";
-import { createOutbox } from "./outbox.ts";
 import { McpServer } from "./protocol/server.ts";
 import { stdioChannel } from "./protocol/stdio.ts";
 import { openSession, type Session } from "./session.ts";
@@ -30,13 +29,10 @@ export function createMcp(
 ): McpServer {
   if (!session.me.agent && !config.allowUnscoped)
     throw new UnscopedDeviceError();
-  const outbox = createOutbox(dir);
-  outbox.prune();
   const deps: Deps = {
     session,
     client: session.client,
     config,
-    outbox,
     now: Date.now,
   };
   return new McpServer({

@@ -90,7 +90,8 @@ packages/cli/      `storage`, the headless admin CLI (SPEC §11.3): spec.ts
 packages/mcp/      storage-mcp: the MCP server for AI agents (SPEC §11.4) —
                    protocol/ (stdio JSON-RPC, both MCP eras, schemas), tools/
                    (registry + one module per group), vault, net, config,
-                   session, outbox, audit. Zero runtime deps; the framework
+                   session, audit, person.ts (terminal-only commands for
+                   what hands out keys). Zero runtime deps; the framework
                    client is bundled from source
 e2e/               framework client ⇄ real server (Vitest)
 apps/reference/    reference PWA + Playwright tests
@@ -125,8 +126,10 @@ Rules:
   §11.4). Every new device-API route needs a row in the route table in
   `services/scope.ts` (a test fails otherwise; unlisted routes are refused
   to agents).
-- `storage-mcp` never puts a secret (pairing code, invite, recovery key,
-  token) in a tool result, never lets the model confirm for the person,
+- `storage-mcp` has no tool that hands out keys or credentials (pairing,
+  device approval, device QR, invites, recovery keys): those are
+  person-only terminal commands (`src/person.ts`). It never puts a secret
+  or token in a tool result, never lets the model confirm for the person,
   and returns everything from the server fenced as untrusted data.
 - The client lives in oss-framework (`src/storage/selfhosted/`). Protocol
   changes land in both repositories; `e2e/framework-ref` pins the

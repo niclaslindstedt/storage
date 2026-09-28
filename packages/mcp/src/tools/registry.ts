@@ -3,7 +3,7 @@
 // offered. A tool is listed only when every layer allows it:
 //
 //   the device's scope (server-enforced)  ∩  admin device (console tools)
-//   ∩  the local policy (groups, levels, deny/allow)  ∩  secrets policy
+//   ∩  the local policy (groups, levels, deny/allow)
 //
 // Around every call: arguments are validated (the protocol layer), the
 // namespace is checked against the local app/folder limits, a human
@@ -14,7 +14,6 @@
 import type { SelfHostedClient } from "@niclaslindstedt/oss-framework/storage/selfhosted";
 
 import type { Group, Level, McpConfig } from "../config.ts";
-import type { Outbox } from "../outbox.ts";
 import {
   type ElicitParams,
   errorResult,
@@ -34,7 +33,6 @@ export type Deps = {
   session: Session;
   client: SelfHostedClient;
   config: McpConfig;
-  outbox: Outbox;
   now(): number;
 };
 
@@ -43,8 +41,6 @@ export type Confirm = {
   message: string;
   /** The human must type this exact text (a name) to go ahead. */
   typed?: { label: string; expect: string };
-  /** The human types a value the tool uses (a safety code). */
-  input?: { label: string; description: string };
   /** Ask even when the policy trusts the client's own prompt (`confirm: host`). */
   always?: boolean;
 };
@@ -62,8 +58,6 @@ export type ToolDef = {
   console?: boolean;
   /** Needs the account key on this device (decrypts or encrypts). */
   keys?: boolean;
-  /** Mints a credential (delivered to the outbox, never to the model). */
-  secret?: boolean;
   destructive?: boolean;
   idempotent?: boolean;
   input: ObjectSchema;
@@ -71,11 +65,7 @@ export type ToolDef = {
     args: Record<string, unknown>,
     deps: Deps,
   ): Promise<Confirm | null> | Confirm | null;
-  run(
-    args: Record<string, unknown>,
-    deps: Deps,
-    extra: { answer?: string },
-  ): Promise<ToolResult>;
+  run(args: Record<string, unknown>, deps: Deps): Promise<ToolResult>;
 };
 
 export class ToolError extends Error {}
@@ -115,8 +105,6 @@ export function availability(
       !tool.groups.some((g) => config.allow!.includes(g))
     )
       return off("local policy: not in allow");
-    if (tool.secret && config.secrets === "off")
-      return off("local policy: secrets off");
     return { tool, enabled: true };
   });
 }
@@ -135,19 +123,6 @@ function confirmSchema(c: Confirm): ElicitParams["requestedSchema"] {
       },
       required: ["confirm"],
     };
-  if (c.input)
-    return {
-      type: "object",
-      properties: {
-        answer: {
-          type: "string",
-          title: c.input.label,
-          description: c.input.description,
-          maxLength: 200,
-        },
-      },
-      required: ["answer"],
-    };
   return {
     type: "object",
     properties: {
@@ -162,8 +137,8 @@ async function confirmed(
   c: Confirm,
   deps: Deps,
   ctx: ToolContext,
-): Promise<{ denied: string } | { answer?: string }> {
-  if (deps.config.confirm === "host" && !c.always && !c.input) return {};
+): Promise<{ denied: string } | null> {
+  if (deps.config.confirm === "host" && !c.always) return null;
   if (!ctx.canElicit)
     return {
       denied:
@@ -178,15 +153,10 @@ async function confirmed(
   if (c.typed) {
     if (String(content.confirm ?? "").trim() !== c.typed.expect)
       return { denied: "The confirmation did not match; nothing was done." };
-    return {};
-  }
-  if (c.input) {
-    const answer = String(content.answer ?? "").trim();
-    if (!answer) return { denied: "No answer was given; nothing was done." };
-    return { answer };
+    return null;
   }
   if (content.approve !== true) return { denied: "The person declined." };
-  return {};
+  return null;
 }
 
 /** Turn an enabled definition into what the protocol layer serves. */
@@ -195,11 +165,7 @@ export function toServerTool(def: ToolDef, deps: Deps): ServerTool {
   return {
     name: def.name,
     title: def.title,
-    description:
-      def.description +
-      (def.secret
-        ? " The credential it creates is written to a private file for the person (the result says where); it is never shown to you."
-        : ""),
+    description: def.description,
     inputSchema: def.input,
     annotations: {
       readOnlyHint: !write,
@@ -217,14 +183,12 @@ export function toServerTool(def: ToolDef, deps: Deps): ServerTool {
           throw new ToolError(
             "this agent has no account key yet, so it cannot open encrypted data: approve it from another device (it shows a safety code in `storage-mcp status`) or run `storage-mcp pair --recover`",
           );
-        let answer: string | undefined;
         const c = def.confirm ? await def.confirm(args, deps) : null;
         if (c) {
-          const r = await confirmed(c, deps, ctx);
-          if ("denied" in r) return errorResult(r.denied);
-          answer = r.answer;
+          const denied = await confirmed(c, deps, ctx);
+          if (denied) return errorResult(denied.denied);
         }
-        return await def.run(args, deps, { answer });
+        return await def.run(args, deps);
       } catch (err) {
         // The protocol's "ask the human first" signal, not a failure.
         if (err instanceof InputRequired) throw err;

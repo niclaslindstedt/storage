@@ -21,11 +21,12 @@ claude mcp add storage -- storage-mcp serve
 - **You choose what the agent sees.** `config.json` and `serve` flags turn
   groups of tools off or read-only, deny single tools, limit apps and
   folders.
-- **A person confirms.** Deleting, sharing, account changes and new
-  credentials are confirmed in your MCP client (elicitation), not by the
-  model. Approving a device needs the safety code typed by you.
-- **Secrets stay out of the model's context.** Pairing codes, invites and
-  recovery keys go to a private file.
+- **A person confirms.** Deleting, sharing and account changes are
+  confirmed in your MCP client (elicitation), not by the model.
+- **Keys stay with people.** Pairing, approving a device (you type its
+  safety code), invites and recovery keys are not tools: you run
+  `storage-mcp device approve|add`, `recovery-key` or `invite` in a
+  terminal.
 - **Untrusted content is fenced**, names are cleaned, reads are capped.
 - **One server, over TLS**, with certificate pinning for self-signed
   servers; stdio only, no listening port.

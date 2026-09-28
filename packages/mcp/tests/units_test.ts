@@ -27,7 +27,6 @@ import {
   parseConfig,
 } from "../src/config.ts";
 import { checkServerUrl, serverFetch } from "../src/net.ts";
-import { createOutbox } from "../src/outbox.ts";
 import { capText, cleanName, fence } from "../src/text.ts";
 import { openFileVault, VaultError } from "../src/vault.ts";
 
@@ -174,21 +173,6 @@ describe("output safety", () => {
     expect(JSON.stringify(r)).not.toContain("diagnosis");
     expect(r.path).toBe("a.md");
     expect(r.content).toMatchObject({ bytes: 16 });
-  });
-
-  it("delivers secrets to a private file, not to the caller", () => {
-    const dir = tmp();
-    const box = createOutbox(dir);
-    const d = box.deliver("invite", "oss-storage://invite?v=1&x=SECRET", {
-      title: "t",
-      note: "n",
-      expiresAt: 0,
-      qr: true,
-    });
-    expect(readFileSync(d.file, "utf8")).toContain("SECRET");
-    expect(readFileSync(d.qr!, "utf8")).toMatch(/^<svg/);
-    if (posix) expect(statSync(d.file).mode & 0o777).toBe(0o600);
-    expect(JSON.stringify(d)).not.toContain("SECRET");
   });
 });
 

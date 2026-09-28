@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Sharing a namespace with other accounts: members and roles, invites
-// (their secret goes to the outbox, never to the model), joining someone
-// else's folder, and key rotation after removing a member. Sharing is how
-// data leaves an account, so each step that widens access asks the person.
+// Sharing a namespace with other accounts: members and roles, open
+// invites, joining someone else's folder, and key rotation after removing
+// a member. Sharing is how data leaves an account, so each step that
+// widens access asks the person — and creating an invite, which hands out
+// the folder's key, is not a tool at all: a person runs
+// `storage-mcp invite` at a terminal.
 
 import { parseStoragePayload } from "@niclaslindstedt/oss-framework/storage/selfhosted";
 
 import { s } from "../protocol/schema.ts";
-import { cleanName, formatBytes } from "../text.ts";
+import { cleanName } from "../text.ts";
 import { arg, iso, openNamespace } from "./common.ts";
 import { json, text, type ToolDef, ToolError } from "./registry.ts";
 
@@ -52,55 +54,6 @@ export const sharingTools: ToolDef[] = [
       return json({
         invites: invites.map((i) => ({ ...i, expires: iso(i.expiresAt) })),
       });
-    },
-  },
-  {
-    name: "create_invite",
-    title: "Invite someone to a shared folder",
-    description:
-      "Create an invite to a namespace you own. It carries the folder's key, sealed under a secret only the invite holds; whoever redeems it can read (viewer) or change (editor) the folder.",
-    groups: ["sharing"],
-    access: "write",
-    perm: "sharing",
-    keys: true,
-    secret: true,
-    input: s.object(
-      {
-        namespace: arg.namespace,
-        role: ROLE,
-        ttlHours: s.integer(
-          "Valid for this many hours (default 168).",
-          1,
-          24 * 30,
-        ),
-        maxUses: s.integer("How many people may use it (default 1).", 1, 20),
-      },
-      ["namespace"],
-    ),
-    async confirm(a, d) {
-      const ns = await openNamespace(d, a.namespace as string);
-      if (ns.role !== "owner") throw new ToolError("only the owner can invite");
-      return {
-        message: `Create an invite that lets ${String(a.maxUses ?? 1)} person(s) ${a.role === "editor" ? "read and change" : "read"} everything in "${cleanName(ns.meta.name)}" (${formatBytes(ns.info.usedBytes)})? It will be written to a private file for you to hand over.`,
-      };
-    },
-    async run(a, d) {
-      const ns = await openNamespace(d, a.namespace as string);
-      const inv = await ns.invite({
-        role: (a.role as "editor" | "viewer" | undefined) ?? "viewer",
-        ttlSeconds: ((a.ttlHours as number | undefined) ?? 168) * 3600,
-        maxUses: (a.maxUses as number | undefined) ?? 1,
-      });
-      const delivered = d.outbox.deliver("invite", inv.payload, {
-        title: `Invite to ${cleanName(ns.meta.name)}`,
-        note: "Show the QR code (the .svg next to this file) to the person you invite, or send them the link over a channel you trust.",
-        expiresAt: inv.expiresAt,
-        qr: true,
-      });
-      return text(
-        `The invite was written for the person to ${delivered.file} (QR: ${delivered.qr}); it expires ${delivered.expiresAt}. Tell them where it is; do not open it.`,
-        { inviteId: inv.inviteId, delivered },
-      );
     },
   },
   {

@@ -27,6 +27,12 @@ import {
   profileDir,
 } from "./config.ts";
 import { checkServerUrl, NetError } from "./net.ts";
+import {
+  PersonOnlyError,
+  processTerminal,
+  runPerson,
+  type Terminal,
+} from "./person.ts";
 import { serve, UnscopedDeviceError } from "./serve.ts";
 import {
   newClient,
@@ -51,6 +57,13 @@ Usage:
   storage-mcp tools [--json]
   storage-mcp config [--init]
   storage-mcp unpair
+
+For a person at a terminal only (they hand out keys, so they are not tools):
+  storage-mcp device approve [<device id>]   approve a waiting device (type its safety code)
+  storage-mcp device add [--ttl <minutes>]   a QR code that adds a device with the account key
+  storage-mcp recovery-key                   replace the account's recovery key
+  storage-mcp invite [<ns id>] [--role viewer|editor] [--hours <n>] [--uses <n>] [--app <id>]
+They need the device's devices (or sharing) permission and an interactive terminal.
 
 Options for every command:
   --profile <name>   one paired server per profile (default "default")
@@ -156,9 +169,13 @@ function askHidden(question: string): Promise<string> {
   });
 }
 
-export async function main(argv: string[], env = process.env): Promise<number> {
-  const out = (s: string) => process.stdout.write(`${s}\n`);
-  const err = (s: string) => process.stderr.write(`${s}\n`);
+export async function main(
+  argv: string[],
+  env = process.env,
+  term: Terminal = processTerminal(),
+): Promise<number> {
+  const out = term.out;
+  const err = term.err;
   let args: Parsed;
   try {
     args = parseArgs(argv);
@@ -194,6 +211,10 @@ export async function main(argv: string[], env = process.env): Promise<number> {
         return config(dir, args, out);
       case "unpair":
         return await unpair(dir, env, out);
+      case "device":
+      case "recovery-key":
+      case "invite":
+        return await runPerson(args.cmd, args, dir, loadConfig(dir), env, term);
       default:
         err(`unknown command ${args.cmd} (see storage-mcp --help)`);
         return 2;
@@ -205,7 +226,8 @@ export async function main(argv: string[], env = process.env): Promise<number> {
       e instanceof VaultError ||
       e instanceof NetError ||
       e instanceof NotPairedError ||
-      e instanceof UnscopedDeviceError
+      e instanceof UnscopedDeviceError ||
+      e instanceof PersonOnlyError
     ) {
       err(`storage-mcp: ${e.message}`);
       return e instanceof UsageError ? 2 : 1;
@@ -422,7 +444,6 @@ function config(dir: string, args: Parsed, out: (s: string) => void): number {
           apps: c.apps,
           folders: c.folders,
           confirm: c.confirm,
-          secrets: c.secrets,
           limits: c.limits,
           audit: c.audit,
         },
@@ -461,7 +482,6 @@ async function unpair(
   }
   vault.destroy();
   rmSync(join(dir, "profile.json"), { force: true });
-  rmSync(join(dir, "outbox"), { recursive: true, force: true });
   out("Unpaired: this device is revoked and its keys are erased.");
   return 0;
 }
