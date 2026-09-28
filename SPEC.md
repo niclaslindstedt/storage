@@ -27,6 +27,7 @@
 | D10 | License              | PolyForm-Noncommercial-1.0.0                                                                                                                                                                                                                                                                                             | Matches the sibling repos.                                                                                                                                                                               |
 | D11 | Out of scope         | Server-side search / thumbnails (server cannot read data); federation between servers.                                                                                                                                                                                                                                   | E2EE makes them impossible or a leak.                                                                                                                                                                    |
 | D13 | Remote admin         | **Admin devices**: a device of an admin account, paired with a console pairing minted only by the local console or the CLI, may call the console's own API at `/v1/console` with its device token. The **Storage Remote** app (web + Expo wrapper) mounts the console's pages over it and adds an E2EE drive. See §11.2. | The hoster wants to administer and use the server from a phone. Granting at the machine keeps D12's rule that nothing remote can create admin access; one API keeps the phone and the console identical. |
+| D14 | Headless admin CLI   | **`storage` (`packages/cli`), a separate zero-dependency CLI** over the console API — the admin token on the console listener, or an admin device (§11.2) at `/v1/console` with its own key — with contexts, `.env` / environment credentials and a `storage-cli` image. See §11.3.                                      | Operators script and automate from CI, cron and containers, and from machines other than the server's; one API keeps the CLI, the console and the phone identical, and no new server surface is added.   |
 | D12 | Admin console        | **Local web console on its own listener** (default `127.0.0.1:8081`), a dependency-free TypeScript SPA embedded in the server. Stable admin token in `<data-dir>/admin.token` (0600) → session cookie. See §11.1.                                                                                                        | Operators need to administer, monitor, read logs and troubleshoot without a shell; the console must add no remote attack surface and no runtime dependency.                                              |
 
 ---
@@ -88,6 +89,7 @@ Repository layout (npm workspaces):
 ```
 packages/server/     @niclaslindstedt/storage-server   (server + CLI `storage-server`)
 packages/testkit/    @niclaslindstedt/storage-testkit  (in-process + subprocess test server, helpers)
+packages/cli/        @niclaslindstedt/storage-cli      (headless admin CLI `storage`, §11.3)
 apps/reference/      reference PWA on oss-framework, built to be tested end to end (Playwright)
 e2e/                 full-stack tests: framework client ↔ real server (private)
 docs/ man/ examples/ website/ scripts/ prompts/ .agents/skills/   (OSS_SPEC)
@@ -370,7 +372,7 @@ or `If-None-Match: *`. Auth: `Authorization: Bearer <token>`.
 - `GET|POST /v1/admin/accounts`, `PATCH|DELETE /v1/admin/accounts/:id {name, role, quotaBytes}`
 - `GET /v1/admin/audit?since=` , `GET /v1/admin/stats`
 - `GET|POST|PATCH|DELETE /v1/console/*rest` — the admin console's API (§11.1,
-  `/api/<rest>`; `metrics` → `/metrics`) for admin devices only (§11.2): 403 for
+  `/api/<rest>`; `prometheus` → `/metrics`) for admin devices only (§11.2): 403 for
   any other device, 404 with `remoteConsole: false`. `/v1/info` lists the
   `console` capability when it is mounted and on.
 
@@ -633,6 +635,53 @@ deleted after). Bridge requests are answered only for the bundled origin.
 The server must present a publicly trusted certificate (ATS; a WebView
 cannot pin `fp`).
 
+### 11.3 Headless admin CLI (`storage`)
+
+A second CLI, separate from `storage-server`, that administers a running
+server through the console API alone — every page and action of §11.1
+from a terminal, a script or a container. It never opens the data
+directory's database and adds no server surface.
+
+**Transports.** The console listener with the admin token as a bearer
+(`/api/…`, `/metrics`), or the device API as an admin device (§11.2):
+`/v1/console/<path>` for `/api/<path>` and `/v1/console/prometheus` for
+`/metrics`. An admin device is created by `storage auth login <pairing
+payload>`: the CLI makes a P-256 signing key (node:crypto), redeems the
+console pairing with platform `cli` (the encryption key's private half is
+discarded — the CLI never holds an account key), signs challenges with
+IEEE-P1363 ECDSA, and caches the 10-minute access token in
+`tokens.json`. A code that enrols an ordinary device is refused and the
+device revoked on the spot. Self-signed servers are pinned by the
+payload's `fp` (SPKI SHA-256), checked on the connected socket before a
+request byte is written. `--admin-app` pairings stay local only.
+
+**Credentials** (first match wins): `-c/--context`; `STORAGE_SESSION`
+(`storage auth export`: URL, server id, device id, key); `STORAGE_TOKEN`
+(+ `STORAGE_URL`, default `http://127.0.0.1:8081`); `STORAGE_CONTEXT`; the
+saved context whose URL is `STORAGE_URL`; the current context;
+`admin.token` in the local default data directory. `*_FILE` variants read
+secrets from files (Docker secrets). The environment is the process
+environment over `.env` (or `--env-file`) files. Saved credentials are
+only sent to their own context's URL. Contexts live in
+`<config-dir>/config.json` (0600 in a 0700 directory; `STORAGE_CONFIG_DIR`,
+default `$XDG_CONFIG_HOME/storage`).
+
+**Surface** (`packages/cli/src/spec.ts`, rendered to `--help`, `commands`,
+`--help-agent`, `--debug-agent` and `man/storage/*.md`): `auth
+{login,logout,status,token,export}`, `context {ls,use,show,rename,rm}`,
+`status`, `account {ls,view,create,edit,pair,rm}`, `device
+{ls,view,revoke,remove-admin}`, `namespace {ls,view}`, `traffic`,
+`metrics`, `logs [-f] | logs download`, `audit {ls,verify}`, `doctor`,
+`system {config,housekeeping,backup,renew-cert,refresh-ports,diagnostics}`,
+`api <path>`. Lists take `--json`, `-q` and `--format '{{.field}}'`;
+piped tables are tab-separated without headers; destructive commands ask
+(or need `--yes`). Exit codes 0 / 1 / 2 / 4 (not logged in or rejected).
+
+**Image.** `packages/cli/Dockerfile` → `ghcr.io/niclaslindstedt/storage-cli`
+(distroless, non-root, `/config` volume, `/work` working directory);
+`compose.yaml`'s `cli` profile reads `admin.token` from the server's data
+volume read-only.
+
 ## 12. Testkit (`@niclaslindstedt/storage-testkit`)
 
 ```ts
@@ -765,3 +814,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 - [x] M7 tests: server unit (`admin_remote_test.ts`), console browser test, e2e (`remote_test.ts`), app unit + Playwright, native bridge pinning; CI job `remote-native`
 - [x] M8 docs (`docs/remote-app.md`, admin console, protocol, security, configuration, testing, README), man pages
 - [ ] M9 store listings (App Store / Play) and EAS project for the wrapper
+
+### Headless admin CLI (§11.3)
+
+- [x] H1 SPEC §11.3 design, D14
+- [x] H2 `packages/cli`: registry, parser, `.env` / environment credentials, contexts, token and admin-device transports (pinning, token cache, 429 retry)
+- [x] H3 commands with console parity: auth, context, status, account, device, namespace, traffic, metrics, logs (follow, download), audit, doctor, system, api
+- [x] H4 `/v1/console/metrics` answers the Traffic JSON (`/v1/console/prometheus` for Prometheus text) — also fixes Storage Remote's Traffic page
+- [x] H5 tests: units, both transports end to end against a real server, man pages; CI docker smoke (`scripts/docker-smoke-cli.sh`)
+- [x] H6 `storage-cli` image, compose `cli` service, release (npm + GHCR), `docs/cli.md`, `man/storage/`, README

@@ -8,6 +8,7 @@
   "type": "module",
   "workspaces": [
     "packages/server",
+    "packages/cli",
     "packages/testkit",
     "e2e",
     "apps/reference",

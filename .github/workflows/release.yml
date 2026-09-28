@@ -7,8 +7,8 @@ name: release
 #                 default GITHUB_TOKEN, whose trigger suppression keeps the
 #                 retag from starting a second release run.
 #   2. test     — the full suite on the rewritten tag, Linux and macOS.
-#   3. publish  — npm packages to GitHub Packages and the multi-arch image to
-#                 GHCR, both authenticated with the job's short-lived
+#   3. publish  — npm packages to GitHub Packages and the multi-arch images
+#                 (storage-server, storage-cli) to GHCR, both authenticated with the job's short-lived
 #                 GITHUB_TOKEN, with signed SLSA provenance attestations via
 #                 the job's OIDC token. No long-lived credential exists.
 #   4. github-release — release notes from CHANGELOG.md plus the tarballs.
@@ -103,6 +103,7 @@ jobs:
           mkdir -p pkg
           npm pack --workspace packages/server --pack-destination pkg
           npm pack --workspace packages/testkit --pack-destination pkg
+          npm pack --workspace packages/cli --pack-destination pkg
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: pkg/*.tgz
@@ -112,6 +113,7 @@ jobs:
         run: |
           npm publish pkg/niclaslindstedt-storage-server-*.tgz
           npm publish pkg/niclaslindstedt-storage-testkit-*.tgz
+          npm publish pkg/niclaslindstedt-storage-cli-*.tgz
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: npm-tarballs
@@ -119,6 +121,13 @@ jobs:
 
   publish-image:
     needs: [prepare, test]
+    strategy:
+      matrix:
+        include:
+          - image: storage-server
+            file: Dockerfile
+          - image: storage-cli
+            file: packages/cli/Dockerfile
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -139,7 +148,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/${{ github.repository_owner }}/storage-server
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
             type=semver,pattern={{version}},value=${{ needs.prepare.outputs.tag }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.prepare.outputs.tag }}
@@ -148,6 +157,7 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
+          file: ${{ matrix.file }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -156,7 +166,7 @@ jobs:
           sbom: true
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-name: ghcr.io/${{ github.repository_owner }}/storage-server
+          subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 

@@ -38,6 +38,9 @@ comes first. You are credited in the advisory unless you prefer otherwise.
 In scope:
 
 - `storage-server` (the server, its CLI, the admin page, the Docker image).
+- `@niclaslindstedt/storage-cli` (`storage`, the headless admin CLI, and
+  its Docker image): how it keeps and sends admin tokens and admin-device
+  keys.
 - `@niclaslindstedt/storage-testkit` where it could weaken a real server.
 - The end-to-end encryption design in [`SPEC.md`](SPEC.md) §4 and its
   client implementation in `@niclaslindstedt/oss-framework/storage`
@@ -57,12 +60,13 @@ Out of scope:
 ## Publishing credentials
 
 No long-lived publishing credential exists. The `release` workflow
-publishes the npm packages to GitHub Packages and the container image to
-GHCR with the job's own `GITHUB_TOKEN` — minted per run, scoped to
+publishes the npm packages to GitHub Packages and the container images
+(`storage-server`, `storage-cli`) to GHCR with the job's own `GITHUB_TOKEN` — minted per run, scoped to
 `packages: write` on this repository, and expired when the job ends — and
 signs SLSA build-provenance attestations for both with the job's OIDC
 token (`id-token: write`). Verify an image with
-`gh attestation verify oci://ghcr.io/niclaslindstedt/storage-server:<version> --owner niclaslindstedt`.
+`gh attestation verify oci://ghcr.io/niclaslindstedt/storage-server:<version> --owner niclaslindstedt`
+(likewise `storage-cli`).
 
 GitHub Packages' npm registry does not offer npm's OIDC trusted-publishing
 exchange; the ephemeral job token is its equivalent. If the packages move

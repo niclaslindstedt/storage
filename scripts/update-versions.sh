@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Set every shipped manifest and embedded version constant to <tag>'s
-# version: the root and workspace package.json files, the testkit's pinned
-# server dependency, package-lock.json, the server's VERSION constant and
-# the website. Idempotent (OSS_SPEC §10.3 step 4).
+# version: the root and workspace package.json files (server, testkit,
+# cli), the testkit's pinned server dependency, package-lock.json, the
+# server's VERSION constant (the CLI bundles it) and the website.
+# Idempotent (OSS_SPEC §10.3 step 4).
 #
 #   scripts/update-versions.sh <tag>
 set -euo pipefail
@@ -17,6 +18,7 @@ const files = [
   "package.json",
   "packages/server/package.json",
   "packages/testkit/package.json",
+  "packages/cli/package.json",
   "website/package.json",
 ];
 for (const file of files) {
