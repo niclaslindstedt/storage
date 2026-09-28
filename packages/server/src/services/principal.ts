@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Who is making a request: the authenticated device and its account.
 
+import type { AgentScope } from "./scope.ts";
+
 export type AccountRole = "admin" | "member" | "guest";
 
 export type Principal = {
@@ -10,6 +12,11 @@ export type Principal = {
   role: AccountRole;
   /** An admin device: may use the admin console's API remotely (SPEC §11.2). */
   console: boolean;
+  /**
+   * An agent device's scope (SPEC §11.3): what it may do, enforced on every
+   * request. null for ordinary devices.
+   */
+  scope: AgentScope | null;
 };
 
 /** Request metadata recorded in the audit log and used for rate limits. */

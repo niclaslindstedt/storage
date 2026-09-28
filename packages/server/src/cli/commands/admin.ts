@@ -188,7 +188,11 @@ export function runDevices(
                 d.platform,
                 d.hasAccountKey ? "yes" : "pending",
                 d.lastSeenAt ? new Date(d.lastSeenAt).toISOString() : "never",
-                d.revokedAt ? "revoked" : "active",
+                d.revokedAt
+                  ? "revoked"
+                  : d.agent
+                    ? `agent (${d.agent.perms.join(" ") || "-"})`
+                    : "active",
                 d.id,
               ]),
             ]),

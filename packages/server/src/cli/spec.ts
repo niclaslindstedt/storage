@@ -332,9 +332,9 @@ export const COMMANDS: CommandSpec[] = [
   {
     name: "pair",
     summary: "Print a one-time QR code that enrols a device.",
-    usage: `${BIN} pair (--account <name> | --new <name> [--role <role>]) [--console] [--ttl <seconds>] [--json]`,
+    usage: `${BIN} pair (--account <name> | --new <name> [--role <role>]) [--console] [--agent [--perms <list>] [--apps <list>]] [--ttl <seconds>] [--json]`,
     description:
-      "Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server. With --console the device becomes an admin device that may use the admin console remotely (the remote app); only an admin account can have one, and only this command or the local console can pair one.",
+      "Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server. With --console the device becomes an admin device that may use the admin console remotely (the remote app); only an admin account can have one, and only this command or the local console can pair one. With --agent the device becomes an agent device (an AI agent's MCP server, a script): the server holds it to the permissions in --perms and the apps in --apps on every request, and its scope can later be narrowed but never widened.",
     flags: [
       {
         name: "account",
@@ -378,6 +378,27 @@ export const COMMANDS: CommandSpec[] = [
         description:
           "Pair an admin device: it may use the admin console remotely (admin accounts only).",
       },
+      {
+        name: "agent",
+        type: "bool",
+        description:
+          "Pair an agent device, held to --perms and --apps by the server (see `docs mcp`).",
+      },
+      {
+        name: "perms",
+        type: "string",
+        value: "<list>",
+        default: "data:read (+ console:read with --console)",
+        description:
+          "Comma-separated agent permissions: data:read, data:write, sharing, devices, console:read, console:write.",
+      },
+      {
+        name: "apps",
+        type: "string",
+        value: "<list>",
+        description:
+          "Comma-separated app ids whose namespaces the agent may see (default: all), e.g. drive,notes.",
+      },
       ...pick("public-url", "app-url", "name", "port", "tls"),
     ],
     examples: [
@@ -388,6 +409,10 @@ export const COMMANDS: CommandSpec[] = [
       {
         cmd: `${BIN} pair --account niclas --console`,
         note: "pair the remote admin app on your phone",
+      },
+      {
+        cmd: `${BIN} pair --account niclas --agent --perms data:read --apps drive`,
+        note: "pair an AI agent (storage-mcp) that may only read the drive",
       },
       {
         cmd: `${BIN} pair --new grandma --role member --ttl 3600`,

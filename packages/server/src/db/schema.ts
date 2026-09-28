@@ -217,4 +217,12 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE devices ADD COLUMN console INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE pairings ADD COLUMN console INTEGER NOT NULL DEFAULT 0;
   `,
+  // 3: agent devices (SPEC §11.3). A pairing may carry a scope — the
+  // permissions and apps the device it enrols may use — which the device
+  // inherits. The server enforces it on every request; it can be narrowed
+  // after pairing, never widened. NULL = an ordinary, unscoped device.
+  `
+  ALTER TABLE devices ADD COLUMN scope TEXT;
+  ALTER TABLE pairings ADD COLUMN scope TEXT;
+  `,
 ];

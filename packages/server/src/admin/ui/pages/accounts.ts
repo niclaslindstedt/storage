@@ -2,6 +2,7 @@ import { del, get, isRemote, patch, post } from "../api.ts";
 import { ago, badge, bytes, confirm, dialog, h, table, toast } from "../dom.ts";
 import { type Page, pageHeader, refresh } from "../page.ts";
 import type { Account, Pairing } from "../types.ts";
+import { pairAgent } from "./agent.ts";
 import { showPairing } from "./pairing.ts";
 
 const ROLES = ["member", "admin", "guest"] as const;
@@ -321,6 +322,19 @@ export const accountsPage: Page = {
                   },
                   "Pair device",
                 ),
+                a.disabled
+                  ? null
+                  : h(
+                      "button",
+                      {
+                        type: "button",
+                        onclick: () => pairAgent(a),
+                        "data-testid": "pair-agent",
+                        title:
+                          "Pair an AI agent (storage-mcp) or a script, limited to what you allow",
+                      },
+                      "Pair an agent",
+                    ),
                 a.role === "admin" && !a.disabled && !isRemote()
                   ? h(
                       "button",

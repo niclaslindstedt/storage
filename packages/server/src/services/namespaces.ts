@@ -16,6 +16,7 @@ import {
 import { checkApp, checkB64u } from "../validate.ts";
 import { newId } from "../util/random.ts";
 import { checkWrap } from "./accounts.ts";
+import { appAllowed, assertAppAllowed } from "./scope.ts";
 import type { Principal } from "./principal.ts";
 
 export type NsRole = "owner" | "editor" | "viewer";
@@ -87,7 +88,10 @@ export function requireRole(
         principal.accountId,
       )
     : undefined;
-  if (!ns || !member) throw notFound("no such namespace");
+  // An agent device sees only the apps its scope names (SPEC §11.3); to it,
+  // any other namespace does not exist.
+  if (!ns || !member || !appAllowed(principal.scope, ns.app))
+    throw notFound("no such namespace");
   if (RANK[member.role] < RANK[min]) {
     throw forbidden(`requires the ${min} role in this namespace`);
   }
@@ -175,6 +179,7 @@ export function createNamespace(
     throw badRequest("id must be ns_ followed by 22 base64url characters");
   }
   const app = checkApp(String(input.app ?? ""));
+  assertAppAllowed(principal.scope, app);
   const meta = checkMeta(ctx, input.meta, 1);
   const wrap = checkWrap(input.wrap, "wrap");
   const id = (input.id as string | undefined) ?? newId("ns");
@@ -236,7 +241,9 @@ export function listNamespaces(
      ORDER BY n.created_at, n.id`,
     ...(app !== undefined ? [principal.accountId, app] : [principal.accountId]),
   );
-  return rows.map((r) => view(ctx, r, principal.accountId, r.role));
+  return rows
+    .filter((r) => appAllowed(principal.scope, r.app))
+    .map((r) => view(ctx, r, principal.accountId, r.role));
 }
 
 export function updateNamespaceMeta(

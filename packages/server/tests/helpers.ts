@@ -104,6 +104,7 @@ export function principal(
     deviceId,
     role,
     console: false,
+    scope: null,
   };
 }
 

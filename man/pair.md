@@ -5,12 +5,12 @@ Print a one-time QR code that enrols a device.
 ## Synopsis
 
 ```
-storage-server pair (--account <name> | --new <name> [--role <role>]) [--console] [--ttl <seconds>] [--json]
+storage-server pair (--account <name> | --new <name> [--role <role>]) [--console] [--agent [--perms <list>] [--apps <list>]] [--ttl <seconds>] [--json]
 ```
 
 ## Description
 
-Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server. With --console the device becomes an admin device that may use the admin console remotely (the remote app); only an admin account can have one, and only this command or the local console can pair one.
+Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server. With --console the device becomes an admin device that may use the admin console remotely (the remote app); only an admin account can have one, and only this command or the local console can pair one. With --agent the device becomes an agent device (an AI agent's MCP server, a script): the server holds it to the permissions in --perms and the apps in --apps on every request, and its scope can later be narrowed but never widened.
 
 ## Options
 
@@ -23,6 +23,9 @@ Pairs a device to an existing account, or creates a new account on redemption. T
 | `--no-qr` | bool | — | — | Print only the payload, no QR code. |
 | `--json` | bool | — | — | Print {code, uri, expiresAt} as JSON. |
 | `--console` | bool | — | — | Pair an admin device: it may use the admin console remotely (admin accounts only). |
+| `--agent` | bool | — | — | Pair an agent device, held to --perms and --apps by the server (see `docs mcp`). |
+| `--perms` | string | `data:read (+ console:read with --console)` | — | Comma-separated agent permissions: data:read, data:write, sharing, devices, console:read, console:write. |
+| `--apps` | string | — | — | Comma-separated app ids whose namespaces the agent may see (default: all), e.g. drive,notes. |
 | `--name` | string | `storage` | `STORAGE_NAME` | Display name shown in pairing QR codes and /v1/info. |
 | `--public-url` | string | — | `STORAGE_PUBLIC_URL` | Externally reachable base URL devices use, e.g. https://home.example.org or https://203.0.113.7:443. |
 | `--app-url` | string | — | `STORAGE_APP_URL` | Wrap QR payloads as <app-url>#oss=… so a phone camera opens the app directly. |
@@ -64,6 +67,12 @@ storage-server pair --account niclas --console
 ```
 
 pair the remote admin app on your phone
+
+```sh
+storage-server pair --account niclas --agent --perms data:read --apps drive
+```
+
+pair an AI agent (storage-mcp) that may only read the drive
 
 ```sh
 storage-server pair --new grandma --role member --ttl 3600

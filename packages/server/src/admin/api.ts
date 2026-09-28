@@ -20,8 +20,18 @@ import {
   listAccounts,
   updateAccount,
 } from "../services/accounts.ts";
-import { dropConsoleAccess, revokeDevice } from "../services/devices.ts";
+import {
+  dropConsoleAccess,
+  narrowScope,
+  revokeDevice,
+} from "../services/devices.ts";
 import { createPairing } from "../services/pairing.ts";
+import {
+  type AgentScope,
+  intersect,
+  parseScope,
+  readScope,
+} from "../services/scope.ts";
 import { type CheckResult, runChecks } from "./checks.ts";
 import type { ConsoleDeps } from "./deps.ts";
 import { LOG_LEVELS, type LogEntry, type LogLevel } from "./log-buffer.ts";
@@ -45,6 +55,11 @@ export type ApiRequest = {
   actor: string;
   /** Reached through the device API by an admin device (SPEC §11.2). */
   remote: boolean;
+  /**
+   * The calling admin device's agent scope (SPEC §11.3), or null. Pairings
+   * a scoped device mints are never wider than the device itself.
+   */
+  scope: AgentScope | null;
   body(): Promise<Record<string, unknown>>;
 };
 
@@ -201,6 +216,23 @@ export function apiRoutes(state: ConsoleState): Routes {
       ok: v.ok,
       count: v.count,
     });
+  }
+
+  /**
+   * The scope of a pairing minted by `req`: what was asked for, narrowed to
+   * a scoped caller's own scope without its console permissions (a device
+   * never mints a wider device, nor an admin device).
+   */
+  function inherit(
+    req: ApiRequest,
+    asked: AgentScope | undefined,
+  ): AgentScope | undefined {
+    if (!req.scope) return asked;
+    const own = intersect(asked ?? req.scope, req.scope);
+    return {
+      perms: own.perms.filter((p) => !p.startsWith("console:")),
+      apps: own.apps,
+    };
   }
 
   function pairing(created: { code?: string; expiresAt: number }) {
@@ -395,10 +427,17 @@ export function apiRoutes(state: ConsoleState): Routes {
         "forbidden",
         "admin devices are paired from the local console or the CLI",
       );
+    // An agent device (SPEC §11.3): `agent: {perms, apps}` scopes it.
+    const scope = inherit(
+      req,
+      b.agent === undefined || b.agent === null
+        ? undefined
+        : parseScope(b.agent),
+    );
     return pairing(
       createPairing(
         ctx,
-        { accountId: req.params.id!, console: b.console === true },
+        { accountId: req.params.id!, console: b.console === true, scope },
         req.actor,
       ),
     );
@@ -414,6 +453,7 @@ export function apiRoutes(state: ConsoleState): Routes {
             name: str(b, "name") ?? "",
             role: role(b.role) ?? "member",
           },
+          scope: inherit(req, undefined),
         },
         req.actor,
       ),
@@ -436,10 +476,11 @@ export function apiRoutes(state: ConsoleState): Routes {
         revoked_at: number | null;
         has_key: number;
         console: number;
+        scope: string | null;
       }>(
         `SELECT d.id, d.name, d.platform, d.account_id, a.name AS account, d.origin,
                 d.created_at, d.last_seen_at, d.revoked_at,
-                d.device_wrap IS NOT NULL AS has_key, d.console
+                d.device_wrap IS NOT NULL AS has_key, d.console, d.scope
          FROM devices d JOIN accounts a ON a.id = d.account_id
          ORDER BY a.name COLLATE NOCASE, d.created_at`,
       )
@@ -455,20 +496,36 @@ export function apiRoutes(state: ConsoleState): Routes {
         revokedAt: d.revoked_at,
         state: d.revoked_at ? "revoked" : d.has_key ? "active" : "pending",
         console: d.console === 1 && !d.revoked_at,
+        agent: readScope(d.scope),
       })),
   }));
 
-  // Only ever takes console access away (SPEC §11.2); granting it is a
-  // pairing made at the machine.
+  // Only ever takes access away: console access (SPEC §11.2) or part of an
+  // agent's scope (§11.3). Granting either is a pairing made at the machine.
   routes.add("PATCH", "/api/devices/:id", async (req) => {
     const b = await req.body();
-    if (b.console !== false)
+    const keys = Object.keys(b);
+    if (
+      keys.length === 0 ||
+      keys.some((k) => k !== "console" && k !== "agent") ||
+      (b.console !== undefined && b.console !== false)
+    )
       throw badRequest(
-        "only { console: false } is accepted: pair a new admin device to grant access",
+        "only { console: false } and { agent: {perms, apps} } (narrower) are accepted: pair a new device to grant access",
       );
-    const device = dropConsoleAccess(ctx, req.params.id!, req.ip, req.actor);
-    note(`removed console access from device ${device.id}`, req);
-    return { json: { id: device.id, console: device.console } };
+    const id = req.params.id!;
+    let device = null;
+    if (b.agent !== undefined) {
+      device = narrowScope(ctx, id, parseScope(b.agent), req.ip, req.actor);
+      note(`narrowed the scope of device ${id}`, req);
+    }
+    if (b.console === false) {
+      device = dropConsoleAccess(ctx, id, req.ip, req.actor);
+      note(`removed console access from device ${id}`, req);
+    }
+    return {
+      json: { id: device!.id, console: device!.console, agent: device!.agent },
+    };
   });
 
   routes.add("DELETE", "/api/devices/:id", (req) => {

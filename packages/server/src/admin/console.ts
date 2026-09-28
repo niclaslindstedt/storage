@@ -258,6 +258,7 @@ export async function startAdminConsole(
       ip: client(req),
       actor: LOCAL_ACTOR,
       remote: false,
+      scope: null,
       async body() {
         if (parsed) return parsed;
         const text = await readBody(req, 64 * 1024);

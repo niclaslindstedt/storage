@@ -22,6 +22,8 @@ import {
   createPairing,
   redeemPairing,
 } from "../services/pairing.ts";
+import { getNamespaceRow } from "../services/namespaces.ts";
+import { parseScope } from "../services/scope.ts";
 import { optString } from "./common.ts";
 
 export const PROTOCOL_VERSION = 1;
@@ -36,6 +38,7 @@ export const CAPABILITIES = [
   "uploads",
   "sharing",
   "rotation",
+  "agents",
 ] as const;
 
 export type ServerInfoExtras = () => {
@@ -132,6 +135,10 @@ export function identityRoutes(
       code: optString(body, "code"),
       transfer: optString(body, "transfer"),
       console: body.console === true,
+      scope:
+        body.agent === undefined || body.agent === null
+          ? undefined
+          : parseScope(body.agent),
     };
     authorizePairing(p, input);
     return { status: 201, json: createPairing(ctx, input, p.deviceId) };
@@ -145,6 +152,8 @@ export function identityRoutes(
         deviceId: p.deviceId,
         // An admin device may use the console API (/v1/console, SPEC §11.2).
         console: p.console,
+        // An agent device's scope (SPEC §11.3), null for ordinary devices.
+        agent: p.scope,
         keys: getAccountKeys(ctx, p.accountId, p.deviceId),
       },
     };
@@ -195,10 +204,18 @@ export function identityRoutes(
     const p = req.auth();
     return {
       sse(writer, onClose) {
+        // An agent limited to some apps hears only about their namespaces.
+        const apps = p.scope?.apps ?? null;
         const unsubscribe = ctx.events.subscribe(
           p.accountId,
           p.deviceId,
-          (e) => writer.send(e.type, e),
+          (e) => {
+            if (e.type === "ns" && apps !== null) {
+              const ns = getNamespaceRow(ctx, e.ns);
+              if (!ns || !apps.includes(ns.app)) return;
+            }
+            writer.send(e.type, e);
+          },
           () => writer.close(),
         );
         writer.send("hello", { serverId: ctx.serverId, time: ctx.clock.now() });
