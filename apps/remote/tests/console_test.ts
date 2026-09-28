@@ -12,7 +12,8 @@ describe("remotePath", () => {
     expect(remotePath("/api/accounts/acc_1/pairing")).toBe(
       "/v1/console/accounts/acc_1/pairing",
     );
-    expect(remotePath("/metrics")).toBe("/v1/console/metrics");
+    expect(remotePath("/api/metrics")).toBe("/v1/console/metrics");
+    expect(remotePath("/metrics")).toBe("/v1/console/prometheus");
     expect(() => remotePath("/login")).toThrow();
   });
 

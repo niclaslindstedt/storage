@@ -15,7 +15,7 @@ import { createSseParser } from "./sse.ts";
 /** A console API path (`/api/x?y`, `/metrics`) on the device API. */
 export function remotePath(path: string): string {
   if (path === "/metrics" || path.startsWith("/metrics?"))
-    return `/v1/console${path}`;
+    return `/v1/console/prometheus${path.slice(8)}`;
   if (!path.startsWith("/api/"))
     throw new Error(`not a console API path: ${path}`);
   return `/v1/console/${path.slice(5)}`;
