@@ -136,6 +136,16 @@ export const SERVER_FLAGS: FlagSpec[] = [
       "Interface the admin console listens on. Keep it on loopback. Only in a container with published ports use 0.0.0.0, published as -p 127.0.0.1:8081:8081.",
   },
   {
+    name: "remote-console",
+    type: "string",
+    value: "on|off",
+    env: "STORAGE_REMOTE_CONSOLE",
+    config: "remoteConsole",
+    default: "on",
+    description:
+      "Let admin devices (paired with `pair --console` or from the console) use the admin console remotely at /v1/console. Inert until one is paired.",
+  },
+  {
     name: "tls",
     type: "string",
     value: "acme|files|self-signed|off",
@@ -322,9 +332,9 @@ export const COMMANDS: CommandSpec[] = [
   {
     name: "pair",
     summary: "Print a one-time QR code that enrols a device.",
-    usage: `${BIN} pair (--account <name> | --new <name> [--role <role>]) [--ttl <seconds>] [--json]`,
+    usage: `${BIN} pair (--account <name> | --new <name> [--role <role>]) [--console] [--ttl <seconds>] [--json]`,
     description:
-      "Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server.",
+      "Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server. With --console the device becomes an admin device that may use the admin console remotely (the remote app); only an admin account can have one, and only this command or the local console can pair one.",
     flags: [
       {
         name: "account",
@@ -362,12 +372,22 @@ export const COMMANDS: CommandSpec[] = [
         type: "bool",
         description: "Print {code, uri, expiresAt} as JSON.",
       },
+      {
+        name: "console",
+        type: "bool",
+        description:
+          "Pair an admin device: it may use the admin console remotely (admin accounts only).",
+      },
       ...pick("public-url", "app-url", "name", "port", "tls"),
     ],
     examples: [
       {
         cmd: `${BIN} pair --account niclas`,
         note: "add a phone to an existing account",
+      },
+      {
+        cmd: `${BIN} pair --account niclas --console`,
+        note: "pair the remote admin app on your phone",
       },
       {
         cmd: `${BIN} pair --new grandma --role member --ttl 3600`,

@@ -31,8 +31,14 @@ export type TestServer = {
     name: string,
     options?: { role?: AccountRole; quotaBytes?: number | null },
   ): Promise<SeededAccount>;
-  /** Another pairing code for an existing account. */
-  pairingFor(accountId: string): Promise<Omit<SeededAccount, "account">>;
+  /**
+   * Another pairing code for an existing account. `console: true` pairs an
+   * admin device (admin accounts only), which may use `/v1/console`.
+   */
+  pairingFor(
+    accountId: string,
+    options?: { console?: boolean },
+  ): Promise<Omit<SeededAccount, "account">>;
   faults: {
     add(...rules: FaultRule[]): Promise<void>;
     /** Drop connections (the network is gone). */
@@ -106,10 +112,11 @@ export function controlClient(
         role: options.role ?? "member",
         quotaBytes: options.quotaBytes,
       }),
-    pairingFor: (accountId) =>
+    pairingFor: (accountId, options = {}) =>
       call(
         "POST",
         `/__test/accounts/${encodeURIComponent(accountId)}/pairings`,
+        { console: options.console === true },
       ),
     faults: {
       add: async (...rules) =>

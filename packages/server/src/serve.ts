@@ -61,6 +61,10 @@ export async function startServer(
     extraNames: lanAddresses(),
   });
   const secure = config.tls.mode !== "off";
+  // Assigned below; the console reads them only once requests arrive.
+  let url = "";
+  let portmapper: PortMapper | null = null;
+  // One console API for the local listener and the remote console (§11.2).
   const app = createStorageServer({
     config,
     log,
@@ -68,6 +72,20 @@ export async function startServer(
     secure,
     tlsInfo: () => tls.info(),
     metrics,
+    console: {
+      logs,
+      logFile: deps.logFile ?? null,
+      publicUrl: () => url,
+      tls: () => tls.info(),
+      portmap: () => portmapper?.current() ?? null,
+      actions: {
+        renewCertificate:
+          config.tls.mode === "acme" ? () => tls.renew() : undefined,
+        refreshPortMapping: config.upnp.enabled
+          ? () => portmapper!.refresh()
+          : undefined,
+      },
+    },
   });
   const servers: Server[] = [];
   const timers: ReturnType<typeof setInterval>[] = [];
@@ -75,7 +93,6 @@ export async function startServer(
   // HTTPS listener. In acme mode it starts on a placeholder certificate so
   // tls-alpn-01 validation can reach it before the real one exists.
   let mainPort: number;
-  let url: string;
   const host = config.listen.host;
   if (secure) {
     if (config.tls.mode !== "acme") await tls.start();
@@ -128,7 +145,6 @@ export async function startServer(
     servers.push(redirect);
   }
 
-  let portmapper: PortMapper | null = null;
   if (config.upnp.enabled) {
     portmapper = new PortMapper({
       log,
@@ -168,24 +184,9 @@ export async function startServer(
   let admin: AdminConsole | null = null;
   if (config.listen.adminPort !== null) {
     admin = await startAdminConsole(
-      {
-        ctx: app.ctx,
-        metrics,
-        logs,
-        logFile: deps.logFile ?? null,
-        publicUrl: () => url,
-        tls: () => tls.info(),
-        portmap: () => portmapper?.current() ?? null,
-        actions: {
-          housekeeping: housekeepingNow,
-          renewCertificate:
-            config.tls.mode === "acme" ? () => tls.renew() : undefined,
-          refreshPortMapping: portmapper
-            ? () => portmapper!.refresh()
-            : undefined,
-        },
-      },
+      app.console!.state.deps,
       { host: config.listen.adminHost, port: config.listen.adminPort },
+      app.console!,
     );
     servers.push(admin.server);
     log.info(`admin console listening on ${admin.url}`);

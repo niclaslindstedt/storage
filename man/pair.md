@@ -5,12 +5,12 @@ Print a one-time QR code that enrols a device.
 ## Synopsis
 
 ```
-storage-server pair (--account <name> | --new <name> [--role <role>]) [--ttl <seconds>] [--json]
+storage-server pair (--account <name> | --new <name> [--role <role>]) [--console] [--ttl <seconds>] [--json]
 ```
 
 ## Description
 
-Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server.
+Pairs a device to an existing account, or creates a new account on redemption. The code only signs the device in: encryption keys come from the recovery key or from another device, never from the server. With --console the device becomes an admin device that may use the admin console remotely (the remote app); only an admin account can have one, and only this command or the local console can pair one.
 
 ## Options
 
@@ -22,6 +22,7 @@ Pairs a device to an existing account, or creates a new account on redemption. T
 | `--ttl` | int | `600` | — | How long the code stays valid. |
 | `--no-qr` | bool | — | — | Print only the payload, no QR code. |
 | `--json` | bool | — | — | Print {code, uri, expiresAt} as JSON. |
+| `--console` | bool | — | — | Pair an admin device: it may use the admin console remotely (admin accounts only). |
 | `--name` | string | `storage` | `STORAGE_NAME` | Display name shown in pairing QR codes and /v1/info. |
 | `--public-url` | string | — | `STORAGE_PUBLIC_URL` | Externally reachable base URL devices use, e.g. https://home.example.org or https://203.0.113.7:443. |
 | `--app-url` | string | — | `STORAGE_APP_URL` | Wrap QR payloads as <app-url>#oss=… so a phone camera opens the app directly. |
@@ -57,6 +58,12 @@ storage-server pair --account niclas
 ```
 
 add a phone to an existing account
+
+```sh
+storage-server pair --account niclas --console
+```
+
+pair the remote admin app on your phone
 
 ```sh
 storage-server pair --new grandma --role member --ttl 3600

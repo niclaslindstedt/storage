@@ -243,16 +243,29 @@ export function testRoutes(
   router.add(
     "POST",
     "/__test/accounts/:id/pairings",
-    (req) => {
+    async (req) => {
       guard(req);
-      return { status: 201, json: pairingFor(ctx, controls, req.params.id!) };
+      const body = await req.json();
+      return {
+        status: 201,
+        json: pairingFor(ctx, controls, req.params.id!, body.console === true),
+      };
     },
     opts,
   );
 }
 
-function pairingFor(ctx: Ctx, controls: TestControls, accountId: string) {
-  const { code, expiresAt } = createPairing(ctx, { accountId }, "test");
+function pairingFor(
+  ctx: Ctx,
+  controls: TestControls,
+  accountId: string,
+  console = false,
+) {
+  const { code, expiresAt } = createPairing(
+    ctx,
+    { accountId, console },
+    "test",
+  );
   return {
     pairingCode: code!,
     expiresAt,

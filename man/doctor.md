@@ -24,6 +24,7 @@ Checks the data directory (writable, private), database integrity, the audit cha
 | `--http-port` | int | — | `STORAGE_HTTP_PORT` | Plain-HTTP port for ACME http-01 challenges and HTTPS redirects (0 = any free port; unset = disabled). |
 | `--admin-port` | int | `8081` | `STORAGE_ADMIN_PORT` | Admin console port (-1 disables). |
 | `--admin-host` | string | `127.0.0.1` | `STORAGE_ADMIN_HOST` | Interface the admin console listens on. Keep it on loopback. Only in a container with published ports use 0.0.0.0, published as -p 127.0.0.1:8081:8081. |
+| `--remote-console` | string | `on` | `STORAGE_REMOTE_CONSOLE` | Let admin devices (paired with `pair --console` or from the console) use the admin console remotely at /v1/console. Inert until one is paired. |
 | `--tls` | string | `self-signed` | `STORAGE_TLS` | How HTTPS certificates are obtained. |
 | `--domain` | list | — | `STORAGE_DOMAINS` | DNS name or public IP to certify (repeatable; env is comma-separated). |
 | `--acme-email` | string | — | `STORAGE_ACME_EMAIL` | Contact address for the ACME account. |
@@ -60,6 +61,7 @@ Checks the data directory (writable, private), database integrity, the audit cha
 - `STORAGE_HTTP_PORT`
 - `STORAGE_ADMIN_PORT`
 - `STORAGE_ADMIN_HOST`
+- `STORAGE_REMOTE_CONSOLE`
 - `STORAGE_TLS`
 - `STORAGE_DOMAINS`
 - `STORAGE_ACME_EMAIL`

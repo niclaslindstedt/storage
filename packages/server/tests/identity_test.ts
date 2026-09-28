@@ -327,6 +327,7 @@ describe("account keys and devices", () => {
       deviceId: d1.deviceId,
       role: "member" as const,
       accountName: "a",
+      console: false,
     };
     await setAccountKeys(ctx, principal1, {
       aekPublic,

@@ -73,6 +73,12 @@ export type ServerConfig = {
   };
   /** Quota for new accounts, bytes; `null` = unlimited. */
   defaultQuotaBytes: number | null;
+  /**
+   * Let admin devices use the admin console's API over the device API
+   * (`/v1/console`, SPEC §11.2). Inert until an admin device is paired at
+   * the machine; `false` turns it off for every device.
+   */
+  remoteConsole: boolean;
   /** Enables `/__test/*`. Never enable on a server holding real data. */
   testMode: boolean;
   testSecret: string | null;
@@ -128,6 +134,7 @@ export const DEFAULT_CONFIG: ServerConfig = {
   },
   rateLimit: { publicPerMinute: 30, devicePerMinute: 1200 },
   defaultQuotaBytes: null,
+  remoteConsole: true,
   testMode: false,
   testSecret: null,
 };

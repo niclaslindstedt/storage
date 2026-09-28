@@ -11,7 +11,12 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 
-import type { Metrics } from "./admin/metrics.ts";
+import { type ConsoleApi, createConsoleApi } from "./admin/api.ts";
+import type { ConsoleDeps } from "./admin/deps.ts";
+import { LogBuffer, teeLogger } from "./admin/log-buffer.ts";
+import { Metrics } from "./admin/metrics.ts";
+import { remoteConsoleRoutes } from "./admin/remote.ts";
+import { runRetention } from "./services/retention.ts";
 import { adminRoutes } from "./api/admin.ts";
 import { fileRoutes } from "./api/files.ts";
 import { identityRoutes } from "./api/identity.ts";
@@ -24,7 +29,7 @@ import { type Ctx, createContext } from "./context.ts";
 import type { Db } from "./db/database.ts";
 import { createHandler, type FaultRule } from "./http/handler.ts";
 import { Router } from "./http/router.ts";
-import type { Logger } from "./log.ts";
+import { createMemoryLogger, type Logger } from "./log.ts";
 import { type Clock, OffsetClock } from "./util/clock.ts";
 import { newSecret } from "./util/random.ts";
 import { VERSION } from "./version.ts";
@@ -41,7 +46,17 @@ export type StorageServerOptions = {
   secure?: boolean;
   /** Collect request metrics (the admin console reads them). */
   metrics?: Metrics;
+  /**
+   * Build the admin console's API and mount the remote console on it
+   * (`/v1/console/*`, SPEC §11.2). `serve` passes its log buffer, TLS and
+   * port-mapping hooks; test servers pass `{}` and get working defaults.
+   */
+  console?: ConsoleOptions;
 };
+
+export type ConsoleOptions = Partial<
+  Omit<ConsoleDeps, "ctx" | "metrics" | "actions">
+> & { actions?: Partial<ConsoleDeps["actions"]> };
 
 export type StorageServer = {
   readonly ctx: Ctx;
@@ -50,6 +65,8 @@ export type StorageServer = {
   /** Test mode only: the secret `/__test/*` calls must carry. */
   readonly testSecret: string | null;
   readonly faults: FaultRule[];
+  /** The admin console's API when `console` was given (shared with `serve`'s listener). */
+  readonly console: ConsoleApi | null;
   /** The base URL once listening (or the configured public URL). */
   url(): string;
   /** Listen on plain HTTP (tests, or behind a TLS-terminating proxy). */
@@ -65,9 +82,17 @@ export function createStorageServer(
   const config = resolveConfig(options.config);
   const offsetClock =
     config.testMode && !options.clock ? new OffsetClock() : null;
+  // A console without its own log buffer gets one fed by this server's
+  // logger, so its Logs page (and the remote one) shows what it logs.
+  const consoleLogs = options.console
+    ? (options.console.logs ?? new LogBuffer({ clock: options.clock }))
+    : null;
   const ctx = createContext(config, {
     clock: options.clock ?? offsetClock ?? undefined,
-    log: options.log,
+    log:
+      consoleLogs && !options.console!.logs
+        ? teeLogger(options.log ?? createMemoryLogger(), consoleLogs)
+        : options.log,
     db: options.db,
     blobStore: options.blobStore,
   });
@@ -100,10 +125,31 @@ export function createStorageServer(
     );
   }
 
+  const metrics =
+    options.metrics ?? (options.console ? new Metrics(ctx.clock) : undefined);
+  let consoleApi: ConsoleApi | null = null;
+  if (options.console) {
+    const c = options.console;
+    consoleApi = createConsoleApi({
+      ctx,
+      metrics: metrics!,
+      logs: consoleLogs!,
+      logFile: c.logFile ?? null,
+      publicUrl: c.publicUrl ?? (() => baseUrl),
+      tls: c.tls ?? (() => options.tlsInfo?.() ?? { mode: config.tls.mode }),
+      portmap: c.portmap ?? (() => null),
+      actions: {
+        housekeeping: () => runRetention(ctx),
+        ...c.actions,
+      },
+    });
+    remoteConsoleRoutes(router, consoleApi);
+  }
+
   const handle = createHandler(ctx, router, {
     secure: options.secure ?? false,
     faults: config.testMode ? faults : undefined,
-    metrics: options.metrics,
+    metrics,
   });
 
   return {
@@ -112,6 +158,7 @@ export function createStorageServer(
     handle,
     testSecret,
     faults,
+    console: consoleApi,
     url: () => baseUrl,
     async listen(port = 0, host = "127.0.0.1") {
       const server = createServer(

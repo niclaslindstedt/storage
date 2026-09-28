@@ -98,7 +98,13 @@ export function principal(
     },
     null,
   );
-  return { accountId: acc.id, accountName: name, deviceId, role };
+  return {
+    accountId: acc.id,
+    accountName: name,
+    deviceId,
+    role,
+    console: false,
+  };
 }
 
 /** A fake key wrap (opaque base64url, as the server sees every wrap). */

@@ -25,6 +25,8 @@ export type Device = {
   dskPublic: string;
   dekPublic: string;
   hasAccountKey: boolean;
+  /** An admin device (SPEC §11.2). */
+  console: boolean;
   createdAt: number;
   lastSeenAt: number | null;
   revokedAt: number | null;
@@ -38,6 +40,7 @@ type DeviceRow = {
   dsk_public: string;
   dek_public: string;
   device_wrap: string | null;
+  console: number;
   created_at: number;
   last_seen_at: number | null;
   revoked_at: number | null;
@@ -52,6 +55,7 @@ function toDevice(r: DeviceRow): Device {
     dskPublic: r.dsk_public,
     dekPublic: r.dek_public,
     hasAccountKey: r.device_wrap !== null,
+    console: r.console === 1,
     createdAt: r.created_at,
     lastSeenAt: r.last_seen_at,
     revokedAt: r.revoked_at,
@@ -89,11 +93,12 @@ export function insertDevice(
   accountId: string,
   input: DeviceInput,
   origin: string | null,
+  opts: { console?: boolean } = {},
 ): string {
   const id = newId("dev");
   ctx.db.run(
-    `INSERT INTO devices(id, account_id, name, platform, dsk_public, dek_public, origin, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO devices(id, account_id, name, platform, dsk_public, dek_public, origin, created_at, console)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     accountId,
     input.name,
@@ -102,6 +107,7 @@ export function insertDevice(
     input.dekPublic,
     origin,
     ctx.clock.now(),
+    opts.console ? 1 : 0,
   );
   if (origin) learnOrigin(ctx, origin);
   return id;
@@ -174,6 +180,34 @@ export function renameDevice(
   if (!NAME_PATTERN.test(name))
     throw badRequest("name must be 1-64 printable characters");
   ctx.db.run("UPDATE devices SET name = ? WHERE id = ?", name, deviceId);
+  return getDevice(ctx, deviceId)!;
+}
+
+/**
+ * Take an admin device's console access away while leaving it paired (SPEC
+ * §11.2). There is no way back: to grant it again, pair a new admin device
+ * from the local console or the CLI.
+ */
+export function dropConsoleAccess(
+  ctx: Ctx,
+  deviceId: string,
+  ip: string | null,
+  actor: string,
+): Device {
+  const row = getDeviceRow(ctx, deviceId);
+  if (!row) throw notFound("no such device");
+  if (row.console === 1) {
+    ctx.db.tx(() => {
+      ctx.db.run("UPDATE devices SET console = 0 WHERE id = ?", deviceId);
+      ctx.audit.append({
+        actor,
+        action: "device.console-revoke",
+        target: deviceId,
+        ip,
+        detail: { account: row.account_id },
+      });
+    });
+  }
   return getDevice(ctx, deviceId)!;
 }
 
