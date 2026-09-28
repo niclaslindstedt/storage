@@ -39,6 +39,9 @@ confirmed by you, in your MCP client — not by the model.
    storage-server pair --account <you> --agent --perms data:read --apps drive
    ```
 
+   With the headless CLI, from anywhere:
+   `storage account pair <you> --agent --perms data:read --apps drive`.
+
    `--perms` takes any of `data:read`, `data:write`, `sharing`, `devices`,
    and — with `--console`, for an admin account — `console:read`,
    `console:write`. Without `--perms` the agent may read, nothing more.
@@ -145,9 +148,10 @@ storage-mcp serve --apps drive --folders ns_… # these namespaces only
 
 To take a permission away for good, narrow the device's scope instead: it
 is enforced by the server, so it holds even if the agent can edit files on
-its machine. Use `narrow_device_scope` from an admin agent, or
-`PATCH /api/devices/:id {"agent": {"perms": [...], "apps": [...]}}` on the
-console API; revoke the device to end it.
+its machine: `storage device scope <id> --perms data:read --apps drive`
+with the [headless CLI](cli.md), `narrow_device_scope` from an admin agent,
+or `PATCH /api/devices/:id {"agent": {"perms": [...], "apps": [...]}}` on
+the console API. Revoke the device to end it.
 
 ## Security
 

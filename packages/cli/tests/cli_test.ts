@@ -302,6 +302,81 @@ describe("the console's pages", () => {
     ).toBe(2);
   });
 
+  it("Agents: pair an agent device and narrow its scope", async () => {
+    const { h, sh } = await loggedIn();
+    expect((await sh(["account", "create", "niclas"])).code).toBe(0);
+    const pair = json(
+      await sh([
+        "account",
+        "pair",
+        "niclas",
+        "--agent",
+        "--perms",
+        "data:read,data:write",
+        "--apps",
+        "drive",
+        "--json",
+      ]),
+    );
+    expect(pair.payload, "see stderr").toMatch(/^oss-storage:\/\/pair/);
+    const stored = h.app.ctx.db.get<{ scope: string }>(
+      "SELECT scope FROM pairings ORDER BY created_at DESC LIMIT 1",
+    );
+    expect(JSON.parse(stored!.scope)).toEqual({
+      perms: ["data:read", "data:write"],
+      apps: ["drive"],
+    });
+    expect(
+      (await sh(["account", "pair", "niclas", "--perms", "data:read"])).code,
+    ).toBe(2);
+    expect((await sh(["account", "pair", "--new", "x", "--agent"])).code).toBe(
+      2,
+    );
+
+    // Narrow an ordinary device into an agent, then further; never wider.
+    const carol = principal(h.app.ctx, "carol");
+    const narrowed = await sh([
+      "device",
+      "scope",
+      carol.deviceId,
+      "--perms",
+      "data:read,data:write",
+      "--apps",
+      "drive",
+      "-y",
+    ]);
+    expect(narrowed.code, narrowed.err).toBe(0);
+    expect((await sh(["device", "ls", "--agent", "-q"])).out).toBe(
+      carol.deviceId,
+    );
+    const again = await sh([
+      "device",
+      "scope",
+      carol.deviceId,
+      "--perms",
+      "data:read",
+      "-y",
+    ]);
+    expect(again.code, again.err).toBe(0);
+    expect(
+      json(await sh(["device", "view", carol.deviceId, "--json"])).agent,
+    ).toEqual({
+      perms: ["data:read"],
+      apps: ["drive"],
+    });
+    const wider = await sh([
+      "device",
+      "scope",
+      carol.deviceId,
+      "--perms",
+      "sharing",
+      "-y",
+    ]);
+    expect(wider.code).toBe(1);
+    expect(wider.err).toMatch(/only be narrowed/);
+    expect((await sh(["device", "scope", carol.deviceId, "-y"])).code).toBe(2);
+  });
+
   it("Namespaces: metadata only", async () => {
     const { h, sh } = await loggedIn();
     const alice = principal(h.app.ctx, "alice");

@@ -26,6 +26,21 @@ function role(cli: Cli, flag = "role"): Account["role"] | undefined {
   return r as Account["role"];
 }
 
+/** A comma-separated list flag; undefined when absent, [] when empty. */
+function list(cli: Cli, flag: string): string[] | undefined {
+  const v = cli.str(flag);
+  if (v === undefined) return undefined;
+  return v
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+/** An agent device's scope, in words. */
+function scopeText(a: NonNullable<Device["agent"]>): string {
+  return `${a.perms.join(", ") || "no permissions"}; apps: ${a.apps?.join(", ") ?? "all"}`;
+}
+
 function size(cli: Cli, flag: string): number | undefined {
   const v = cli.str(flag);
   if (v === undefined) return undefined;
@@ -232,10 +247,17 @@ export async function account(cli: Cli, sub: string): Promise<number> {
         throw new UsageError(
           "name an existing account, or give --new <name> to create one",
         );
+      const agent = cli.bool("agent");
+      if (!agent && (cli.str("perms") !== undefined || cli.str("apps")))
+        throw new UsageError("--perms and --apps need --agent");
       if (fresh) {
         if (cli.bool("admin-app"))
           throw new UsageError(
             "--admin-app pairs a device to an existing admin account",
+          );
+        if (agent)
+          throw new UsageError(
+            "--agent pairs an agent device to an existing account",
           );
         const p = await client.json<Pairing>("POST", "/api/pairing", {
           name: fresh,
@@ -258,17 +280,30 @@ export async function account(cli: Cli, sub: string): Promise<number> {
         throw new UsageError(
           `${a.name} is a ${a.role}: only an admin account can have admin devices`,
         );
+      const scope = agent
+        ? {
+            perms:
+              list(cli, "perms") ??
+              (adminApp ? ["data:read", "console:read"] : ["data:read"]),
+            apps: list(cli, "apps") ?? null,
+          }
+        : undefined;
       const p = await client.json<Pairing>(
         "POST",
         `/api/accounts/${encodeURIComponent(a.id)}/pairing`,
-        adminApp ? { console: true } : {},
+        {
+          ...(adminApp ? { console: true } : {}),
+          ...(scope ? { agent: scope } : {}),
+        },
       );
       printPairing(
         cli,
         p,
-        adminApp
-          ? `Scan with Storage Remote (or pass to \`storage auth login\`) to pair an admin device for ${a.name}:`
-          : `Scan with the device to pair it to ${a.name}:`,
+        scope
+          ? `Pair the agent with \`storage-mcp pair '<code>'\` (${scopeText(scope)}) for ${a.name}:`
+          : adminApp
+            ? `Scan with Storage Remote (or pass to \`storage auth login\`) to pair an admin device for ${a.name}:`
+            : `Scan with the device to pair it to ${a.name}:`,
       );
       return EXIT.ok;
     }
@@ -308,7 +343,8 @@ export async function device(cli: Cli, sub: string): Promise<number> {
           (!acct ||
             d.account.toLowerCase() === acct ||
             d.accountId === cli.str("account")) &&
-          (!cli.bool("admin") || d.console),
+          (!cli.bool("admin") || d.console) &&
+          (!cli.bool("agent") || d.agent),
       );
       const stateLabel = (d: Device) =>
         d.state === "revoked"
@@ -325,6 +361,10 @@ export async function device(cli: Cli, sub: string): Promise<number> {
           { header: "platform", value: (d) => d.platform },
           { header: "state", value: stateLabel },
           { header: "admin", value: (d) => (d.console ? "yes" : "") },
+          {
+            header: "agent",
+            value: (d) => (d.agent ? d.agent.perms.join(" ") || "—" : ""),
+          },
           {
             header: "last seen",
             value: (d) => when(d.lastSeenAt, cli.tty, cli.now()),
@@ -350,6 +390,7 @@ export async function device(cli: Cli, sub: string): Promise<number> {
               "admin device",
               d.console ? "yes — may use the console remotely" : "no",
             ],
+            ["agent device", d.agent ? scopeText(d.agent) : "no"],
             ["origin", d.origin ?? "—"],
             ["paired", when(d.createdAt, cli.tty, cli.now())],
             ["last seen", when(d.lastSeenAt, cli.tty, cli.now())],
@@ -363,6 +404,36 @@ export async function device(cli: Cli, sub: string): Promise<number> {
           s,
         ),
       );
+      return EXIT.ok;
+    }
+    case "scope": {
+      const perms = list(cli, "perms");
+      if (perms === undefined)
+        throw new UsageError(
+          'give the permissions the device keeps with --perms (--perms "" for none)',
+        );
+      const targets = cli.args.positionals.map((ref) => pick(all, ref));
+      const apps = list(cli, "apps");
+      const label = targets
+        .map((d) => `${d.name} (${d.account}, ${d.id})`)
+        .join(", ");
+      await cli.confirm(
+        `Limit ${label} to ${perms.join(", ") || "no permissions"}${apps ? ` in ${apps.join(", ")}` : ""}? A scope can only narrow; it signs in again.`,
+      );
+      for (const d of targets) {
+        const out = await client.json<{ agent: Device["agent"] }>(
+          "PATCH",
+          `/api/devices/${encodeURIComponent(d.id)}`,
+          {
+            agent: {
+              perms,
+              // Keep an existing app limit unless a new one is given.
+              apps: apps ?? d.agent?.apps ?? null,
+            },
+          },
+        );
+        cli.ok(`${d.name} (${d.id}): ${scopeText(out.agent!)}`);
+      }
       return EXIT.ok;
     }
     case "revoke":

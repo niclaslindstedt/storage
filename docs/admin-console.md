@@ -187,7 +187,9 @@ accounts, here only (they make the agent an admin device). On **Devices**
 an agent shows an _agent_ badge with its scope. Narrow a scope with
 `PATCH /api/devices/:id {"agent": {"perms": [...], "apps": [...]}}` (it can
 only shrink); **Revoke** ends it. The CLI equivalent is
-`storage-server pair --account <name> --agent --perms <list> --apps <list>`.
+`storage-server pair --account <name> --agent --perms <list> --apps <list>`
+on the server's machine, or `storage account pair <name> --agent …` and
+`storage device scope <id> --perms …` with the [headless CLI](cli.md).
 
 ## Security
 

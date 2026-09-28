@@ -84,7 +84,7 @@ storage account edit <name> [--name <new>] [--role <role>] [--quota <size> | --u
 Print a one-time QR code that pairs a device to an account (or creates the account).
 
 ```
-storage account pair <name> [--admin-app] | --new <name> [--role <role>]  [--no-qr] [--json]
+storage account pair <name> [--admin-app] [--agent [--perms <list>] [--apps <list>]] | --new <name> [--role <role>]  [--no-qr] [--json]
 ```
 
 | Flag | Type | Default | Environment | Description |
@@ -92,6 +92,9 @@ storage account pair <name> [--admin-app] | --new <name> [--role <role>]  [--no-
 | `--new` | string | — | — | Create this account when the code is redeemed. |
 | `--role` | string | `member` | — | Role of the --new account. |
 | `--admin-app` | bool | — | — | Pair an admin device (Storage Remote, or another `storage` CLI). Admin accounts only, and only when logged in with the admin token: remote access is granted at the machine. |
+| `--agent` | bool | — | — | Pair an agent device (an AI agent's `storage-mcp`, a script), held by the server to --perms and --apps on every request. |
+| `--perms` | string | — | — | Comma-separated agent permissions: data:read (the default), data:write, sharing, devices; with --admin-app also console:read, console:write. |
+| `--apps` | string | — | — | Comma-separated app ids the agent may see, e.g. drive,notes (default: all). |
 | `--no-qr` | bool | — | — | Print only the pairing payload, no QR code. |
 | `--json` | bool | — | — | Print the console API's JSON instead of a table. |
 
@@ -145,6 +148,12 @@ storage account create grandma --quota 10G --pair
 ```
 
 a new family member, with a QR code for her phone
+
+```sh
+storage account pair niclas --agent --perms data:read --apps drive --no-qr
+```
+
+a code for `storage-mcp pair`: an AI agent that may read the drive
 
 ```sh
 storage account edit kid --disable

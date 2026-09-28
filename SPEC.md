@@ -709,10 +709,12 @@ Writes imply reads. An unclassified route is refused (a test checks the
 table covers the router). `apps` limits namespaces: others are `404`,
 creating or joining one is `403`, and `ns` events for them are not sent.
 Scopes are minted by the console (`POST /api/accounts/:id/pairing {agent}`,
-"Pair an agent"), the CLI (`pair --agent --perms --apps`), or the device API
+"Pair an agent"; `storage account pair --agent`, §11.3), the server CLI
+(`pair --agent --perms --apps`), or the device API
 for the caller's own account; a scoped caller's pairings are intersected
 with its own scope (and lose console permissions); console permissions need
-a console pairing. `PATCH /api/devices/:id {agent}` narrows (never widens)
+a console pairing. `PATCH /api/devices/:id {agent}` (`storage device
+scope`) narrows (never widens)
 and signs the device out; audited `device.scope`.
 
 **`storage-mcp`** (`packages/mcp`, no runtime dependencies; the framework's
@@ -904,7 +906,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 - [x] G1 SPEC §11.4 design, D15; research: MCP 2026-07-28 / 2025-11-25, MCP security best practices, OWASP MCP guidance
 - [x] G2 agent scopes: migration 3 (`devices.scope`, `pairings.scope`), `services/scope.ts` route table (fail closed), app limits, key-handover limits, pairing inheritance, narrowing (`PATCH /api/devices/:id {agent}`), `/v1/me` `agent`, `agents` capability
-- [x] G3 CLI `pair --agent --perms --apps`, console "Pair an agent" + agent badges
+- [x] G3 `storage-server pair --agent --perms --apps`, `storage account pair --agent` and `storage device scope` (headless CLI), console "Pair an agent" + agent badges
 - [x] G4 `packages/mcp`: dual-era stdio MCP server, schema validation, MRTR elicitation with sealed `requestState`, rate limits, cancellation
 - [x] G5 `storage-mcp` vault, network confinement + pinning, config/policy, outbox, audit log, CLI (`pair`, `serve`, `status`, `tools`, `config`, `unpair`)
 - [x] G6 tools with console + Remote parity (server, logs, admin, files, records, sharing, devices)

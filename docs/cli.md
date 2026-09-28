@@ -204,8 +204,8 @@ broken chain), `2` usage, `4` not logged in or credentials rejected.
 | Command     | Console page / action                                                                                  |
 | ----------- | ------------------------------------------------------------------------------------------------------ |
 | `status`    | Overview: health, uptime, URLs, TLS, port mapping, storage, counts, traffic                            |
-| `account`   | Accounts: `ls`, `view`, `create [--pair]`, `edit`, `pair [--admin-app \| --new]`, `rm`                 |
-| `device`    | Devices: `ls`, `view`, `revoke`, `remove-admin`                                                        |
+| `account`   | Accounts: `ls`, `view`, `create [--pair]`, `edit`, `pair [--admin-app \| --agent \| --new]`, `rm`      |
+| `device`    | Devices: `ls`, `view`, `revoke`, `remove-admin`, `scope`                                               |
 | `namespace` | Namespaces: `ls`, `view` (metadata only)                                                               |
 | `traffic`   | Traffic: totals, latency, per-minute and per-route tables                                              |
 | `metrics`   | The Prometheus text at `/metrics`                                                                      |
@@ -221,6 +221,16 @@ broken chain), `2` usage, `4` not logged in or credentials rejected.
 [`man/storage/`](../man/storage/README.md), and `storage commands` prints
 it in a grep-friendly form. `storage --help-agent` describes the tool for
 an AI agent.
+
+AI agents run on **agent devices** that the server holds to a scope (see
+[AI agents](mcp.md)). Pair one for `storage-mcp`, and narrow it later — a
+scope never widens:
+
+```sh
+storage account pair niclas --agent --perms data:read --apps drive --no-qr
+storage device ls --agent
+storage device scope dev_QWdlbnQ --perms data:read --apps drive
+```
 
 `storage api` reaches endpoints the other commands do not wrap. The path is
 a console path (`/api/accounts`, `accounts`, `/metrics`). As an admin
