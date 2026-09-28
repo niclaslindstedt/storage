@@ -49,6 +49,12 @@ merged: { dose: 400mg, schedule: [08, 20] }`,
 http://127.0.0.1:8081/login?token=…`,
   },
   {
+    title: "Run it from your phone",
+    text: "Storage Remote pairs your phone as an admin device: every console page, from anywhere, plus your own files in encrypted, shareable folders. Only the machine itself can grant it.",
+    code: `$ ${source.bin} pair --account you --console
+# scan with Storage Remote: the phone is now an admin device`,
+  },
+  {
     title: "The easiest backend to test",
     text: "Start a real server in-process in milliseconds. Inject faults, move the clock, snapshot and restore — from Vitest or Playwright.",
     code: `const server = await startTestServer();

@@ -209,4 +209,12 @@ export const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  // 2: admin devices (SPEC §11.2). A device paired with a console pairing
+  // may reach the admin console's API over the device API. Only the local
+  // console and the CLI mint such pairings; the flag can be dropped, never
+  // granted, after pairing.
+  `
+  ALTER TABLE devices ADD COLUMN console INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE pairings ADD COLUMN console INTEGER NOT NULL DEFAULT 0;
+  `,
 ];

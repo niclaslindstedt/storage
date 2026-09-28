@@ -57,6 +57,12 @@ function normalize(key: string, value: unknown): unknown {
   ) {
     throw new UsageError("--tls must be acme, files, self-signed or off");
   }
+  if (key === "remoteConsole") {
+    const v = String(value).toLowerCase();
+    if (["on", "true", "1", "yes"].includes(v)) return true;
+    if (["off", "false", "0", "no"].includes(v)) return false;
+    throw new UsageError("--remote-console must be on or off");
+  }
   if (key === "cors.mode" && !["paired", "any"].includes(String(value))) {
     throw new UsageError("--cors must be paired or any");
   }

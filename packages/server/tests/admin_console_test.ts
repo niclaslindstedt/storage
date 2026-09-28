@@ -360,6 +360,26 @@ describe("API", () => {
     expect(bad.status).toBe(400);
   });
 
+  it("pairs an admin device for an admin account only (SPEC §11.2)", async () => {
+    const h = await harness();
+    const admin = createAccount(h.app.ctx, { name: "me", role: "admin" });
+    const kid = createAccount(h.app.ctx, { name: "kid", role: "member" });
+    const p = await h.json(`/api/accounts/${admin.id}/pairing`, {
+      method: "POST",
+      body: JSON.stringify({ console: true }),
+    });
+    expect(p.payload).toContain("pair?v=1");
+    const row = h.app.ctx.db.get<{ console: number }>(
+      "SELECT console FROM pairings ORDER BY created_at DESC LIMIT 1",
+    );
+    expect(row?.console).toBe(1);
+    const refused = await h.api(`/api/accounts/${kid.id}/pairing`, {
+      method: "POST",
+      body: JSON.stringify({ console: true }),
+    });
+    expect(refused.status).toBe(400);
+  });
+
   it("devices: list across accounts and revoke", async () => {
     const h = await harness();
     const acc = createAccount(h.app.ctx, { name: "mum", role: "member" });

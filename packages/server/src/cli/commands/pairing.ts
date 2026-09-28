@@ -84,7 +84,11 @@ export async function runPair(
           io.err(`no account named ${account}`);
           return EXIT.failure;
         }
-        input = { accountId: acc.id, ttlSeconds: ttl };
+        input = {
+          accountId: acc.id,
+          ttlSeconds: ttl,
+          console: args.flags.console === true,
+        };
       } else {
         const role = (args.flags.role as string) ?? "member";
         if (!["admin", "member", "guest"].includes(role))
@@ -95,6 +99,7 @@ export async function runPair(
             role: role as "admin" | "member" | "guest",
           },
           ttlSeconds: ttl,
+          console: args.flags.console === true,
         };
       }
     }
@@ -108,7 +113,9 @@ export async function runPair(
         json: args.flags.json === true,
         heading: setup
           ? "Scan with the first device to create the admin account:"
-          : "Scan with the device to pair:",
+          : input.console
+            ? "Scan with the remote admin app to pair it as an admin device:"
+            : "Scan with the device to pair:",
       },
     );
     return EXIT.ok;

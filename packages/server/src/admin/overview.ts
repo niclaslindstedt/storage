@@ -12,7 +12,7 @@ import type { Ctx } from "../context.ts";
 import { describeCertificate, readCertificatePem } from "../tls/cert-info.ts";
 import { VERSION } from "../version.ts";
 import type { CheckResult } from "./checks.ts";
-import type { ConsoleDeps } from "./console.ts";
+import type { ConsoleDeps } from "./deps.ts";
 
 export type Counts = {
   accounts: number;

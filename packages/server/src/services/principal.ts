@@ -8,6 +8,8 @@ export type Principal = {
   accountName: string;
   deviceId: string;
   role: AccountRole;
+  /** An admin device: may use the admin console's API remotely (SPEC §11.2). */
+  console: boolean;
 };
 
 /** Request metadata recorded in the audit log and used for rate limits. */

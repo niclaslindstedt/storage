@@ -56,7 +56,12 @@ export function identityRoutes(
         serverId: ctx.serverId,
         name: ctx.config.name,
         protocol: PROTOCOL_VERSION,
-        capabilities: CAPABILITIES,
+        // "console": admin devices can use the console here (SPEC §11.2).
+        capabilities:
+          ctx.config.remoteConsole &&
+          router.routes.some((r) => r.pattern.startsWith("/v1/console/"))
+            ? [...CAPABILITIES, "console"]
+            : CAPABILITIES,
         time: ctx.clock.now(),
         ...extras(),
       },
@@ -126,6 +131,7 @@ export function identityRoutes(
         typeof body.ttlSeconds === "number" ? body.ttlSeconds : undefined,
       code: optString(body, "code"),
       transfer: optString(body, "transfer"),
+      console: body.console === true,
     };
     authorizePairing(p, input);
     return { status: 201, json: createPairing(ctx, input, p.deviceId) };
@@ -137,6 +143,8 @@ export function identityRoutes(
       json: {
         account: getAccount(ctx, p.accountId),
         deviceId: p.deviceId,
+        // An admin device may use the console API (/v1/console, SPEC §11.2).
+        console: p.console,
         keys: getAccountKeys(ctx, p.accountId, p.deviceId),
       },
     };

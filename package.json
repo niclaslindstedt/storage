@@ -10,7 +10,8 @@
     "packages/server",
     "packages/testkit",
     "e2e",
-    "apps/reference"
+    "apps/reference",
+    "apps/remote"
   ],
   "engines": {
     "node": ">=24"

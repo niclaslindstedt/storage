@@ -49,6 +49,7 @@ export async function startTestServer(
       cors: { mode: "any" },
       rateLimit: { publicPerMinute: 1_000_000, devicePerMinute: 1_000_000 },
     },
+    console: {},
   });
   const url = await server.listen(
     options.port ?? 0,

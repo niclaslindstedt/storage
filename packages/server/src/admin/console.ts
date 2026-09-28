@@ -13,32 +13,19 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 
-import type { Ctx } from "../context.ts";
 import { ApiError } from "../errors.ts";
-import type { PortMapStatus } from "../net/portmap.ts";
-import type { RetentionReport } from "../services/retention.ts";
-import { type ApiResult, apiRoutes, type ConsoleState } from "./api.ts";
+import {
+  type ApiResult,
+  type ConsoleApi,
+  createConsoleApi,
+  LOCAL_ACTOR,
+} from "./api.ts";
 import { isLoopback } from "./checks.ts";
-import type { LogBuffer } from "./log-buffer.ts";
-import type { Metrics } from "./metrics.ts";
+import type { ConsoleDeps } from "./deps.ts";
 import { AdminAuth, hostAllowed } from "./session.ts";
 import ui from "./ui/main.ts?bundle";
 
-export type ConsoleDeps = {
-  ctx: Ctx;
-  metrics: Metrics;
-  logs: LogBuffer;
-  /** The always-on debug log file, offered for download. */
-  logFile: string | null;
-  publicUrl: () => string;
-  tls: () => { mode: string; fp?: string; notAfter?: number };
-  portmap: () => PortMapStatus | null;
-  actions: {
-    housekeeping: () => Promise<RetentionReport>;
-    renewCertificate?: () => Promise<void>;
-    refreshPortMapping?: () => Promise<PortMapStatus>;
-  };
-};
+export type { ConsoleDeps } from "./deps.ts";
 
 export type AdminConsole = {
   server: Server;
@@ -121,11 +108,11 @@ async function readBody(req: IncomingMessage, limit: number): Promise<string> {
 export async function startAdminConsole(
   deps: ConsoleDeps,
   listen: { host: string; port: number },
+  api: ConsoleApi = createConsoleApi(deps),
 ): Promise<AdminConsole> {
   const { ctx } = deps;
   const auth = new AdminAuth({ dataDir: ctx.config.dataDir, clock: ctx.clock });
-  const state: ConsoleState = { deps, checks: null, auditCache: null };
-  const routes = apiRoutes(state);
+  const { state, routes } = api;
   let baseUrl = "";
 
   const send = (
@@ -269,6 +256,8 @@ export async function startAdminConsole(
       params: matched.params,
       query: url.searchParams,
       ip: client(req),
+      actor: LOCAL_ACTOR,
+      remote: false,
       async body() {
         if (parsed) return parsed;
         const text = await readBody(req, 64 * 1024);

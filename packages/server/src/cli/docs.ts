@@ -8,6 +8,7 @@ import configuration from "../../../../docs/configuration.md";
 import gettingStarted from "../../../../docs/getting-started.md";
 import homeHosting from "../../../../docs/home-hosting.md";
 import protocol from "../../../../docs/protocol.md";
+import remoteApp from "../../../../docs/remote-app.md";
 import security from "../../../../docs/security.md";
 import sharing from "../../../../docs/sharing.md";
 import testing from "../../../../docs/testing.md";
@@ -18,6 +19,7 @@ export const DOC_TOPICS: Record<string, string> = {
   configuration,
   "home-hosting": homeHosting,
   "admin-console": adminConsole,
+  "remote-app": remoteApp,
   security,
   sharing,
   protocol,

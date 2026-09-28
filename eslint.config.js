@@ -16,6 +16,10 @@ export default [
       "apps/*/dist/**",
       "apps/*/test-results/**",
       "apps/*/playwright-report/**",
+      // The native wrapper's generated projects (expo prebuild).
+      "apps/*/native/ios/**",
+      "apps/*/native/android/**",
+      "apps/*/native/.expo/**",
     ],
   },
   js.configs.recommended,

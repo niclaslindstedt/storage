@@ -48,6 +48,7 @@ The keys mirror the server configuration object:
   "upnp": { "enabled": true, "leaseSeconds": 3600 },
   "cors": { "mode": "paired", "origins": ["https://notes.example.org"] },
   "defaultQuotaBytes": 10737418240,
+  "remoteConsole": true,
   "retention": {
     "historyCount": 20,
     "historyDays": 30,
@@ -69,6 +70,16 @@ lifetimes), `retention.*` and `rateLimit.*`.
 | `acme`                  | Public server. `--domain` names a DNS name or a public IP. Needs port 80 (`--http-port 80`, `http-01`) or 443 (`tls-alpn-01`) reachable.       |
 | `files`                 | You manage certificates (`--cert`, `--key`); reloaded on change.                                                                               |
 | `off`                   | Behind Caddy, nginx, Traefik, Cloudflare Tunnel or Tailscale Funnel. Listens on 127.0.0.1 unless `--host` says otherwise; add `--trust-proxy`. |
+
+## Remote console
+
+`--remote-console on|off` (`STORAGE_REMOTE_CONSOLE`, `"remoteConsole"` in
+`config.json`; default `on`) lets admin devices use the admin console from
+anywhere through the device API (`/v1/console`), which is what the
+[Storage Remote](remote-app.md) app does. It does nothing until you pair an
+admin device from the local console or with `storage-server pair --console`.
+`off` refuses `/v1/console` for every device, and `/v1/info` stops listing
+the `console` capability. The local console is not affected either way.
 
 ## CORS
 

@@ -13,20 +13,21 @@
 
 ## 0. Decisions log
 
-| #   | Decision             | Chosen                                                                                                                                                                                                                       | Why                                                                                                                                                                            |
-| --- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| D1  | Server language      | **TypeScript on Node ≥ 22**                                                                                                                                                                                                  | Same language as every app and the framework; the real server runs in-process inside Vitest/Playwright; zero runtime dependencies (`node:http`, `node:crypto`, `node:sqlite`). |
-| D2  | Tenancy              | **Household server**                                                                                                                                                                                                         | One admin, several accounts (family), guests invited to single namespaces; open sign-up off by default; per-account quotas.                                                    |
-| D3  | TLS at home          | **Built-in ACME** (Let's Encrypt; DNS name _or_ bare public IP via short-lived IP certificates) + UPnP/NAT-PMP port mapping; also `files`, `self-signed` (native-only, pinned), and `off` (behind a reverse proxy / tunnel). | Browser PWAs cannot pin a self-signed certificate; they need a publicly trusted one.                                                                                           |
-| D4  | Scope of this round  | **Server + framework client module + testkit + full-stack e2e tests.** Apps adopt it in a follow-up.                                                                                                                         | Answer to the scope question. Healthcare apps (meds, period, baby) are first-class targets: the design must satisfy them (see §2).                                             |
-| D5  | Encryption           | **Zero-knowledge end-to-end encryption, mandatory.** The server never holds a key that decrypts content, names, or metadata.                                                                                                 | Healthcare data. The hoster (even the admin) sees only ciphertext and structure.                                                                                               |
-| D6  | Client key storage   | **`KeyVault`** seam: IndexedDB holding _non-extractable_ `CryptoKey`s on the web; a native host (`window.__ossKeyVault`, Keychain / Android Keystore / Secure Enclave) in wrappers.                                          | Keys must be safe on the device too, not only on the server.                                                                                                                   |
-| D7  | Conflict granularity | **Row level** (records) with automatic field-level 3-way merge; atomic compare-and-swap for files.                                                                                                                           | The apps' current check-then-write races and whole-document "keep mine/theirs" lose data.                                                                                      |
-| D8  | Crypto primitives    | WebCrypto only: **P-256** ECDSA/ECDH, HKDF-SHA-256, AES-256-GCM, HMAC-SHA-256, PBKDF2 only for optional vault PINs.                                                                                                          | Available in every browser, Node, and native WebView; FIPS-approved algorithms (healthcare-friendly).                                                                          |
-| D9  | Storage engine       | SQLite (`node:sqlite`, WAL) for metadata + content-addressed blob directory. `:memory:` + in-memory blobs for tests.                                                                                                         | One implementation for production and tests; no native addons.                                                                                                                 |
-| D10 | License              | PolyForm-Noncommercial-1.0.0                                                                                                                                                                                                 | Matches the sibling repos.                                                                                                                                                     |
-| D11 | Out of scope         | Server-side search / thumbnails (server cannot read data); federation between servers.                                                                                                                                       | E2EE makes them impossible or a leak.                                                                                                                                          |
-| D12 | Admin console        | **Local web console on its own listener** (default `127.0.0.1:8081`), a dependency-free TypeScript SPA embedded in the server. Stable admin token in `<data-dir>/admin.token` (0600) → session cookie. See §11.1.            | Operators need to administer, monitor, read logs and troubleshoot without a shell; the console must add no remote attack surface and no runtime dependency.                    |
+| #   | Decision             | Chosen                                                                                                                                                                                                                                                                                                                   | Why                                                                                                                                                                                                      |
+| --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Server language      | **TypeScript on Node ≥ 22**                                                                                                                                                                                                                                                                                              | Same language as every app and the framework; the real server runs in-process inside Vitest/Playwright; zero runtime dependencies (`node:http`, `node:crypto`, `node:sqlite`).                           |
+| D2  | Tenancy              | **Household server**                                                                                                                                                                                                                                                                                                     | One admin, several accounts (family), guests invited to single namespaces; open sign-up off by default; per-account quotas.                                                                              |
+| D3  | TLS at home          | **Built-in ACME** (Let's Encrypt; DNS name _or_ bare public IP via short-lived IP certificates) + UPnP/NAT-PMP port mapping; also `files`, `self-signed` (native-only, pinned), and `off` (behind a reverse proxy / tunnel).                                                                                             | Browser PWAs cannot pin a self-signed certificate; they need a publicly trusted one.                                                                                                                     |
+| D4  | Scope of this round  | **Server + framework client module + testkit + full-stack e2e tests.** Apps adopt it in a follow-up.                                                                                                                                                                                                                     | Answer to the scope question. Healthcare apps (meds, period, baby) are first-class targets: the design must satisfy them (see §2).                                                                       |
+| D5  | Encryption           | **Zero-knowledge end-to-end encryption, mandatory.** The server never holds a key that decrypts content, names, or metadata.                                                                                                                                                                                             | Healthcare data. The hoster (even the admin) sees only ciphertext and structure.                                                                                                                         |
+| D6  | Client key storage   | **`KeyVault`** seam: IndexedDB holding _non-extractable_ `CryptoKey`s on the web; a native host (`window.__ossKeyVault`, Keychain / Android Keystore / Secure Enclave) in wrappers.                                                                                                                                      | Keys must be safe on the device too, not only on the server.                                                                                                                                             |
+| D7  | Conflict granularity | **Row level** (records) with automatic field-level 3-way merge; atomic compare-and-swap for files.                                                                                                                                                                                                                       | The apps' current check-then-write races and whole-document "keep mine/theirs" lose data.                                                                                                                |
+| D8  | Crypto primitives    | WebCrypto only: **P-256** ECDSA/ECDH, HKDF-SHA-256, AES-256-GCM, HMAC-SHA-256, PBKDF2 only for optional vault PINs.                                                                                                                                                                                                      | Available in every browser, Node, and native WebView; FIPS-approved algorithms (healthcare-friendly).                                                                                                    |
+| D9  | Storage engine       | SQLite (`node:sqlite`, WAL) for metadata + content-addressed blob directory. `:memory:` + in-memory blobs for tests.                                                                                                                                                                                                     | One implementation for production and tests; no native addons.                                                                                                                                           |
+| D10 | License              | PolyForm-Noncommercial-1.0.0                                                                                                                                                                                                                                                                                             | Matches the sibling repos.                                                                                                                                                                               |
+| D11 | Out of scope         | Server-side search / thumbnails (server cannot read data); federation between servers.                                                                                                                                                                                                                                   | E2EE makes them impossible or a leak.                                                                                                                                                                    |
+| D13 | Remote admin         | **Admin devices**: a device of an admin account, paired with a console pairing minted only by the local console or the CLI, may call the console's own API at `/v1/console` with its device token. The **Storage Remote** app (web + Expo wrapper) mounts the console's pages over it and adds an E2EE drive. See §11.2. | The hoster wants to administer and use the server from a phone. Granting at the machine keeps D12's rule that nothing remote can create admin access; one API keeps the phone and the console identical. |
+| D12 | Admin console        | **Local web console on its own listener** (default `127.0.0.1:8081`), a dependency-free TypeScript SPA embedded in the server. Stable admin token in `<data-dir>/admin.token` (0600) → session cookie. See §11.1.                                                                                                        | Operators need to administer, monitor, read logs and troubleshoot without a shell; the console must add no remote attack surface and no runtime dependency.                                              |
 
 ---
 
@@ -125,7 +126,8 @@ the ref in `e2e/framework-ref`).
   private halves are non-extractable. Admins administer via the CLI with
   filesystem access to the data directory, or the admin console (§11.1),
   which listens on loopback by default and is unlocked by a token stored in
-  the data directory.
+  the data directory. Remotely, only an **admin device** (§11.2) can
+  administer, and only the local console or the CLI can make one.
 - **All secrets are 256-bit random**, compared in constant time, stored only as
   SHA-256 hashes (tokens, pairing codes, invite codes), single-use where
   applicable, short-lived (pairing 10 min, invites 7 days default, access
@@ -246,8 +248,9 @@ interface KeyVault {
 ## 5. Data model
 
 - **Account** `{ id, name, role, quotaBytes|null, createdAt, aekPublic?, recoveryWrap? }`
-- **Device** `{ id, accountId, name, platform, dskPublic, dekPublic, createdAt, lastSeenAt, revokedAt? }`
-- **Pairing** `{ id, codeHash, accountId | newAccount{name, role}, createdBy, expiresAt, usedAt?, transferBlob? }`
+- **Device** `{ id, accountId, name, platform, dskPublic, dekPublic, console, createdAt, lastSeenAt, revokedAt? }`
+  — `console`: an admin device (§11.2); effective only while the account is an admin.
+- **Pairing** `{ id, codeHash, accountId | newAccount{name, role}, createdBy, expiresAt, usedAt?, transferBlob?, console }`
 - **Namespace** `{ id, app, ownerAccountId, epoch, meta (OSE1 nsmeta), seq, createdAt, deletedAt? }`
   — `app` is a plaintext app id (e.g. `notes`) so each app lists its own
   namespaces; everything user-authored (name, glyph, color, slug) is in `meta`.
@@ -296,13 +299,15 @@ or `If-None-Match: *`. Auth: `Authorization: Bearer <token>`.
 ### 6.2 Pairing & devices
 
 - `POST /v1/pair {code, device:{name, platform, dskPublic, dekPublic}}` →
-  `{ deviceId, accountId, serverId, account, transfer? }` (public, rate-limited;
-  consumes the code; creates the account when the pairing says `newAccount`).
+  `{ deviceId, accountId, serverId, account, transfer?, console }` (public, rate-limited;
+  consumes the code; creates the account when the pairing says `newAccount`;
+  `console` when it enrolled an admin device).
 - `POST /v1/pairings {accountId?, newAccount?:{name, role}, ttlSeconds?, code?, transfer?}` →
   `{ pairingId, code?, expiresAt }` — a device may create a pairing for its own
   account (supplying `code = HKDF(X)` and the secret-wrapped AEK `transfer`);
-  admins may create pairings for other/new accounts.
-- `GET /v1/me` → account, devices, keys (`aekPublic`, `recoveryWrap`, this device's `deviceWrap`).
+  admins may create pairings for other/new accounts. `console: true` is refused
+  here for everyone (403): admin devices are paired at the machine (§11.2).
+- `GET /v1/me` → account, `console` (this is an admin device), keys (`aekPublic`, `recoveryWrap`, this device's `deviceWrap`).
 - `PUT /v1/me/keys {aekPublic, recoveryWrap, deviceWraps{deviceId: wrap}}` — first-time setup
   (only when unset) and later adding `deviceWraps`.
 - `GET /v1/me/devices`, `PATCH /v1/devices/:id {name}`, `DELETE /v1/devices/:id` (revoke; admins any, members own).
@@ -364,6 +369,10 @@ or `If-None-Match: *`. Auth: `Authorization: Bearer <token>`.
 
 - `GET|POST /v1/admin/accounts`, `PATCH|DELETE /v1/admin/accounts/:id {name, role, quotaBytes}`
 - `GET /v1/admin/audit?since=` , `GET /v1/admin/stats`
+- `GET|POST|PATCH|DELETE /v1/console/*rest` — the admin console's API (§11.1,
+  `/api/<rest>`; `metrics` → `/metrics`) for admin devices only (§11.2): 403 for
+  any other device, 404 with `remoteConsole: false`. `/v1/info` lists the
+  `console` capability when it is mounted and on.
 
 ### 6.8 Test mode only (`--test-mode`, header `X-Test-Secret`)
 
@@ -519,16 +528,16 @@ form-action 'self'; base-uri 'none'`, `X-Frame-Options: DENY`,
 sees (§4.1): names, roles, sizes, counts, timestamps — never content, file
 names, record keys or namespace names.
 
-| Page         | Shows                                                                                                                                                               | Actions                                                                                                      |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Overview     | health verdict, uptime, version, URLs, TLS (mode, expiry, fingerprint), port mapping, storage (database, blobs, disk free), counts, traffic charts, recent problems | —                                                                                                            |
-| Accounts     | accounts with role, quota, usage, device and namespace counts, state                                                                                                | create; pair a device (QR on screen); rename, change role/quota, disable/enable; delete (typed confirmation) |
-| Devices      | every device with account, platform, key state, last seen, origin                                                                                                   | revoke                                                                                                       |
-| Namespaces   | id, app, owner, members (names + roles), usage, seq, key epoch, pending invites                                                                                     | —                                                                                                            |
-| Traffic      | requests / 4xx / 5xx / rate-limited per minute (last 60 min), latency p50/p95/p99, per-route table, live SSE connections                                            | —                                                                                                            |
-| Logs         | live tail of the in-memory log buffer (last 2000 entries) with level filter and search                                                                              | pause; download the debug log file                                                                           |
-| Audit        | the audit chain, newest first, filterable by action                                                                                                                 | verify the chain                                                                                             |
-| Troubleshoot | checks (below) with a fix hint for each failure; effective configuration                                                                                            | re-run checks; renew certificate (acme); refresh port mapping; run housekeeping; back up; diagnostics bundle |
+| Page         | Shows                                                                                                                                                               | Actions                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overview     | health verdict, uptime, version, URLs, TLS (mode, expiry, fingerprint), port mapping, storage (database, blobs, disk free), counts, traffic charts, recent problems | —                                                                                                                                                             |
+| Accounts     | accounts with role, quota, usage, device and namespace counts, state                                                                                                | create; pair a device (QR on screen); pair the admin app (admin accounts, local only); rename, change role/quota, disable/enable; delete (typed confirmation) |
+| Devices      | every device with account, platform, key state, last seen, origin, admin device                                                                                     | revoke; remove admin access                                                                                                                                   |
+| Namespaces   | id, app, owner, members (names + roles), usage, seq, key epoch, pending invites                                                                                     | —                                                                                                                                                             |
+| Traffic      | requests / 4xx / 5xx / rate-limited per minute (last 60 min), latency p50/p95/p99, per-route table, live SSE connections                                            | —                                                                                                                                                             |
+| Logs         | live tail of the in-memory log buffer (last 2000 entries) with level filter and search                                                                              | pause; download the debug log file                                                                                                                            |
+| Audit        | the audit chain, newest first, filterable by action                                                                                                                 | verify the chain                                                                                                                                              |
+| Troubleshoot | checks (below) with a fix hint for each failure; effective configuration                                                                                            | re-run checks; renew certificate (acme); refresh port mapping; run housekeeping; back up; diagnostics bundle                                                  |
 
 Checks (shared with `storage-server doctor`): data directory writable and
 private, database integrity, audit chain, an admin exists, disk space,
@@ -552,14 +561,15 @@ a bug report needs, with no tokens, codes or user content.
 
 **API** (JSON, same authentication): `GET /api/overview`, `/api/metrics`,
 `/api/accounts`, `POST /api/accounts`, `PATCH|DELETE /api/accounts/:id`,
-`POST /api/accounts/:id/pairing`, `POST /api/pairing` (new account),
-`GET /api/devices`, `DELETE /api/devices/:id`, `GET /api/namespaces`,
+`POST /api/accounts/:id/pairing` (`{console: true}`: an admin device, local
+only), `POST /api/pairing` (new account), `GET /api/devices`,
+`PATCH /api/devices/:id {console: false}`, `DELETE /api/devices/:id`, `GET /api/namespaces`,
 `GET /api/logs?after=&level=&q=`, `GET /api/logs/stream` (SSE),
 `GET /api/logs/file`, `GET /api/audit?before=&action=`,
 `POST /api/audit/verify`, `GET /api/checks`, `GET /api/config`,
 `POST /api/actions/{renew-certificate,refresh-port-mapping,housekeeping,backup}`,
 `GET /api/diagnostics`. Every mutating call is written to the audit log with
-actor `admin-console`.
+actor `admin-console` (or the admin device's id, §11.2).
 
 **Implementation.** `src/admin/`: `console.ts` (listener, auth, routing),
 `api.ts` (endpoints), `session.ts`, `metrics.ts` (fed by the device-API
@@ -567,6 +577,61 @@ handler's `onRequest` hook), `log-buffer.ts` (a `Logger` tee),
 `checks.ts` (shared with `doctor`), `ui/` (vanilla TypeScript + CSS, bundled
 by esbuild at build time into the server and served as `/app.js`,
 `/app.css`). Browser tests live in `packages/server/browser-tests/`.
+
+### 11.2 Remote console and Storage Remote
+
+The hoster administers and uses the server from a phone. The same console
+API, the same pages; only the way in differs.
+
+**Admin devices.** A device whose pairing carried `console` and whose
+account is an admin. Such pairings are minted only where admin access
+already exists: the local console (`POST /api/accounts/:id/pairing
+{console: true}`, "Pair admin app") and the CLI (`pair --account <admin>
+--console`). The device API refuses them
+(`POST /v1/pairings`, and the remote console's own pairing endpoint when
+`console` is asked for), so no device — an admin device included — can
+create another. The flag can be dropped (`PATCH /api/devices/:id {console:
+false}`, "Remove admin access", audited `device.console-revoke`) but never
+set after pairing. Demoting or disabling the account ends it at once
+(`authenticate` requires role `admin`).
+
+**Remote console.** `serve` builds one console API (`createConsoleApi`) and
+serves it twice: on the local listener (admin token / session) and on the
+device API at `/v1/console/*rest` (`admin/remote.ts`), where the principal
+must be an admin device. Handlers receive `actor` (the device id, audited
+as such) and `remote`. SSE (the live log) and downloads (debug log,
+diagnostics) work over the device API too. `--remote-console off`
+(`remoteConsole: false`) answers 404 for every device. Test servers mount
+it too (`createStorageServer({ console: {} })`).
+
+**Storage Remote (`apps/remote`).** A dependency-free TypeScript app on the
+framework's self-hosted client (app id `drive`):
+
+- _Pair_: scan (native) or paste the console's code, or open an `#oss=`
+  link; then create the account key (first device; recovery key shown
+  once), recover, or wait for approval (safety code).
+- _Server_: mounts `packages/server/src/admin/ui/shell.ts` unchanged, with a
+  transport (`ui/api.ts` `useTransport`) that maps `/api/…` to
+  `/v1/console/…` and signs in with the device key; SSE is read over
+  `fetch`. `isRemote()` hides "Pair admin app".
+- _Files_: shared folders are `drive` namespaces; folders inside are path
+  prefixes (an empty one is kept by a hidden `.folder` marker file).
+  Upload (multipart above 8 MiB via the framework), save/share, rename
+  and move, delete to trash, versions, trash restore/purge, sharing by
+  invite (role, TTL, one use), member removal with rotation, joining
+  invites. Live updates from `/v1/events`.
+- _This phone_: approve pending devices (safety codes), add a device by
+  QR (key transfer), new recovery key, revoke devices, sign out.
+
+**Native wrapper (`apps/remote/native`).** An Expo shell like time's: the
+build is served from a loopback origin (port 8321) out of the download, and
+a bridge script injected before load offers three capabilities the page
+looks for — `__ossKeyVault` (Keychain / Android Keystore via
+expo-secure-store, `WHEN_UNLOCKED_THIS_DEVICE_ONLY`), a QR scanner
+(expo-camera) and the share sheet (expo-sharing; the decrypted copy is
+deleted after). Bridge requests are answered only for the bundled origin.
+The server must present a publicly trusted certificate (ATS; a WebView
+cannot pin `fp`).
 
 ## 12. Testkit (`@niclaslindstedt/storage-testkit`)
 
@@ -688,3 +753,15 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 - [x] C7 UI (overview, accounts, devices, namespaces, traffic, logs, audit, troubleshoot) bundled into the server
 - [x] C8 tests: unit (server), full-stack e2e (revoke from the console), Playwright (UI)
 - [x] C9 docs (`docs/admin-console.md`, configuration, security, README, website), Docker (`STORAGE_ADMIN_HOST`), man pages
+
+### Remote console and Storage Remote (§11.2)
+
+- [x] M1 SPEC §11.2 design, D13
+- [x] M2 admin devices: migration 2 (`devices.console`, `pairings.console`), console pairings from the local console / CLI only, `authenticate` gating, drop access
+- [x] M3 `/v1/console/*` over the shared console API (`createConsoleApi`, `admin/remote.ts`), `--remote-console`, `console` capability, audited by device
+- [x] M4 console UI: pluggable transport, mountable shell, "Pair admin app", admin-device badges
+- [x] M5 `apps/remote`: pairing, keys, Server tab, Files (drive, uploads, versions, trash, sharing), This phone
+- [x] M6 `apps/remote/native`: loopback server, Keychain key vault, QR scanner, share sheet, bundle script, icons
+- [x] M7 tests: server unit (`admin_remote_test.ts`), console browser test, e2e (`remote_test.ts`), app unit + Playwright, native bridge pinning; CI job `remote-native`
+- [x] M8 docs (`docs/remote-app.md`, admin console, protocol, security, configuration, testing, README), man pages
+- [ ] M9 store listings (App Store / Play) and EAS project for the wrapper

@@ -98,9 +98,10 @@ export function authenticate(ctx: Ctx, token: string): Principal | null {
     account_id: string;
     role: AccountRole;
     name: string;
+    console: number;
     expires_at: number;
   }>(
-    `SELECT t.device_id, d.account_id, a.role, a.name, t.expires_at FROM tokens t
+    `SELECT t.device_id, d.account_id, a.role, a.name, d.console, t.expires_at FROM tokens t
      JOIN devices d ON d.id = t.device_id
      JOIN accounts a ON a.id = d.account_id
      WHERE t.hash = ? AND d.revoked_at IS NULL AND a.disabled_at IS NULL`,
@@ -112,6 +113,8 @@ export function authenticate(ctx: Ctx, token: string): Principal | null {
     accountName: row.name,
     deviceId: row.device_id,
     role: row.role,
+    // An admin device is only an admin device while its account is an admin.
+    console: row.console === 1 && row.role === "admin",
   };
 }
 

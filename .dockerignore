@@ -6,5 +6,6 @@ coverage
 website
 apps/**
 !apps/reference/package.json
+!apps/remote/package.json
 e2e/tests
 *.log

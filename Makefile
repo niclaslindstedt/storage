@@ -7,7 +7,7 @@ FRAMEWORK_REF := $(shell cat e2e/framework-ref)
 OSS_FRAMEWORK_DIR ?= $(abspath ../oss-framework)
 export OSS_FRAMEWORK_DIR
 
-.PHONY: build test test-app test-unit test-e2e examples lint fmt fmt-check release clean framework hooks docker website website-dev man shellcheck actionlint validate
+.PHONY: build test test-app test-unit test-e2e remote remote-native examples lint fmt fmt-check release clean framework hooks docker website website-dev man shellcheck actionlint validate
 
 build:
 	npm run build --workspace packages/server
@@ -15,15 +15,25 @@ build:
 
 test: build test-unit test-e2e
 
-# Browser tests: the reference app and the admin console (needs Chromium;
-# CI installs it).
+# Browser tests: the reference app, Storage Remote and the admin console
+# (needs Chromium; CI installs it).
 test-app: build
 	npm run test:e2e --workspace apps/reference
+	npm run test:e2e --workspace apps/remote
 	npm run test:browser --workspace packages/server
 
 test-unit:
 	npm run test --workspace packages/server
 	npm run test --workspace packages/testkit
+	npm run test --workspace apps/remote
+
+# Storage Remote (apps/remote): the web build, and its native wrapper's
+# type-check (a separate npm project; installs its own dependencies).
+remote:
+	npm run build --workspace apps/remote
+
+remote-native:
+	cd apps/remote/native && npm ci --no-audit --no-fund && npm run typecheck
 
 test-e2e:
 	npm run test --workspace e2e
@@ -41,6 +51,7 @@ lint:
 	npx tsc --noEmit -p packages/testkit
 	npx tsc --noEmit -p e2e
 	npx tsc --noEmit -p apps/reference
+	npx tsc --noEmit -p apps/remote
 	npx tsc --noEmit -p examples
 
 fmt:

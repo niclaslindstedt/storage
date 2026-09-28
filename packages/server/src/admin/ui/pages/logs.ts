@@ -1,5 +1,5 @@
-import { download, get } from "../api.ts";
-import { badge, clear, clock, h, toneOf } from "../dom.ts";
+import { download, get, openEvents } from "../api.ts";
+import { badge, clear, clock, h, toast, toneOf } from "../dom.ts";
 import { type Page, pageHeader } from "../page.ts";
 import type { LogEntry } from "../types.ts";
 
@@ -101,7 +101,13 @@ export const logsPage: Page = {
         "Logs",
         h(
           "button",
-          { type: "button", onclick: () => download("/api/logs/file") },
+          {
+            type: "button",
+            onclick: () =>
+              download("/api/logs/file").catch((err: Error) =>
+                toast(err.message, "fail"),
+              ),
+          },
           "Download debug log",
         ),
       ),
@@ -118,18 +124,17 @@ export const logsPage: Page = {
     for (const e of initial.entries) entries.push(e);
     rerender();
     const last = entries.at(-1)?.seq ?? 0;
-    const source = new EventSource(`/api/logs/stream?after=${last}`);
-    source.addEventListener("open", () => (status.textContent = "live"));
-    source.addEventListener(
-      "error",
-      () => (status.textContent = "reconnecting…"),
-    );
-    source.addEventListener("log", (ev) => {
-      const e = JSON.parse((ev as MessageEvent<string>).data) as LogEntry;
-      if (entries.length && e.seq <= entries.at(-1)!.seq) return;
-      if (paused) queued.push(e);
-      else add(e);
+    const stop = openEvents(`/api/logs/stream?after=${last}`, {
+      open: () => (status.textContent = "live"),
+      error: () => (status.textContent = "reconnecting…"),
+      event(name, data) {
+        if (name !== "log") return;
+        const e = JSON.parse(data) as LogEntry;
+        if (entries.length && e.seq <= entries.at(-1)!.seq) return;
+        if (paused) queued.push(e);
+        else add(e);
+      },
     });
-    ctx.onLeave(() => source.close());
+    ctx.onLeave(stop);
   },
 };

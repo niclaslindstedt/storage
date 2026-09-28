@@ -137,6 +137,8 @@ export type Device = {
   lastSeenAt: number | null;
   revokedAt: number | null;
   state: "active" | "pending" | "revoked";
+  /** An admin device: may use this console remotely (SPEC §11.2). */
+  console: boolean;
 };
 
 export type Namespace = {

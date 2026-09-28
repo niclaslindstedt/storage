@@ -13,6 +13,7 @@ COPY packages/server/package.json packages/server/package.json
 COPY packages/testkit/package.json packages/testkit/package.json
 COPY e2e/package.json e2e/package.json
 COPY apps/reference/package.json apps/reference/package.json
+COPY apps/remote/package.json apps/remote/package.json
 RUN npm ci --workspace packages/server --include-workspace-root \
       --ignore-scripts --no-audit --no-fund
 COPY tsconfig.base.json ./

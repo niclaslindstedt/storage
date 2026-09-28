@@ -99,6 +99,7 @@ export async function runTestServer(
       },
       rateLimit: { publicPerMinute: 100_000, devicePerMinute: 1_000_000 },
     },
+    console: {},
   });
   const url = await server.listen(
     (args.flags.port as number | undefined) ?? 0,

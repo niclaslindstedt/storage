@@ -29,7 +29,8 @@ Use the Makefile (OSS_SPEC §9); CI invokes the same targets.
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `make build`                          | Bundle `packages/server` and `packages/testkit` (tsup)                                          |
 | `make test`                           | Build, then server unit tests, testkit tests, full-stack e2e                                    |
-| `make test-app`                       | Playwright tests of `apps/reference` against `storage-server test-server`                       |
+| `make test-app`                       | Playwright tests of `apps/reference`, `apps/remote` and the console against a test server       |
+| `make remote` / `make remote-native`  | Build Storage Remote (`apps/remote`) / install and type-check its native wrapper                |
 | `make examples`                       | Run every example in `examples/` (CI does too)                                                  |
 | `make lint`                           | ESLint (zero warnings) + `tsc --noEmit` for every workspace                                     |
 | `make fmt` / `make fmt-check`         | Prettier                                                                                        |
@@ -74,15 +75,20 @@ packages/server/src/
 ├── net/         UPnP IGD, NAT-PMP, port mapper, NAT diagnostics
 ├── qr/          QR encoder + terminal / SVG renderers
 ├── admin/       admin console (SPEC §11.1): listener + auth (console.ts,
-│                session.ts), JSON API (api.ts, overview.ts), metrics.ts,
-│                log-buffer.ts, checks.ts (shared with `doctor`), ui/ (vanilla
-│                TS + CSS, bundled into the server via `?bundle` imports)
+│                session.ts), JSON API (api.ts, overview.ts, deps.ts),
+│                remote.ts (the same API for admin devices at /v1/console,
+│                §11.2), metrics.ts, log-buffer.ts, checks.ts (shared with
+│                `doctor`), ui/ (vanilla TS + CSS, bundled into the server
+│                via `?bundle` imports; shell.ts is mounted by apps/remote)
 ├── cli/         command registry (spec.ts = single source of truth) + commands
 ├── app.ts       embeddable server (what tests and the testkit run)
 └── serve.ts     production runtime (HTTPS, ACME, redirects, UPnP, jobs)
 packages/testkit/  in-process / subprocess test server + framework helpers
 e2e/               framework client ⇄ real server (Vitest)
 apps/reference/    reference PWA + Playwright tests
+apps/remote/       Storage Remote: the hoster's app (console + encrypted drive),
+                   an admin device (§11.2); native/ is its Expo wrapper, a
+                   separate npm project
 examples/          runnable examples (run by `make examples` in CI)
 website/           showcase + hosted docs (Vite + React, prerendered, SEO)
 scripts/           release, changelog, version, validation and CI helpers
@@ -99,6 +105,9 @@ Rules:
   to need plaintext on the server, it belongs in the client.
 - Every secret the server mints is 256-bit, stored hashed, compared in
   constant time, single-use where it makes sense, and short-lived.
+- Remote administration is granted at the machine only: admin devices are
+  paired by the local console or the CLI, never through the device API
+  (SPEC §11.2). Keep it that way.
 - The client lives in oss-framework (`src/storage/selfhosted/`). Protocol
   changes land in both repositories; `e2e/framework-ref` pins the
   framework ref the e2e suite runs against.
@@ -112,6 +121,9 @@ Rules:
 | A CLI command or flag          | `cli/spec.ts` (registry) + `cli/commands/*.ts`, then `make man`                                                                                                          |
 | A config key                   | `config.ts` + `cli/spec.ts` (flag/env) + `docs/configuration.md`                                                                                                         |
 | An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md`                  |
+| A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                         |
+| Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                |
+| A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`   |
 | A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                        |
 | A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                 |
 | A client feature               | oss-framework `src/storage/selfhosted/` + an e2e test here                                                                                                               |
@@ -145,6 +157,11 @@ Rules:
 - The console UI (`src/admin/ui`) is type-checked on its own
   (`tsc -p packages/server/src/admin/ui`, DOM lib) and never imports server
   code; `ui/types.ts` mirrors the API's response shapes.
+- Storage Remote: unit tests in `apps/remote/tests/` (Vitest, node), browser
+  tests in `apps/remote/browser-tests/` (Playwright, `make test-app`),
+  server side in `packages/server/tests/admin_remote_test.ts` and
+  `e2e/tests/remote_test.ts`. `apps/remote/tests/native_bridge_test.ts`
+  pins the names the native bridge and the page share.
 - Source files stay under 1000 lines (§20.5).
 
 ## Documentation sync points

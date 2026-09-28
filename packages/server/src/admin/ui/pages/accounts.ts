@@ -1,4 +1,4 @@
-import { del, get, patch, post } from "../api.ts";
+import { del, get, isRemote, patch, post } from "../api.ts";
 import { ago, badge, bytes, confirm, dialog, h, table, toast } from "../dom.ts";
 import { type Page, pageHeader, refresh } from "../page.ts";
 import type { Account, Pairing } from "../types.ts";
@@ -64,6 +64,19 @@ function usage(a: Account) {
 async function pair(a: Account) {
   try {
     showPairing(await post<Pairing>(`/api/accounts/${a.id}/pairing`), a.name);
+  } catch (err) {
+    toast((err as Error).message, "fail");
+  }
+}
+
+/** An admin device for the remote app (SPEC §11.2); only at the machine. */
+async function pairAdminApp(a: Account) {
+  try {
+    showPairing(
+      await post<Pairing>(`/api/accounts/${a.id}/pairing`, { console: true }),
+      a.name,
+      "admin",
+    );
   } catch (err) {
     toast((err as Error).message, "fail");
   }
@@ -308,6 +321,19 @@ export const accountsPage: Page = {
                   },
                   "Pair device",
                 ),
+                a.role === "admin" && !a.disabled && !isRemote()
+                  ? h(
+                      "button",
+                      {
+                        type: "button",
+                        onclick: () => pairAdminApp(a),
+                        "data-testid": "pair-admin-app",
+                        title:
+                          "Pair the remote app on your phone as an admin device",
+                      },
+                      "Pair admin app",
+                    )
+                  : null,
                 h(
                   "button",
                   {

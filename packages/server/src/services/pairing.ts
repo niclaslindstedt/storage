@@ -39,6 +39,12 @@ export type PairingInput = {
   code?: string;
   /** The account key sealed under `HKDF(X)` (device-created pairings). */
   transfer?: string;
+  /**
+   * Enrol an admin device (SPEC §11.2): one that may use the admin console
+   * remotely. Only the local console and the CLI may ask for it — never the
+   * device API — and only for an admin account.
+   */
+  console?: boolean;
 };
 
 export type PairingCreated = {
@@ -67,6 +73,16 @@ export function createPairing(
       throw conflict("an account with that name exists");
     }
   }
+  if (input.console) {
+    const role =
+      input.newAccount?.role ??
+      getAccountRow(ctx, input.accountId!)?.role ??
+      null;
+    if (role !== "admin")
+      throw badRequest("only an admin account can pair an admin device");
+    if (input.code !== undefined || input.transfer !== undefined)
+      throw badRequest("an admin device pairing is minted by the server");
+  }
   if (input.code !== undefined && !SECRET_PATTERN.test(input.code)) {
     throw badRequest("code must be 32 bytes base64url");
   }
@@ -83,8 +99,8 @@ export function createPairing(
   try {
     ctx.db.run(
       `INSERT INTO pairings(id, code_hash, account_id, new_account_name, new_account_role,
-                            transfer, created_by, created_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            transfer, created_by, created_at, expires_at, console)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       sha256B64u(code),
       input.accountId ?? null,
@@ -94,6 +110,7 @@ export function createPairing(
       actor,
       now,
       expiresAt,
+      input.console ? 1 : 0,
     );
   } catch {
     throw conflict("pairing code already in use");
@@ -105,6 +122,7 @@ export function createPairing(
     detail: {
       account: input.accountId ?? null,
       newAccount: input.newAccount?.role ?? null,
+      ...(input.console ? { console: true } : {}),
     },
   });
   return { pairingId: id, ...(minted ? { code: minted } : {}), expiresAt };
@@ -115,6 +133,10 @@ export function authorizePairing(
   principal: Principal,
   input: PairingInput,
 ): void {
+  // Remote admin access is granted by someone at the machine, never by a
+  // device — not even an admin device (a stolen phone must not mint more).
+  if (input.console)
+    throw forbidden("admin devices are paired from the local console or CLI");
   if (principal.role === "admin") return;
   if (principal.role === "guest") throw forbidden("guests cannot add devices");
   if (input.newAccount || input.accountId !== principal.accountId) {
@@ -131,6 +153,8 @@ export async function redeemPairing(
   accountId: string;
   account: Account;
   transfer: string | null;
+  /** Whether the device was enrolled as an admin device. */
+  console: boolean;
 }> {
   if (typeof input.code !== "string" || !SECRET_PATTERN.test(input.code)) {
     throw unauthenticated("invalid pairing code");
@@ -145,6 +169,7 @@ export async function redeemPairing(
       transfer: string | null;
       expires_at: number;
       used_at: number | null;
+      console: number;
     }>("SELECT * FROM pairings WHERE code_hash = ?", sha256B64u(input.code));
     if (!row || row.used_at !== null || row.expires_at < ctx.clock.now()) {
       throw unauthenticated("invalid or expired pairing code");
@@ -178,15 +203,22 @@ export async function redeemPairing(
     const acc = getAccountRow(ctx, accountId);
     if (!acc || acc.disabled_at !== null)
       throw unauthenticated("account is disabled");
-    const deviceId = insertDevice(ctx, accountId, device, meta.origin);
+    const console = row.console === 1 && acc.role === "admin";
+    const deviceId = insertDevice(ctx, accountId, device, meta.origin, {
+      console,
+    });
     ctx.audit.append({
       actor: deviceId,
       action: "device.pair",
       target: accountId,
       ip: meta.ip,
-      detail: { pairing: row.id, platform: device.platform },
+      detail: {
+        pairing: row.id,
+        platform: device.platform,
+        ...(console ? { console: true } : {}),
+      },
     });
-    return { deviceId, accountId, transfer: row.transfer };
+    return { deviceId, accountId, transfer: row.transfer, console };
   });
   return { ...result, account: getAccount(ctx, result.accountId)! };
 }

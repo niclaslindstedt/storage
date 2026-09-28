@@ -20,10 +20,10 @@ import {
   listAccounts,
   updateAccount,
 } from "../services/accounts.ts";
-import { revokeDevice } from "../services/devices.ts";
+import { dropConsoleAccess, revokeDevice } from "../services/devices.ts";
 import { createPairing } from "../services/pairing.ts";
 import { type CheckResult, runChecks } from "./checks.ts";
-import type { ConsoleDeps } from "./console.ts";
+import type { ConsoleDeps } from "./deps.ts";
 import { LOG_LEVELS, type LogEntry, type LogLevel } from "./log-buffer.ts";
 import {
   counts,
@@ -34,7 +34,6 @@ import {
   tlsSummary,
 } from "./overview.ts";
 
-const ACTOR = "admin-console";
 const CHECK_TTL_MS = 5 * 60_000;
 const AUDIT_TTL_MS = 30_000;
 
@@ -42,8 +41,15 @@ export type ApiRequest = {
   params: Record<string, string>;
   query: URLSearchParams;
   ip: string;
+  /** Who the audit log names: "admin-console", or the admin device's id. */
+  actor: string;
+  /** Reached through the device API by an admin device (SPEC §11.2). */
+  remote: boolean;
   body(): Promise<Record<string, unknown>>;
 };
+
+/** The actor the local console's changes are audited under. */
+export const LOCAL_ACTOR = "admin-console";
 
 export type ApiResult = {
   status?: number;
@@ -66,7 +72,7 @@ export type ConsoleState = {
   refreshChecks?: () => Promise<{ at: number; results: CheckResult[] }>;
 };
 
-class Routes {
+export class Routes {
   private readonly table: {
     method: string;
     parts: string[];
@@ -149,12 +155,25 @@ function level(q: URLSearchParams): LogLevel | undefined {
 
 // ---------------------------------------------------------------- routes
 
+/** One console API, shared by the local listener and the remote console. */
+export type ConsoleApi = { state: ConsoleState; routes: Routes };
+
+export function createConsoleApi(deps: ConsoleDeps): ConsoleApi {
+  const state: ConsoleState = { deps, checks: null, auditCache: null };
+  return { state, routes: apiRoutes(state) };
+}
+
 export function apiRoutes(state: ConsoleState): Routes {
   const { deps } = state;
   const { ctx } = deps;
   const routes = new Routes();
   /** Console changes are audited by the services and noted in the log. */
-  const note = (message: string) => ctx.log.info(`admin console: ${message}`);
+  const note = (message: string, req: ApiRequest) =>
+    ctx.log.info(
+      req.remote
+        ? `admin console (remote, ${req.actor}): ${message}`
+        : `admin console: ${message}`,
+    );
 
   let inflight: Promise<{ at: number; results: CheckResult[] }> | null = null;
   state.refreshChecks = () => {
@@ -326,9 +345,9 @@ export function apiRoutes(state: ConsoleState): Routes {
         role: role(b.role) ?? "member",
         quotaBytes: quota(b.quotaBytes),
       },
-      ACTOR,
+      req.actor,
     );
-    note(`created ${created.role} account ${created.id}`);
+    note(`created ${created.role} account ${created.id}`, req);
     return { status: 201, json: created };
   });
 
@@ -346,7 +365,7 @@ export function apiRoutes(state: ConsoleState): Routes {
           quotaBytes: quota(b.quotaBytes),
           disabled: b.disabled as boolean | undefined,
         },
-        ACTOR,
+        req.actor,
       ),
     };
   });
@@ -359,14 +378,31 @@ export function apiRoutes(state: ConsoleState): Routes {
       throw badRequest(
         `type the account name (${account.name}) in "confirm" to delete it and every namespace it owns`,
       );
-    await deleteAccount(ctx, account.id, ACTOR);
-    note(`deleted account ${account.id}`);
+    await deleteAccount(ctx, account.id, req.actor);
+    note(`deleted account ${account.id}`, req);
     return { json: { deleted: account.id } };
   });
 
-  routes.add("POST", "/api/accounts/:id/pairing", (req) =>
-    pairing(createPairing(ctx, { accountId: req.params.id! }, ACTOR)),
-  );
+  routes.add("POST", "/api/accounts/:id/pairing", async (req) => {
+    const b = await req.body();
+    if (b.console !== undefined && typeof b.console !== "boolean")
+      throw badRequest("console must be a boolean");
+    // Remote admin access is granted at the machine only (SPEC §11.2): an
+    // admin device can pair ordinary devices, never another admin device.
+    if (b.console && req.remote)
+      throw new ApiError(
+        403,
+        "forbidden",
+        "admin devices are paired from the local console or the CLI",
+      );
+    return pairing(
+      createPairing(
+        ctx,
+        { accountId: req.params.id!, console: b.console === true },
+        req.actor,
+      ),
+    );
+  });
 
   routes.add("POST", "/api/pairing", async (req) => {
     const b = await req.body();
@@ -379,7 +415,7 @@ export function apiRoutes(state: ConsoleState): Routes {
             role: role(b.role) ?? "member",
           },
         },
-        ACTOR,
+        req.actor,
       ),
     );
   });
@@ -399,10 +435,11 @@ export function apiRoutes(state: ConsoleState): Routes {
         last_seen_at: number | null;
         revoked_at: number | null;
         has_key: number;
+        console: number;
       }>(
         `SELECT d.id, d.name, d.platform, d.account_id, a.name AS account, d.origin,
                 d.created_at, d.last_seen_at, d.revoked_at,
-                d.device_wrap IS NOT NULL AS has_key
+                d.device_wrap IS NOT NULL AS has_key, d.console
          FROM devices d JOIN accounts a ON a.id = d.account_id
          ORDER BY a.name COLLATE NOCASE, d.created_at`,
       )
@@ -417,12 +454,26 @@ export function apiRoutes(state: ConsoleState): Routes {
         lastSeenAt: d.last_seen_at,
         revokedAt: d.revoked_at,
         state: d.revoked_at ? "revoked" : d.has_key ? "active" : "pending",
+        console: d.console === 1 && !d.revoked_at,
       })),
   }));
 
+  // Only ever takes console access away (SPEC §11.2); granting it is a
+  // pairing made at the machine.
+  routes.add("PATCH", "/api/devices/:id", async (req) => {
+    const b = await req.body();
+    if (b.console !== false)
+      throw badRequest(
+        "only { console: false } is accepted: pair a new admin device to grant access",
+      );
+    const device = dropConsoleAccess(ctx, req.params.id!, req.ip, req.actor);
+    note(`removed console access from device ${device.id}`, req);
+    return { json: { id: device.id, console: device.console } };
+  });
+
   routes.add("DELETE", "/api/devices/:id", (req) => {
-    revokeDevice(ctx, null, req.params.id!, req.ip, ACTOR);
-    note(`revoked device ${req.params.id}`);
+    revokeDevice(ctx, null, req.params.id!, req.ip, req.actor);
+    note(`revoked device ${req.params.id}`, req);
     return { json: { revoked: req.params.id } };
   });
 
@@ -535,42 +586,45 @@ export function apiRoutes(state: ConsoleState): Routes {
 
   routes.add("GET", "/api/config", () => ({ json: redactedConfig() }));
 
-  routes.add("POST", "/api/actions/housekeeping", async () => {
+  routes.add("POST", "/api/actions/housekeeping", async (req) => {
     const report = await deps.actions.housekeeping();
-    note(`housekeeping ${JSON.stringify(report)}`);
+    note(`housekeeping ${JSON.stringify(report)}`, req);
     ctx.audit.append({
-      actor: ACTOR,
+      actor: req.actor,
       action: "admin.housekeeping",
       detail: report,
     });
     return { json: report };
   });
 
-  routes.add("POST", "/api/actions/renew-certificate", async () => {
+  routes.add("POST", "/api/actions/renew-certificate", async (req) => {
     if (ctx.config.tls.mode !== "acme" || !deps.actions.renewCertificate)
       throw conflict("certificates are renewed only in --tls acme mode");
     await deps.actions.renewCertificate();
-    note("renewed the certificate");
-    ctx.audit.append({ actor: ACTOR, action: "admin.renew-certificate" });
+    note("renewed the certificate", req);
+    ctx.audit.append({ actor: req.actor, action: "admin.renew-certificate" });
     return { json: tlsSummary(deps) };
   });
 
-  routes.add("POST", "/api/actions/refresh-port-mapping", async () => {
+  routes.add("POST", "/api/actions/refresh-port-mapping", async (req) => {
     if (!ctx.config.upnp.enabled || !deps.actions.refreshPortMapping)
       throw conflict("port mapping is off (--upnp)");
     const status = await deps.actions.refreshPortMapping();
-    note(`port mapping refreshed (${status.method ?? status.error})`);
-    ctx.audit.append({ actor: ACTOR, action: "admin.refresh-port-mapping" });
+    note(`port mapping refreshed (${status.method ?? status.error})`, req);
+    ctx.audit.append({
+      actor: req.actor,
+      action: "admin.refresh-port-mapping",
+    });
     return { json: status };
   });
 
-  routes.add("POST", "/api/actions/backup", () => {
+  routes.add("POST", "/api/actions/backup", (req) => {
     const dir = ctx.config.dataDir;
     if (!dir) throw conflict("an in-memory server has nothing to back up");
     const stamp = new Date(ctx.clock.now()).toISOString().replace(/[:.]/g, "-");
     try {
       const path = writeBackup(ctx, join(dir, "backups", stamp));
-      note(`backup written to ${path}`);
+      note(`backup written to ${path}`, req);
       return { json: { path } };
     } catch (err) {
       throw new ApiError(500, "backup_failed", (err as Error).message);

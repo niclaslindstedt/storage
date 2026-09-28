@@ -20,12 +20,17 @@ carry `Authorization: Bearer <token>`.
 
 ## Identity
 
-- `GET /v1/info` — server id, name, protocol, capabilities, TLS mode/fingerprint.
-- `POST /v1/pair {code, device}` — enrol a device (`device = {name, platform, dskPublic, dekPublic}`; keys are raw uncompressed P-256 points, base64url).
+- `GET /v1/info` — server id, name, protocol, capabilities, TLS mode/fingerprint. `capabilities` includes `console` when admin devices can use the remote console.
+- `POST /v1/pair {code, device}` — enrol a device (`device = {name, platform, dskPublic, dekPublic}`; keys are raw uncompressed P-256 points, base64url). The answer's `console` is `true` when the code enrolled an admin device.
 - `POST /v1/auth/challenge {deviceId}` → `{challenge}`; `POST /v1/auth/token {deviceId, challenge, signature}` → `{token, expiresAt}`. The signature is ECDSA P-256/SHA-256 (IEEE P1363) over `oss-storage/v1/auth|<serverId>|<deviceId>|<challenge>`.
-- `POST /v1/pairings` — mint a pairing (own account; admins: any/new).
-- `GET /v1/me`, `PUT /v1/me/keys`, `GET /v1/me/devices`, `GET /v1/me/pending-devices`, `PATCH|DELETE /v1/devices/:id`.
+- `POST /v1/pairings` — mint a pairing (own account; admins: any/new). `console: true` is always refused here: admin devices are paired only from the local console or the CLI.
+- `GET /v1/me` (with `console`: whether this is an admin device), `PUT /v1/me/keys`, `GET /v1/me/devices`, `GET /v1/me/pending-devices`, `PATCH|DELETE /v1/devices/:id`.
 - `GET /v1/events` — Server-Sent Events: `ns {ns, seq}`, `namespaces`, `device {revoked}`.
+
+## Admin
+
+- `GET|POST /v1/admin/accounts`, `PATCH|DELETE /v1/admin/accounts/:id`, `GET /v1/admin/audit`, `GET /v1/admin/stats` — any device of an admin account.
+- `GET|POST|PATCH|DELETE /v1/console/<path>` — the admin console's own API (`/api/<path>` on the console, and `/v1/console/metrics` for `/metrics`), for **admin devices** only: a device paired with a console pairing, whose account is an admin. Same requests and answers as on the console; changes are audited under the device's id. `404` when the server runs with `--remote-console off`. See [Storage Remote](remote-app.md).
 
 ## Namespaces and sharing
 
