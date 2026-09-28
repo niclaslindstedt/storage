@@ -9,6 +9,7 @@ import { unauthenticated } from "../errors.ts";
 import { authMessage, verifySignature } from "../crypto.ts";
 import { newSecret, sha256B64u } from "../util/random.ts";
 import type { AccountRole, Principal } from "./principal.ts";
+import { readScope } from "./scope.ts";
 
 type LiveDevice = { id: string; account_id: string; dsk_public: string };
 
@@ -99,9 +100,10 @@ export function authenticate(ctx: Ctx, token: string): Principal | null {
     role: AccountRole;
     name: string;
     console: number;
+    scope: string | null;
     expires_at: number;
   }>(
-    `SELECT t.device_id, d.account_id, a.role, a.name, d.console, t.expires_at FROM tokens t
+    `SELECT t.device_id, d.account_id, a.role, a.name, d.console, d.scope, t.expires_at FROM tokens t
      JOIN devices d ON d.id = t.device_id
      JOIN accounts a ON a.id = d.account_id
      WHERE t.hash = ? AND d.revoked_at IS NULL AND a.disabled_at IS NULL`,
@@ -115,6 +117,7 @@ export function authenticate(ctx: Ctx, token: string): Principal | null {
     role: row.role,
     // An admin device is only an admin device while its account is an admin.
     console: row.console === 1 && row.role === "admin",
+    scope: readScope(row.scope),
   };
 }
 

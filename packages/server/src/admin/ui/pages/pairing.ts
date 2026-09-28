@@ -5,7 +5,7 @@ import type { Pairing } from "../types.ts";
 export function showPairing(
   p: Pairing,
   who: string,
-  kind: "device" | "admin" = "device",
+  kind: "device" | "admin" | "agent" = "device",
 ): void {
   const left = h("strong", { "data-testid": "pairing-countdown" });
   const tick = () => {
@@ -19,7 +19,11 @@ export function showPairing(
   const timer = setInterval(tick, 1000);
   const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(p.svg)}`;
   const d = dialog(
-    kind === "admin" ? `Pair the admin app — ${who}` : `Pair a device — ${who}`,
+    kind === "admin"
+      ? `Pair the admin app — ${who}`
+      : kind === "agent"
+        ? `Pair an agent — ${who}`
+        : `Pair a device — ${who}`,
     h(
       "div",
       { class: "pairing" },
@@ -34,25 +38,35 @@ export function showPairing(
       h(
         "div",
         null,
-        kind === "admin"
+        kind === "agent"
           ? h(
               "p",
               null,
-              "Open the storage remote app on your phone and scan this code. The phone becomes an ",
-              h("strong", null, "admin device"),
-              ": it can do everything this console does, from anywhere. The code works once and expires in ",
+              "On the agent's machine, run ",
+              h("code", null, "storage-mcp pair '<the code below>'"),
+              ". It then needs the account key: approve it from Storage Remote (This phone) after comparing safety codes, or give it the recovery key. The code works once and expires in ",
               left,
               ` (${when(p.expiresAt)}).`,
             )
-          : h(
-              "p",
-              null,
-              "Open the app, choose ",
-              h("strong", null, "Self-hosted"),
-              ", and scan this code. It works once and expires in ",
-              left,
-              ` (${when(p.expiresAt)}).`,
-            ),
+          : kind === "admin"
+            ? h(
+                "p",
+                null,
+                "Open the storage remote app on your phone and scan this code. The phone becomes an ",
+                h("strong", null, "admin device"),
+                ": it can do everything this console does, from anywhere. The code works once and expires in ",
+                left,
+                ` (${when(p.expiresAt)}).`,
+              )
+            : h(
+                "p",
+                null,
+                "Open the app, choose ",
+                h("strong", null, "Self-hosted"),
+                ", and scan this code. It works once and expires in ",
+                left,
+                ` (${when(p.expiresAt)}).`,
+              ),
         h(
           "p",
           { class: "muted" },

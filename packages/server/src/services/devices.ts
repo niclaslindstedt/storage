@@ -9,6 +9,7 @@ import { badRequest, forbidden, notFound } from "../errors.ts";
 import { importP256Public, safetyCode } from "../crypto.ts";
 import { newId } from "../util/random.ts";
 import { NAME_PATTERN, PLATFORM_PATTERN, type Principal } from "./principal.ts";
+import { type AgentScope, isWithin, readScope, writeScope } from "./scope.ts";
 
 export type DeviceInput = {
   name: string;
@@ -27,6 +28,8 @@ export type Device = {
   hasAccountKey: boolean;
   /** An admin device (SPEC §11.2). */
   console: boolean;
+  /** An agent device's scope (SPEC §11.4); null for ordinary devices. */
+  agent: AgentScope | null;
   createdAt: number;
   lastSeenAt: number | null;
   revokedAt: number | null;
@@ -41,6 +44,7 @@ type DeviceRow = {
   dek_public: string;
   device_wrap: string | null;
   console: number;
+  scope: string | null;
   created_at: number;
   last_seen_at: number | null;
   revoked_at: number | null;
@@ -56,6 +60,7 @@ function toDevice(r: DeviceRow): Device {
     dekPublic: r.dek_public,
     hasAccountKey: r.device_wrap !== null,
     console: r.console === 1,
+    agent: readScope(r.scope),
     createdAt: r.created_at,
     lastSeenAt: r.last_seen_at,
     revokedAt: r.revoked_at,
@@ -93,12 +98,12 @@ export function insertDevice(
   accountId: string,
   input: DeviceInput,
   origin: string | null,
-  opts: { console?: boolean } = {},
+  opts: { console?: boolean; scope?: AgentScope | null } = {},
 ): string {
   const id = newId("dev");
   ctx.db.run(
-    `INSERT INTO devices(id, account_id, name, platform, dsk_public, dek_public, origin, created_at, console)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO devices(id, account_id, name, platform, dsk_public, dek_public, origin, created_at, console, scope)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     accountId,
     input.name,
@@ -108,6 +113,7 @@ export function insertDevice(
     origin,
     ctx.clock.now(),
     opts.console ? 1 : 0,
+    writeScope(opts.scope ?? null),
   );
   if (origin) learnOrigin(ctx, origin);
   return id;
@@ -208,6 +214,45 @@ export function dropConsoleAccess(
       });
     });
   }
+  return getDevice(ctx, deviceId)!;
+}
+
+/**
+ * Narrow a device's scope (SPEC §11.4): make an ordinary device an agent
+ * device, or take permissions or apps away from an agent. Never widens —
+ * a wider scope is a new pairing made at the machine.
+ */
+export function narrowScope(
+  ctx: Ctx,
+  deviceId: string,
+  scope: AgentScope,
+  ip: string | null,
+  actor: string,
+): Device {
+  const row = getDeviceRow(ctx, deviceId);
+  if (!row || row.revoked_at !== null) throw notFound("no such device");
+  const current = readScope(row.scope);
+  if (!isWithin(scope, current))
+    throw forbidden(
+      "a scope can only be narrowed: pair a new agent device to grant more",
+    );
+  ctx.db.tx(() => {
+    ctx.db.run(
+      "UPDATE devices SET scope = ? WHERE id = ?",
+      writeScope(scope),
+      deviceId,
+    );
+    // Tokens carry no scope (it is read per request), but a narrowed agent
+    // should sign in again all the same.
+    ctx.db.run("DELETE FROM tokens WHERE device_id = ?", deviceId);
+    ctx.audit.append({
+      actor,
+      action: "device.scope",
+      target: deviceId,
+      ip,
+      detail: { account: row.account_id, scope },
+    });
+  });
   return getDevice(ctx, deviceId)!;
 }
 

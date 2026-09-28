@@ -17,6 +17,7 @@ import {
   unauthenticated,
 } from "../errors.ts";
 import { authenticate } from "../services/auth.ts";
+import { enforceRouteScope } from "../services/scope.ts";
 import { RateLimiter } from "./rate-limit.ts";
 import type { Req, Res, Router, SseWriter } from "./router.ts";
 
@@ -266,6 +267,9 @@ export function createHandler(ctx: Ctx, router: Router, opts: HandlerOptions) {
       const principal =
         token && route.auth !== "none" ? authenticate(ctx, token) : null;
       if (route.auth === "required" && !principal) throw unauthenticated();
+      // Agent devices (SPEC §11.4): the scope is checked before any handler.
+      if (principal)
+        enforceRouteScope(principal, route.method, route.pattern, params);
 
       if (route.rate !== "none") {
         const key = principal

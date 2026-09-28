@@ -23,6 +23,7 @@ import {
   type RequestMeta,
   SECRET_PATTERN,
 } from "./principal.ts";
+import { assertAppAllowed } from "./scope.ts";
 import { conflict } from "../errors.ts";
 import type { NsRole } from "./namespaces.ts";
 
@@ -195,6 +196,8 @@ export async function acceptInvite(
     }
     const ns = getNamespaceRow(ctx, inv.namespace_id);
     if (!ns) throw notFound("no such invite");
+    // Checked before the invite is used up, so a refused agent wastes nothing.
+    if (principal) assertAppAllowed(principal.scope, ns.app);
     let accountId = principal?.accountId;
     let deviceId: string | undefined;
     if (!accountId) {

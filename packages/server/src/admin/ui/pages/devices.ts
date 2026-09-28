@@ -2,6 +2,7 @@ import { del, get, patch } from "../api.ts";
 import { ago, badge, confirm, h, table, toast, toneOf, when } from "../dom.ts";
 import { type Page, pageHeader, refresh } from "../page.ts";
 import type { Device } from "../types.ts";
+import { describeScope } from "./agent.ts";
 
 export const devicesPage: Page = {
   id: "devices",
@@ -79,6 +80,17 @@ export const devicesPage: Page = {
             cell: (d) => [
               h("strong", null, d.name),
               d.console ? [" ", badge("admin device", "info")] : null,
+              d.agent
+                ? [
+                    " ",
+                    badge("agent", "warn"),
+                    h(
+                      "div",
+                      { class: "hint", "data-testid": "agent-scope" },
+                      describeScope(d.agent),
+                    ),
+                  ]
+                : null,
             ],
           },
           { label: "Account", cell: (d) => d.account },

@@ -8,6 +8,7 @@ import { encodeQr } from "../../qr/encode.ts";
 import { qrToTerminal } from "../../qr/render.ts";
 import { findAccountByName, listAccounts } from "../../services/accounts.ts";
 import { createPairing, type PairingInput } from "../../services/pairing.ts";
+import { type AgentScope, parseScope } from "../../services/scope.ts";
 import { UsageError, type ParsedArgs } from "../args.ts";
 import { EXIT } from "../spec.ts";
 import {
@@ -49,6 +50,41 @@ export function printPairing(
   );
 }
 
+/** The agent scope `--agent [--perms] [--apps]` asks for, or undefined. */
+export function agentScope(args: ParsedArgs): AgentScope | undefined {
+  const list = (name: string) => {
+    const v = args.flags[name] as string | undefined;
+    return v === undefined
+      ? undefined
+      : v
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+  };
+  const perms = list("perms");
+  const apps = list("apps");
+  if (args.flags.agent !== true) {
+    if (perms || apps) throw new UsageError("--perms and --apps need --agent");
+    return undefined;
+  }
+  try {
+    return parseScope({
+      perms:
+        perms ??
+        (args.flags.console === true
+          ? ["data:read", "console:read"]
+          : ["data:read"]),
+      apps,
+    });
+  } catch (err) {
+    throw new UsageError((err as Error).message);
+  }
+}
+
+export function describeScope(scope: AgentScope): string {
+  return `${scope.perms.join(", ") || "no permissions"}; apps: ${scope.apps?.join(", ") ?? "all"}`;
+}
+
 export async function runPair(
   io: CliIo,
   config: ServerConfig,
@@ -88,6 +124,7 @@ export async function runPair(
           accountId: acc.id,
           ttlSeconds: ttl,
           console: args.flags.console === true,
+          scope: agentScope(args),
         };
       } else {
         const role = (args.flags.role as string) ?? "member";
@@ -100,6 +137,7 @@ export async function runPair(
           },
           ttlSeconds: ttl,
           console: args.flags.console === true,
+          scope: agentScope(args),
         };
       }
     }
@@ -113,9 +151,11 @@ export async function runPair(
         json: args.flags.json === true,
         heading: setup
           ? "Scan with the first device to create the admin account:"
-          : input.console
-            ? "Scan with the remote admin app to pair it as an admin device:"
-            : "Scan with the device to pair:",
+          : input.scope
+            ? `Pair the agent with \`storage-mcp pair '<code below>'\` (${describeScope(input.scope)}):`
+            : input.console
+              ? "Scan with the remote admin app to pair it as an admin device:"
+              : "Scan with the device to pair:",
       },
     );
     return EXIT.ok;

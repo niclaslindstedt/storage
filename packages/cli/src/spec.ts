@@ -426,7 +426,7 @@ export const COMMANDS: CommandSpec[] = [
       },
       {
         name: "pair",
-        usage: `${BIN} account pair <name> [--admin-app] | --new <name> [--role <role>]  [--no-qr] [--json]`,
+        usage: `${BIN} account pair <name> [--admin-app] [--agent [--perms <list>] [--apps <list>]] | --new <name> [--role <role>]  [--no-qr] [--json]`,
         summary:
           "Print a one-time QR code that pairs a device to an account (or creates the account).",
         args: [0, 1],
@@ -448,6 +448,26 @@ export const COMMANDS: CommandSpec[] = [
             description:
               "Pair an admin device (Storage Remote, or another `storage` CLI). Admin accounts only, and only when logged in with the admin token: remote access is granted at the machine.",
           },
+          {
+            name: "agent",
+            type: "bool",
+            description:
+              "Pair an agent device (an AI agent's `storage-mcp`, a script), held by the server to --perms and --apps on every request.",
+          },
+          {
+            name: "perms",
+            type: "string",
+            value: "<list>",
+            description:
+              "Comma-separated agent permissions: data:read (the default), data:write, sharing, devices; with --admin-app also console:read, console:write.",
+          },
+          {
+            name: "apps",
+            type: "string",
+            value: "<list>",
+            description:
+              "Comma-separated app ids the agent may see, e.g. drive,notes (default: all).",
+          },
           NO_QR,
           JSON_FLAG,
         ],
@@ -467,6 +487,10 @@ export const COMMANDS: CommandSpec[] = [
         cmd: `${BIN} account create grandma --quota 10G --pair`,
         note: "a new family member, with a QR code for her phone",
       },
+      {
+        cmd: `${BIN} account pair niclas --agent --perms data:read --apps drive --no-qr`,
+        note: "a code for `storage-mcp pair`: an AI agent that may read the drive",
+      },
       { cmd: `${BIN} account edit kid --disable`, note: "lock an account out" },
       {
         cmd: `${BIN} account pair niclas --admin-app`,
@@ -485,9 +509,9 @@ export const COMMANDS: CommandSpec[] = [
     aliases: ["devices"],
     group: "admin",
     summary: "List devices, revoke them and remove admin access.",
-    usage: `${BIN} device <ls|view|revoke|remove-admin> [<id>...] [flags]`,
+    usage: `${BIN} device <ls|view|revoke|remove-admin|scope> [<id>...] [flags]`,
     description:
-      "The console's Devices page. Devices are named by id or a unique id prefix. Revoking a device ends its sessions and deletes its copy of the account key at once; rotate shared namespace keys from an app afterwards if it was lost. `remove-admin` takes remote console access away from an admin device (it can never be granted back — pair a new one).",
+      "The console's Devices page. Devices are named by id or a unique id prefix. Revoking a device ends its sessions and deletes its copy of the account key at once; rotate shared namespace keys from an app afterwards if it was lost. `remove-admin` takes remote console access away from an admin device (it can never be granted back — pair a new one). `scope` narrows what an agent device may do (or makes an ordinary device an agent); a scope never widens.",
     subcommands: [
       {
         name: "ls",
@@ -510,6 +534,7 @@ export const COMMANDS: CommandSpec[] = [
             description: "Only devices in this state.",
           },
           { name: "admin", type: "bool", description: "Only admin devices." },
+          { name: "agent", type: "bool", description: "Only agent devices." },
           {
             name: "all",
             short: "a",
@@ -541,10 +566,38 @@ export const COMMANDS: CommandSpec[] = [
         args: [1, Infinity],
         flags: [YES_FLAG],
       },
+      {
+        name: "scope",
+        usage: `${BIN} device scope <id>... --perms <list> [--apps <list>] [--yes]`,
+        summary:
+          "Narrow agent devices' permissions and apps (never widens; the device signs in again).",
+        args: [1, Infinity],
+        flags: [
+          {
+            name: "perms",
+            type: "string",
+            value: "<list>",
+            description:
+              'The permissions it keeps, comma-separated ("" for none): data:read, data:write, sharing, devices, console:read, console:write.',
+          },
+          {
+            name: "apps",
+            type: "string",
+            value: "<list>",
+            description:
+              "The apps it keeps, comma-separated (default: unchanged if limited, else all).",
+          },
+          YES_FLAG,
+        ],
+      },
     ],
     examples: [
       { cmd: `${BIN} device ls --account niclas`, note: "" },
       { cmd: `${BIN} device revoke dev_Q2hhbGxl --yes`, note: "a lost phone" },
+      {
+        cmd: `${BIN} device scope dev_QWdlbnQ --perms data:read --apps drive`,
+        note: "make an AI agent read-only, on the drive only",
+      },
       {
         cmd: `${BIN} device ls --state pending -q | xargs ${BIN} device revoke -y`,
         note: "revoke every device that never got its keys",

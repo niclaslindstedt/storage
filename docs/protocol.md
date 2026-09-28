@@ -23,8 +23,24 @@ carry `Authorization: Bearer <token>`.
 - `GET /v1/info` — server id, name, protocol, capabilities, TLS mode/fingerprint. `capabilities` includes `console` when admin devices can use the remote console.
 - `POST /v1/pair {code, device}` — enrol a device (`device = {name, platform, dskPublic, dekPublic}`; keys are raw uncompressed P-256 points, base64url). The answer's `console` is `true` when the code enrolled an admin device.
 - `POST /v1/auth/challenge {deviceId}` → `{challenge}`; `POST /v1/auth/token {deviceId, challenge, signature}` → `{token, expiresAt}`. The signature is ECDSA P-256/SHA-256 (IEEE P1363) over `oss-storage/v1/auth|<serverId>|<deviceId>|<challenge>`.
-- `POST /v1/pairings` — mint a pairing (own account; admins: any/new). `console: true` is always refused here: admin devices are paired only from the local console or the CLI.
-- `GET /v1/me` (with `console`: whether this is an admin device), `PUT /v1/me/keys`, `GET /v1/me/devices`, `GET /v1/me/pending-devices`, `PATCH|DELETE /v1/devices/:id`.
+- `POST /v1/pairings` — mint a pairing (own account; admins: any/new). `console: true` is always refused here: admin devices are paired only from the local console or the CLI. `agent: {perms, apps}` makes the device it enrols an **agent device** (below).
+- `GET /v1/me` (with `console`: whether this is an admin device, and `agent`: an agent device's scope or `null`), `PUT /v1/me/keys`, `GET /v1/me/devices`, `GET /v1/me/pending-devices`, `PATCH|DELETE /v1/devices/:id`.
+
+### Agent devices
+
+A device paired with an `agent` scope — `{perms: [...], apps: [...] | null}`,
+perms from `data:read`, `data:write`, `sharing`, `devices`, `console:read`,
+`console:write` (a write implies its read) — is held to it by the server on
+every request: a route outside its permissions answers `403`, a namespace of
+another app `404`. `data:*` covers namespaces, files, records, changes and
+events; `sharing` members, invites, joining, key wraps and rotation;
+`devices` the account's devices, pairings and keys (without it, only the
+device's own first `deviceWraps` entry may be stored); `console:*` the
+console routes, and only on an admin device. `GET /v1/me`, `GET /v1/info`,
+logout and revoking itself are always allowed. A scoped device mints only
+pairings for its own account, and never wider than itself. `/v1/info` lists
+the `agents` capability. See [AI agents](mcp.md).
+
 - `GET /v1/events` — Server-Sent Events: `ns {ns, seq}`, `namespaces`, `device {revoked}`.
 
 ## Admin

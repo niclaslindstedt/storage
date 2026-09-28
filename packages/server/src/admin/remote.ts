@@ -88,6 +88,7 @@ export function remoteConsoleRoutes(router: Router, api: ConsoleApi): void {
       ip: req.ip ?? "unknown",
       actor: p.deviceId,
       remote: true,
+      scope: p.scope,
       async body() {
         return req.json();
       },

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Set every shipped manifest and embedded version constant to <tag>'s
 # version: the root and workspace package.json files (server, testkit,
-# cli), the testkit's pinned server dependency, package-lock.json, the
-# server's VERSION constant (the CLI bundles it) and the website.
-# Idempotent (OSS_SPEC §10.3 step 4).
+# cli, mcp), the testkit's pinned server dependency, package-lock.json, the
+# server's VERSION constant (the CLI bundles it), the MCP server's, and the
+# website. Idempotent (OSS_SPEC §10.3 step 4).
 #
 #   scripts/update-versions.sh <tag>
 set -euo pipefail
@@ -19,6 +19,7 @@ const files = [
   "packages/server/package.json",
   "packages/testkit/package.json",
   "packages/cli/package.json",
+  "packages/mcp/package.json",
   "website/package.json",
 ];
 for (const file of files) {
@@ -29,13 +30,17 @@ for (const file of files) {
     pkg.dependencies["@niclaslindstedt/storage-server"] = version;
   fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
 }
-const ts = "packages/server/src/version.ts";
-fs.writeFileSync(
-  ts,
-  fs
-    .readFileSync(ts, "utf8")
-    .replace(/VERSION = "[^"]*"/, `VERSION = "${version}"`),
-);
+for (const ts of [
+  "packages/server/src/version.ts",
+  "packages/mcp/src/version.ts",
+]) {
+  fs.writeFileSync(
+    ts,
+    fs
+      .readFileSync(ts, "utf8")
+      .replace(/VERSION = "[^"]*"/, `VERSION = "${version}"`),
+  );
+}
 JS
 
 npm install --package-lock-only --ignore-scripts --no-audit --no-fund >/dev/null

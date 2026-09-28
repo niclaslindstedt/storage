@@ -5,12 +5,12 @@ List devices, revoke them and remove admin access.
 ## Synopsis
 
 ```
-storage device <ls|view|revoke|remove-admin> [<id>...] [flags]
+storage device <ls|view|revoke|remove-admin|scope> [<id>...] [flags]
 ```
 
 ## Description
 
-The console's Devices page. Devices are named by id or a unique id prefix. Revoking a device ends its sessions and deletes its copy of the account key at once; rotate shared namespace keys from an app afterwards if it was lost. `remove-admin` takes remote console access away from an admin device (it can never be granted back — pair a new one).
+The console's Devices page. Devices are named by id or a unique id prefix. Revoking a device ends its sessions and deletes its copy of the account key at once; rotate shared namespace keys from an app afterwards if it was lost. `remove-admin` takes remote console access away from an admin device (it can never be granted back — pair a new one). `scope` narrows what an agent device may do (or makes an ordinary device an agent); a scope never widens.
 
 Aliases: `storage devices`.
 
@@ -31,6 +31,7 @@ Aliases: `list`.
 | `--account` | string | — | — | Only this account's devices. |
 | `--state` | string | — | — | Only devices in this state. |
 | `--admin` | bool | — | — | Only admin devices. |
+| `--agent` | bool | — | — | Only agent devices. |
 | `-a, --all` | bool | — | — | Include revoked devices. |
 | `--json` | bool | — | — | Print the console API's JSON instead of a table. |
 | `-q, --quiet` | bool | — | — | Print only ids (or names), one per line — for piping. |
@@ -74,6 +75,20 @@ storage device remove-admin <id>... [--yes]
 |---|---|---|---|---|
 | `-y, --yes` | bool | — | — | Do not ask for confirmation. |
 
+### scope
+
+Narrow agent devices' permissions and apps (never widens; the device signs in again).
+
+```
+storage device scope <id>... --perms <list> [--apps <list>] [--yes]
+```
+
+| Flag | Type | Default | Environment | Description |
+|---|---|---|---|---|
+| `--perms` | string | — | — | The permissions it keeps, comma-separated ("" for none): data:read, data:write, sharing, devices, console:read, console:write. |
+| `--apps` | string | — | — | The apps it keeps, comma-separated (default: unchanged if limited, else all). |
+| `-y, --yes` | bool | — | — | Do not ask for confirmation. |
+
 ## Global options
 
 | Flag | Type | Default | Environment | Description |
@@ -108,6 +123,12 @@ storage device revoke dev_Q2hhbGxl --yes
 ```
 
 a lost phone
+
+```sh
+storage device scope dev_QWdlbnQ --perms data:read --apps drive
+```
+
+make an AI agent read-only, on the drive only
 
 ```sh
 storage device ls --state pending -q | xargs storage device revoke -y

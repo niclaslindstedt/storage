@@ -30,6 +30,7 @@ import {
   type RequestMeta,
   SECRET_PATTERN,
 } from "./principal.ts";
+import { type AgentScope, intersect, readScope, writeScope } from "./scope.ts";
 
 export type PairingInput = {
   accountId?: string;
@@ -45,6 +46,12 @@ export type PairingInput = {
    * device API — and only for an admin account.
    */
   console?: boolean;
+  /**
+   * Enrol an agent device (SPEC §11.4): the device gets this scope and the
+   * server holds it to it on every request. Console permissions need
+   * `console`.
+   */
+  scope?: AgentScope;
 };
 
 export type PairingCreated = {
@@ -83,6 +90,14 @@ export function createPairing(
     if (input.code !== undefined || input.transfer !== undefined)
       throw badRequest("an admin device pairing is minted by the server");
   }
+  if (
+    input.scope &&
+    !input.console &&
+    input.scope.perms.some((p) => p.startsWith("console:"))
+  )
+    throw badRequest(
+      "console permissions need an admin device pairing (console: true)",
+    );
   if (input.code !== undefined && !SECRET_PATTERN.test(input.code)) {
     throw badRequest("code must be 32 bytes base64url");
   }
@@ -99,8 +114,8 @@ export function createPairing(
   try {
     ctx.db.run(
       `INSERT INTO pairings(id, code_hash, account_id, new_account_name, new_account_role,
-                            transfer, created_by, created_at, expires_at, console)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            transfer, created_by, created_at, expires_at, console, scope)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       sha256B64u(code),
       input.accountId ?? null,
@@ -111,6 +126,7 @@ export function createPairing(
       now,
       expiresAt,
       input.console ? 1 : 0,
+      writeScope(input.scope ?? null),
     );
   } catch {
     throw conflict("pairing code already in use");
@@ -123,12 +139,18 @@ export function createPairing(
       account: input.accountId ?? null,
       newAccount: input.newAccount?.role ?? null,
       ...(input.console ? { console: true } : {}),
+      ...(input.scope ? { agent: input.scope } : {}),
     },
   });
   return { pairingId: id, ...(minted ? { code: minted } : {}), expiresAt };
 }
 
-/** A device may mint pairings for its own account; admins for anyone. */
+/**
+ * A device may mint pairings for its own account; admins for anyone. An
+ * agent device (with the devices permission) only for its own account, and
+ * the device it enrols is never wider than itself: the pairing inherits the
+ * agent's scope, narrowed by any scope asked for.
+ */
 export function authorizePairing(
   principal: Principal,
   input: PairingInput,
@@ -137,6 +159,13 @@ export function authorizePairing(
   // device — not even an admin device (a stolen phone must not mint more).
   if (input.console)
     throw forbidden("admin devices are paired from the local console or CLI");
+  if (principal.scope) {
+    if (input.newAccount || input.accountId !== principal.accountId)
+      throw forbidden("an agent device pairs devices to its own account only");
+    input.scope = input.scope
+      ? intersect(input.scope, principal.scope)
+      : principal.scope;
+  }
   if (principal.role === "admin") return;
   if (principal.role === "guest") throw forbidden("guests cannot add devices");
   if (input.newAccount || input.accountId !== principal.accountId) {
@@ -155,6 +184,8 @@ export async function redeemPairing(
   transfer: string | null;
   /** Whether the device was enrolled as an admin device. */
   console: boolean;
+  /** The agent scope the device was enrolled with (null: unscoped). */
+  scope: AgentScope | null;
 }> {
   if (typeof input.code !== "string" || !SECRET_PATTERN.test(input.code)) {
     throw unauthenticated("invalid pairing code");
@@ -170,6 +201,7 @@ export async function redeemPairing(
       expires_at: number;
       used_at: number | null;
       console: number;
+      scope: string | null;
     }>("SELECT * FROM pairings WHERE code_hash = ?", sha256B64u(input.code));
     if (!row || row.used_at !== null || row.expires_at < ctx.clock.now()) {
       throw unauthenticated("invalid or expired pairing code");
@@ -204,8 +236,10 @@ export async function redeemPairing(
     if (!acc || acc.disabled_at !== null)
       throw unauthenticated("account is disabled");
     const console = row.console === 1 && acc.role === "admin";
+    const scope = readScope(row.scope);
     const deviceId = insertDevice(ctx, accountId, device, meta.origin, {
       console,
+      scope,
     });
     ctx.audit.append({
       actor: deviceId,
@@ -216,9 +250,10 @@ export async function redeemPairing(
         pairing: row.id,
         platform: device.platform,
         ...(console ? { console: true } : {}),
+        ...(scope ? { agent: scope } : {}),
       },
     });
-    return { deviceId, accountId, transfer: row.transfer, console };
+    return { deviceId, accountId, transfer: row.transfer, console, scope };
   });
   return { ...result, account: getAccount(ctx, result.accountId)! };
 }

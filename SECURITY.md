@@ -42,6 +42,10 @@ In scope:
   its Docker image): how it keeps and sends admin tokens and admin-device
   keys.
 - `@niclaslindstedt/storage-testkit` where it could weaken a real server.
+- `@niclaslindstedt/storage-mcp` (the MCP server for AI agents): anything
+  that lets an agent act beyond its device's scope or the local policy,
+  skip a human confirmation, leak a secret or key material into the
+  model's context, or reach a host other than its storage server.
 - The end-to-end encryption design in [`SPEC.md`](SPEC.md) §4 and its
   client implementation in `@niclaslindstedt/oss-framework/storage`
   (report there or here).

@@ -67,16 +67,16 @@ Prometheus scrape configurations keep working.
 
 ## Pages
 
-| Page         | What it is for                                                                                                                                                                 |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Overview     | A health verdict with the failing checks, uptime, traffic charts, counts, storage and disk, TLS certificate, port mapping, recent warnings and recent administration.          |
-| Accounts     | Create accounts, show a **pairing QR code** for a new device, **pair the admin app** on your phone, rename, change role or quota, disable/enable, delete (type the name).      |
-| Devices      | Every device with its account, platform, state (active, pending keys, revoked), app origin and last activity. **Revoke** signs a lost device out; admin devices are marked.    |
-| Namespaces   | Each app bucket's owner, members and roles, pending invites, size, change count and key epoch. Names and contents are end-to-end encrypted and are not shown.                  |
-| Traffic      | Requests, client and server errors and rate-limited requests per minute for the last hour, latency percentiles, open live connections, and a per-endpoint table.               |
-| Logs         | A live tail of the server log with a level filter, search and pause, plus a download of the full debug log file.                                                               |
-| Audit log    | The tamper-evident audit chain, newest first, filterable by action, with a **Verify chain** button.                                                                            |
-| Troubleshoot | Every health check with a fix for each problem; renew the certificate, refresh port mapping, run housekeeping, back up, download a diagnostics bundle; the effective settings. |
+| Page         | What it is for                                                                                                                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overview     | A health verdict with the failing checks, uptime, traffic charts, counts, storage and disk, TLS certificate, port mapping, recent warnings and recent administration.                                     |
+| Accounts     | Create accounts, show a **pairing QR code** for a new device, **pair an agent** (AI agents), **pair the admin app** on your phone, rename, change role or quota, disable/enable, delete (type the name).  |
+| Devices      | Every device with its account, platform, state (active, pending keys, revoked), app origin and last activity. **Revoke** signs a lost device out; admin devices and agents (with their scope) are marked. |
+| Namespaces   | Each app bucket's owner, members and roles, pending invites, size, change count and key epoch. Names and contents are end-to-end encrypted and are not shown.                                             |
+| Traffic      | Requests, client and server errors and rate-limited requests per minute for the last hour, latency percentiles, open live connections, and a per-endpoint table.                                          |
+| Logs         | A live tail of the server log with a level filter, search and pause, plus a download of the full debug log file.                                                                                          |
+| Audit log    | The tamper-evident audit chain, newest first, filterable by action, with a **Verify chain** button.                                                                                                       |
+| Troubleshoot | Every health check with a fix for each problem; renew the certificate, refresh port mapping, run housekeeping, back up, download a diagnostics bundle; the effective settings.                            |
 
 ## Health checks
 
@@ -144,8 +144,10 @@ curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8081/api/checks
 | `DELETE /api/accounts/:id`                                                          | Body `{"confirm": "<account name>"}`                                                             |
 | `POST /api/accounts/:id/pairing`, `POST /api/pairing`                               | A pairing QR (`svg`) and `payload`; the second creates the account on redemption                 |
 | `POST /api/accounts/:id/pairing {"console": true}`                                  | An **admin device** pairing for an admin account (this console only, never remotely)             |
-| `GET /api/devices`, `DELETE /api/devices/:id`                                       | List (with `console` for admin devices), revoke                                                  |
+| `POST /api/accounts/:id/pairing {"agent": {"perms": [...], "apps": [...]}}`         | An **agent device** pairing, held to that scope by the server ([AI agents](mcp.md))              |
+| `GET /api/devices`, `DELETE /api/devices/:id`                                       | List (with `console` for admin devices and `agent` for agents' scopes), revoke                   |
 | `PATCH /api/devices/:id {"console": false}`                                         | Take an admin device's console access away; it stays paired                                      |
+| `PATCH /api/devices/:id {"agent": {"perms": [...], "apps": [...]}}`                 | Narrow a device's scope (or make it an agent); never widens                                      |
 | `GET /api/namespaces`                                                               | Namespace metadata                                                                               |
 | `GET /api/logs?after=&level=&q=&limit=`                                             | Log entries; `/api/logs/stream` is the live SSE stream; `/api/logs/file` downloads the debug log |
 | `GET /api/audit?before=&action=&limit=`, `POST /api/audit/verify`                   | Audit entries, newest first; verify the chain                                                    |
@@ -175,6 +177,19 @@ back into an ordinary one, and **Revoke** signs it out. `--remote-console off`
 switches the remote console off entirely. See [Storage Remote](remote-app.md).
 The headless CLI can be paired the same way (`storage auth login <payload>`,
 see [Headless admin CLI](cli.md)).
+
+## Agents
+
+**Pair an agent** on an account pairs an _agent device_ — for an AI agent
+running [`storage-mcp`](mcp.md), or a script — held by the server to the
+permissions and apps you tick. Console permissions are offered for admin
+accounts, here only (they make the agent an admin device). On **Devices**
+an agent shows an _agent_ badge with its scope. Narrow a scope with
+`PATCH /api/devices/:id {"agent": {"perms": [...], "apps": [...]}}` (it can
+only shrink); **Revoke** ends it. The CLI equivalent is
+`storage-server pair --account <name> --agent --perms <list> --apps <list>`
+on the server's machine, or `storage account pair <name> --agent …` and
+`storage device scope <id> --perms …` with the [headless CLI](cli.md).
 
 ## Security
 

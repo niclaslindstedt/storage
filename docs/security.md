@@ -102,6 +102,37 @@ The remote console sees exactly what the local one does: names, sizes and
 counts, never content. The app's own files are end-to-end encrypted like
 any other app's.
 
+## Agent devices (AI agents, MCP)
+
+An **agent device** is a device held to a scope: the permissions
+(`data:read`, `data:write`, `sharing`, `devices`, `console:read`,
+`console:write`) and, optionally, the apps it may use. It is what the
+[`storage-mcp`](mcp.md) server runs as, so an AI agent works with a
+credential that can do only what you granted.
+
+- **Enforced by the server, on every request.** The scope is stored with
+  the device and checked before any route runs; routes without a
+  classification are refused. Namespaces of other apps do not exist for it
+  (`404`), and their change events are not sent to it.
+- **Granted where access already exists, never widened.** A scope is set
+  when a pairing is minted — by the console or the CLI, or by a device of
+  the account for its own account, never wider than that device. It can be
+  narrowed afterwards (`PATCH /api/devices/:id {agent}`), never widened.
+  Devices and pairings an agent creates inherit its scope; console
+  permissions require an admin-device pairing, made at the machine.
+- **No key handover without `devices`.** Such an agent may store its own
+  first copy of the account key (after recovery or approval) and may revoke
+  itself, but cannot approve another device, pair one, or replace the
+  recovery key.
+- **Plaintext stays with the agent's operator.** `storage-mcp` decrypts on
+  the agent's machine, like any app. The server still sees only
+  ciphertext; the agent's model provider sees whatever the agent reads.
+
+`storage-mcp` adds its own guards on top — human confirmation for
+destructive, sharing and credential-minting actions, secrets kept out of
+the model's context, fenced untrusted content, one-origin TLS with pinning,
+an encrypted key vault and a local audit log. See [AI agents](mcp.md).
+
 ## Limits
 
 The server can deny service or withhold updates; it cannot read or forge

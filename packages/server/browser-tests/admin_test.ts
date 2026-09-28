@@ -189,6 +189,41 @@ test("admin app: pair a phone as an admin device, then take its access away", as
   await expect(device.getByTestId("drop-console")).toHaveCount(0);
 });
 
+test("agent: pair an AI agent limited to reading the drive", async ({
+  page,
+}) => {
+  await signIn(page);
+  await go(page, "Accounts");
+  await page.getByTestId("new-account").click();
+  const form = page.getByTestId("account-dialog");
+  await form.getByLabel("Name").fill("researcher");
+  await form.getByTestId("pair-now").uncheck();
+  await form.getByTestId("submit").click();
+
+  const row = page.getByTestId("account-researcher");
+  await row.getByTestId("pair-agent").click();
+  const agent = page.getByTestId("agent-dialog");
+  await expect(agent.getByTestId("agent-perm-data:read")).toBeChecked();
+  await expect(agent.getByTestId("agent-perm-data:write")).not.toBeChecked();
+  // A member account: no console permissions on offer.
+  await expect(agent.getByTestId("agent-perm-console:read")).toHaveCount(0);
+  await agent.getByTestId("agent-apps").fill("drive");
+  await agent.getByTestId("agent-submit").click();
+
+  const pairing = page.getByTestId("pairing-dialog");
+  await expect(pairing).toContainText("storage-mcp pair");
+  const payload = await pairing.getByTestId("pairing-payload").inputValue();
+  await pairing.getByRole("button", { name: "Close" }).click();
+
+  await pairDevice(payload, "Research agent");
+  await go(page, "Devices");
+  const device = page.getByTestId("device-Research agent");
+  await expect(device).toContainText("agent");
+  await expect(device.getByTestId("agent-scope")).toHaveText(
+    "data:read · drive",
+  );
+});
+
 test("logs: live tail with filter", async ({ page }) => {
   await signIn(page);
   await go(page, "Logs");

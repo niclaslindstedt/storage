@@ -27,8 +27,8 @@ Use the Makefile (OSS_SPEC §9); CI invokes the same targets.
 
 | Command                               | What it does                                                                                    |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `make build`                          | Bundle `packages/server`, `packages/testkit` and `packages/cli` (tsup)                          |
-| `make test`                           | Build, then server, testkit and CLI unit tests, full-stack e2e                                  |
+| `make build`                          | Bundle `packages/server`, `packages/testkit`, `packages/cli` and `packages/mcp` (tsup)          |
+| `make test`                           | Build, then server, testkit and CLI unit tests, full-stack e2e, the MCP server's tests          |
 | `make test-app`                       | Playwright tests of `apps/reference`, `apps/remote` and the console against a test server       |
 | `make remote` / `make remote-native`  | Build Storage Remote (`apps/remote`) / install and type-check its native wrapper                |
 | `make examples`                       | Run every example in `examples/` (CI does too)                                                  |
@@ -87,6 +87,12 @@ packages/testkit/  in-process / subprocess test server + framework helpers
 packages/cli/      `storage`, the headless admin CLI (SPEC §11.3): spec.ts
                    (registry) → args/env/config/client/http → commands/;
                    speaks only the console API (token or admin device)
+packages/mcp/      storage-mcp: the MCP server for AI agents (SPEC §11.4) —
+                   protocol/ (stdio JSON-RPC, both MCP eras, schemas), tools/
+                   (registry + one module per group), vault, net, config,
+                   session, audit, person.ts (terminal-only commands for
+                   what hands out keys). Zero runtime deps; the framework
+                   client is bundled from source
 e2e/               framework client ⇄ real server (Vitest)
 apps/reference/    reference PWA + Playwright tests
 apps/remote/       Storage Remote: the hoster's app (console + encrypted drive),
@@ -116,32 +122,61 @@ Rules:
 - Remote administration is granted at the machine only: admin devices are
   paired by the local console or the CLI, never through the device API
   (SPEC §11.2). Keep it that way.
+- Agent scopes are enforced by the server and only ever narrow (SPEC
+  §11.4). Every new device-API route needs a row in the route table in
+  `services/scope.ts` (a test fails otherwise; unlisted routes are refused
+  to agents).
+- `storage-mcp` has no tool that hands out keys or credentials (pairing,
+  device approval, device QR, invites, recovery keys): those are
+  person-only terminal commands (`src/person.ts`). It never puts a secret
+  or token in a tool result, never lets the model confirm for the person,
+  and returns everything from the server fenced as untrusted data.
 - The client lives in oss-framework (`src/storage/selfhosted/`). Protocol
   changes land in both repositories; `e2e/framework-ref` pins the
   framework ref the e2e suite runs against.
 
 ## Where new code goes
 
-| Change                         | Goes in                                                                                                                                                                  |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A new API endpoint             | `services/<area>.ts` (logic + test) → `api/<area>.ts` (route) → `docs/protocol.md` + SPEC §6                                                                             |
-| A schema change                | Append a migration to `db/schema.ts` (never edit a shipped one)                                                                                                          |
-| A CLI command or flag          | `cli/spec.ts` (registry) + `cli/commands/*.ts`, then `make man`                                                                                                          |
-| A config key                   | `config.ts` + `cli/spec.ts` (flag/env) + `docs/configuration.md`                                                                                                         |
-| An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md` → the CLI        |
-| A headless CLI command         | `packages/cli/src/spec.ts` (registry) + `src/commands/*.ts` + a test in `packages/cli/tests/` (both transports), then `make man`; `docs/cli.md`                          |
-| A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                         |
-| Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                |
-| A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`   |
-| A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                        |
-| A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                 |
-| A client feature               | oss-framework `src/storage/selfhosted/` + an e2e test here                                                                                                               |
-| A scenario an app depends on   | `e2e/tests/apps_test.ts`                                                                                                                                                 |
-| A UI-level behaviour           | `apps/reference` + a Playwright test                                                                                                                                     |
-| A doc topic                    | `docs/<topic>.md` + `cli/docs.ts` (embedded) + `DOC_ORDER` in `website/scripts/extract-source-data.mjs`                                                                  |
-| An example                     | `examples/<name>/` with a README, a `start` script or `check.sh`, a row in `examples/README.md`, the `examples` Makefile target, and `EXAMPLES` in the website extractor |
-| Website pitch or feature cards | `website/src/site.ts` (SEO copy) and `website/src/components/Home.tsx`                                                                                                   |
-| A CI or release step           | `.github/workflows/*.yml` — pin actions by commit SHA, declare job-level `permissions:` (`scripts/check-workflow-permissions.mjs` enforces it)                           |
+| Change                         | Goes in                                                                                                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A new API endpoint             | `services/<area>.ts` (logic + test) → `api/<area>.ts` (route) → `docs/protocol.md` + SPEC §6                                                                                                                         |
+| A schema change                | Append a migration to `db/schema.ts` (never edit a shipped one)                                                                                                                                                      |
+| A CLI command or flag          | `cli/spec.ts` (registry) + `cli/commands/*.ts`, then `make man`                                                                                                                                                      |
+| A config key                   | `config.ts` + `cli/spec.ts` (flag/env) + `docs/configuration.md`                                                                                                                                                     |
+| An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md` → the CLI                                                    |
+| A headless CLI command         | `packages/cli/src/spec.ts` (registry) + `src/commands/*.ts` + a test in `packages/cli/tests/` (both transports), then `make man`; `docs/cli.md`                                                                      |
+| A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                                                                     |
+| Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                                                            |
+| A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`                                               |
+| A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                                                                    |
+| A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                                                             |
+| A client feature               | oss-framework `src/storage/selfhosted/` + an e2e test here                                                                                                                                                           |
+| A scenario an app depends on   | `e2e/tests/apps_test.ts`                                                                                                                                                                                             |
+| A UI-level behaviour           | `apps/reference` + a Playwright test                                                                                                                                                                                 |
+| A doc topic                    | `docs/<topic>.md` + `cli/docs.ts` (embedded) + `DOC_ORDER` in `website/scripts/extract-source-data.mjs`                                                                                                              |
+| An example                     | `examples/<name>/` with a README, a `start` script or `check.sh`, a row in `examples/README.md`, the `examples` Makefile target, and `EXAMPLES` in the website extractor                                             |
+| Website pitch or feature cards | `website/src/site.ts` (SEO copy) and `website/src/components/Home.tsx`                                                                                                                                               |
+| A CI or release step           | `.github/workflows/*.yml` — pin actions by commit SHA, declare job-level `permissions:` (`scripts/check-workflow-permissions.mjs` enforces it)                                                                       |
+| Change                         | Goes in                                                                                                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A new API endpoint             | `services/<area>.ts` (logic + test) → `api/<area>.ts` (route) → `docs/protocol.md` + SPEC §6                                                                                                                         |
+| A schema change                | Append a migration to `db/schema.ts` (never edit a shipped one)                                                                                                                                                      |
+| A CLI command or flag          | `cli/spec.ts` (registry) + `cli/commands/*.ts`, then `make man`                                                                                                                                                      |
+| A config key                   | `config.ts` + `cli/spec.ts` (flag/env) + `docs/configuration.md`                                                                                                                                                     |
+| An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md`                                                              |
+| A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                                                                     |
+| Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                                                            |
+| A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`                                               |
+| A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                                                                    |
+| A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                                                             |
+| A client feature               | oss-framework `src/storage/selfhosted/` + an e2e test here                                                                                                                                                           |
+| A scenario an app depends on   | `e2e/tests/apps_test.ts`                                                                                                                                                                                             |
+| A UI-level behaviour           | `apps/reference` + a Playwright test                                                                                                                                                                                 |
+| An MCP tool                    | `packages/mcp/src/tools/<group>.ts` (+ the permission it needs) → a test in `packages/mcp/tests/` → the tool table in `docs/mcp.md`; a new console endpoint or Remote action needs its row in `tests/parity_test.ts` |
+| A doc topic                    | `docs/<topic>.md` + `cli/docs.ts` (embedded) + `DOC_ORDER` in `website/scripts/extract-source-data.mjs`                                                                                                              |
+| An example                     | `examples/<name>/` with a README, a `start` script or `check.sh`, a row in `examples/README.md`, the `examples` Makefile target, and `EXAMPLES` in the website extractor                                             |
+| Website pitch or feature cards | `website/src/site.ts` (SEO copy) and `website/src/components/Home.tsx`                                                                                                                                               |
+| A CI or release step           | `.github/workflows/*.yml` — pin actions by commit SHA, declare job-level `permissions:` (`scripts/check-workflow-permissions.mjs` enforces it)                                                                       |
 
 ## Test conventions (OSS_SPEC §20)
 
@@ -171,6 +206,11 @@ Rules:
   `shell`) — token transport in `cli_test.ts`, admin device in
   `remote_test.ts`; `scripts/docker-smoke-cli.sh` drives the server image
   with the CLI image in CI.
+- `storage-mcp`: `packages/mcp/tests/` — protocol (stand-in tools),
+  units (vault, policy, output safety, network + pinning), integration
+  against a real in-process server (`helpers.ts`: `home`, `agent`), parity
+  with the console and Remote, and the built binary over stdio
+  (`make test-mcp`, after `make build`).
 - Storage Remote: unit tests in `apps/remote/tests/` (Vitest, node), browser
   tests in `apps/remote/browser-tests/` (Playwright, `make test-app`),
   server side in `packages/server/tests/admin_remote_test.ts` and

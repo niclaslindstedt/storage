@@ -139,7 +139,11 @@ export type Device = {
   state: "active" | "pending" | "revoked";
   /** An admin device: may use this console remotely (SPEC §11.2). */
   console: boolean;
+  /** An agent device's scope (SPEC §11.4); null for ordinary devices. */
+  agent: AgentScope | null;
 };
+
+export type AgentScope = { perms: string[]; apps: string[] | null };
 
 export type Namespace = {
   id: string;

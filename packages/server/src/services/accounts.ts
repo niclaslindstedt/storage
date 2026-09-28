@@ -4,11 +4,18 @@
 // SPEC §4.3) the server stores but cannot open.
 
 import type { Ctx } from "../context.ts";
-import { badRequest, conflict, notFound, quotaExceeded } from "../errors.ts";
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  notFound,
+  quotaExceeded,
+} from "../errors.ts";
 import { checkB64u } from "../validate.ts";
 import { importP256Public } from "../crypto.ts";
 import { newId } from "../util/random.ts";
 import { deleteNamespace } from "./namespaces.ts";
+import { has } from "./scope.ts";
 import { type AccountRole, NAME_PATTERN, type Principal } from "./principal.ts";
 
 export type Account = {
@@ -282,6 +289,21 @@ export async function setAccountKeys(
   if (input.recoveryWrap !== undefined)
     checkWrap(input.recoveryWrap, "recoveryWrap");
   const wraps = Object.entries(input.deviceWraps ?? {});
+  // An agent device without the devices permission (SPEC §11.4) may only
+  // store its own, first copy of the account key — after recovery or after
+  // another device approved it. It cannot set up keys, replace the recovery
+  // key or hand the account key to another device.
+  if (principal.scope && !has(principal.scope, "devices")) {
+    const own = getAccountKeys(ctx, principal.accountId, principal.deviceId);
+    if (
+      input.aekPublic !== undefined ||
+      input.recoveryWrap !== undefined ||
+      wraps.length !== 1 ||
+      wraps[0]![0] !== principal.deviceId ||
+      own.deviceWrap !== null
+    )
+      throw forbidden("this agent device lacks the devices permission");
+  }
   for (const [deviceId, wrap] of wraps) {
     checkWrap(wrap, `deviceWraps.${deviceId}`);
     const dev = ctx.db.get(

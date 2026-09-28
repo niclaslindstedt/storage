@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "lib": ["ES2023", "DOM"],
+    "paths": {
+      "@niclaslindstedt/storage-server": ["../server/src/index.ts"],
+      "@niclaslindstedt/oss-framework/storage/selfhosted": [
+        "../../../oss-framework/src/storage/selfhosted/index.ts"
+      ],
+      "@niclaslindstedt/oss-framework/qr/encode": [
+        "../../../oss-framework/src/qr/encode.ts"
+      ],
+      "@niclaslindstedt/oss-framework/qr/svg": [
+        "../../../oss-framework/src/qr/svg.ts"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "tests",
+    "tsup.config.ts",
+    "vitest.config.ts",
+    "../../../oss-framework/src/storage/folder/fsa.d.ts",
+    "../server/src/md.d.ts"
+  ]
+}
