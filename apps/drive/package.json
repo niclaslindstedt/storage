@@ -1,0 +1,19 @@
+{
+  "name": "storage-drive-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "The web drive: your files on a storage server in any browser, like Dropbox — sign in by pairing, browse, upload, preview, compare and restore versions, and watch changes sync live. Everything is encrypted in the browser. Published on the website at /storage/drive/.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "vite": "^7.1.0"
+  }
+}

@@ -28,11 +28,16 @@ const err = (file, message) => findings.push({ level: "error", file, message });
 const warn = (file, message) =>
   findings.push({ level: "warning", file, message });
 
+// Apps built into dist/ beside the pages (not prerendered, `noindex`,
+// kept out of the sitemap by robots.txt): the web drive, apps/drive.
+const APP_DIRS = new Set([join(DIST, "drive")]);
+
 function walkHtml(dir) {
   const out = [];
   if (!existsSync(dir)) return out;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
+    if (entry.isDirectory() && APP_DIRS.has(full)) continue;
     if (entry.isDirectory()) out.push(...walkHtml(full));
     else if (entry.isFile() && entry.name.endsWith(".html")) out.push(full);
   }

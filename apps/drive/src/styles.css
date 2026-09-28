@@ -1,0 +1,85 @@
+/* The web drive's own layout, over the admin console's stylesheet (tokens,
+   top bar, sidebar, dialogs) and what it shares with Storage Remote
+   (common.css: set-up screens, file lists, versions). */
+
+.drive-nav ul ul {
+  position: static;
+}
+
+.drive-nav .nav-sep {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.drive-nav .nav-folder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.drive-nav .icon.folder {
+  width: 18px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.drive-nav .icon.folder::before {
+  top: -3px;
+  width: 8px;
+  height: 4px;
+}
+
+main {
+  max-width: 1100px;
+}
+
+.crumbs {
+  font-size: 13px;
+}
+
+/* The sync pill pulses while it syncs. */
+.dot.syncing {
+  background: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot.syncing {
+    animation: none;
+  }
+}
+
+.sync-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.file-list time {
+  flex: none;
+  white-space: nowrap;
+}
+
+.file-list .file-name a {
+  color: inherit;
+}
+
+/* Wider screens: the file list reads as a table. */
+@media (min-width: 900px) {
+  .file-list > li {
+    min-height: 48px;
+  }
+}

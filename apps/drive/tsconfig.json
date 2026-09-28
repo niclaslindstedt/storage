@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@niclaslindstedt/oss-framework/storage/selfhosted": [
+        "../../../oss-framework/src/storage/selfhosted/index.ts"
+      ],
+      "@niclaslindstedt/oss-framework/qr/encode": [
+        "../../../oss-framework/src/qr/encode.ts"
+      ],
+      "@niclaslindstedt/oss-framework/qr/svg": [
+        "../../../oss-framework/src/qr/svg.ts"
+      ],
+      "@storage/console/*": ["../../packages/server/src/admin/ui/*"],
+      "@storage/remote/*": ["../remote/src/*"]
+    }
+  },
+  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts"]
+}
