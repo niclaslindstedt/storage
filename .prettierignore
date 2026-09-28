@@ -10,3 +10,6 @@ man/
 website/src/generated/
 website/.ssr-build/
 .lighthouseci/
+apps/*/native/ios/
+apps/*/native/android/
+apps/*/native/.expo/
