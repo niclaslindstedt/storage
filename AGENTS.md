@@ -5,6 +5,8 @@ The single source of truth for AI coding agents working in this repository.
 `.github/copilot-instructions.md` and `.aider.conf.md` are symlinks to this
 file — edit only this file.
 
+Fleet guidelines: APP_GUIDELINES 1.2.0
+
 ## What this project is
 
 A self-hosted, zero-knowledge storage server for the local-first PWAs built
