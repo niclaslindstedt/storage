@@ -244,6 +244,15 @@ sources must still pass `make website` and `npm run check:seo` in
 `website/` (the `seo` and `lighthouse` workflows run both on every PR); the
 `pages` workflow redeploys on every push to `main`.
 
+The docs website is meant to be found: it keeps its titles, descriptions,
+canonical links, JSON-LD, `sitemap.xml`, `robots.txt` and `llms.txt`, and
+`check:seo` fails a real page that carries `noindex`. The apps are not:
+Storage Remote's page (`apps/remote/index.html`, pinned by
+`apps/remote/tests/unlisted_test.ts`) and the web drive built into the site
+(`apps/drive`) carry `noindex` and stay out of the sitemap, and `check:seo`
+fails an app page beside the docs that loses it. Never add `noindex` to the
+docs pages, and never give an app page a sitemap entry or a canonical link.
+
 ## Maintenance skills
 
 Skills live in `.agents/skills/` (`.claude/skills` is a symlink):

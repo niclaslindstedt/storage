@@ -317,6 +317,23 @@ function checkLinkGraph() {
       );
 }
 
+// The docs pages are meant to be found; the apps built beside them are not.
+// Each app's entry page carries `noindex`, so a crawler that reaches it
+// anyway leaves it out of search results.
+function checkAppsUnlisted() {
+  for (const dir of APP_DIRS) {
+    const index = join(dir, "index.html");
+    if (!existsSync(index)) continue;
+    const rel = relative(DIST, index).replace(/\\/g, "/");
+    const robots = attr(
+      readFileSync(index, "utf8"),
+      /<meta\s+name="robots"\s+content="([^"]+)"/,
+    );
+    if (!robots || !/\bnoindex\b/.test(robots))
+      err(rel, "an app page beside the docs must carry `noindex`");
+  }
+}
+
 function main() {
   if (!existsSync(DIST)) {
     process.stderr.write(
@@ -329,6 +346,7 @@ function main() {
   if (htmlFiles.length === 0) err("dist/", "no HTML files found");
   for (const file of htmlFiles) checkHtmlFile(file);
 
+  checkAppsUnlisted();
   checkSitemap(htmlFiles);
   checkRobotsTxt();
   checkLlmsTxt();
