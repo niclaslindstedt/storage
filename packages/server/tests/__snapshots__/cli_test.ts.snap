@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`discoverability > --debug-agent lists logs, config precedence and every env var 1`] = `
-"storage-server 0.1.0 troubleshooting context
+"storage-server <version> troubleshooting context
 node <v>
 
 Logs:
@@ -59,7 +59,7 @@ Never attach the data dir: it contains the (encrypted) data and the TLS private 
 `;
 
 exports[`discoverability > --help-agent is deterministic and points at \`commands\` 1`] = `
-"storage-server 0.1.0: a self-hosted, zero-knowledge storage server for local-first PWAs built on @niclaslindstedt/oss-framework.
+"storage-server <version>: a self-hosted, zero-knowledge storage server for local-first PWAs built on @niclaslindstedt/oss-framework.
 Apps encrypt everything on the device; the server stores ciphertext files and rows per namespace, detects conflicts atomically,
 keeps history and a trash, streams change events, shares single namespaces between accounts, pairs devices by QR code,
 gets its own HTTPS certificates (ACME) and forwards router ports (UPnP / NAT-PMP).
