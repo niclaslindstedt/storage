@@ -1,6 +1,6 @@
 {
   "name": "@niclaslindstedt/storage-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Administer a storage server headlessly: accounts, devices, namespaces, traffic, logs, audit and troubleshooting from the terminal, a script or a container.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",
