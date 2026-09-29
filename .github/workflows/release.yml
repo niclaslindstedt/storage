@@ -113,11 +113,12 @@ jobs:
       - name: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # The leading ./ makes these files: npm reads a bare a/b as a GitHub repo.
         run: |
-          npm publish pkg/niclaslindstedt-storage-server-*.tgz
-          npm publish pkg/niclaslindstedt-storage-testkit-*.tgz
-          npm publish pkg/niclaslindstedt-storage-cli-*.tgz
-          npm publish pkg/niclaslindstedt-storage-mcp-*.tgz
+          npm publish ./pkg/niclaslindstedt-storage-server-*.tgz
+          npm publish ./pkg/niclaslindstedt-storage-testkit-*.tgz
+          npm publish ./pkg/niclaslindstedt-storage-cli-*.tgz
+          npm publish ./pkg/niclaslindstedt-storage-mcp-*.tgz
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: npm-tarballs
