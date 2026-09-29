@@ -55,8 +55,8 @@ jobs:
             git commit -m "chore(release): update changelog and versions for ${TAG}"
             git push origin HEAD:main
           fi
-          git tag -f "${TAG}" HEAD
-          git push origin "${TAG}" --force
+          git tag -f -a "${TAG}" -m "Release ${TAG}" HEAD
+          git push origin -f "refs/tags/${TAG}"
 
   test:
     needs: prepare

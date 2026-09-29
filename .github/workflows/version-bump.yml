@@ -1,8 +1,8 @@
 name: version-bump
 
 # The single entry point for a release. Computes the next
-# semver from the conventional commits since the last v* tag and pushes a
-# lightweight vX.Y.Z tag on main. The push authenticates with RELEASE_TOKEN
+# semver from the conventional commits since the last v* tag and pushes an
+# annotated vX.Y.Z tag on main. The push authenticates with RELEASE_TOKEN
 # (a PAT or GitHub App token) because the default GITHUB_TOKEN suppresses
 # downstream triggers and the tag would not start `release`. Touches no
 # files and pushes no commits, so it is safe to re-run.
