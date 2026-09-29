@@ -65,7 +65,9 @@ describe("rows (key-value)", () => {
       "Paracetamol",
       "medications",
       "400mg",
-      "ibu",
+      // A leaked key would sit in the dump as its own JSON string. Bare, three
+      // letters turn up by chance in a few kilobytes of base64 now and then.
+      JSON.stringify("ibu"),
     ])
       expect(snap).not.toContain(plain);
   });
