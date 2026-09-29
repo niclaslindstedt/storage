@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Set every shipped manifest and embedded version constant to <tag>'s
 # version: the root and workspace package.json files (server, testkit,
-# cli, mcp), the testkit's pinned server dependency, package-lock.json, the
-# server's VERSION constant (the CLI bundles it), the MCP server's, and the
-# website. Idempotent.
+# cli, mcp), every workspace's pin on a sibling package (the testkit's and
+# the e2e suite's), package-lock.json, the server's VERSION constant (the
+# CLI bundles it), the MCP server's, and the website. Idempotent.
+#
+# A pin left behind names a version no workspace carries, and npm then asks
+# the registry for it, which fails for a version not published yet.
 #
 #   scripts/update-versions.sh <tag>
 set -euo pipefail
@@ -22,12 +25,18 @@ const files = [
   "packages/mcp/package.json",
   "website/package.json",
 ];
-for (const file of files) {
+// Workspaces that pin the siblings but ship nothing, so keep their own version.
+const pinsOnly = ["e2e/package.json"];
+for (const file of [...files, ...pinsOnly]) {
   if (!fs.existsSync(file)) continue;
   const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
-  pkg.version = version;
-  if (pkg.dependencies?.["@niclaslindstedt/storage-server"])
-    pkg.dependencies["@niclaslindstedt/storage-server"] = version;
+  if (files.includes(file)) pkg.version = version;
+  for (const field of ["dependencies", "devDependencies"]) {
+    for (const name of Object.keys(pkg[field] ?? {})) {
+      if (name.startsWith("@niclaslindstedt/storage-"))
+        pkg[field][name] = version;
+    }
+  }
   fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
 }
 for (const ts of [
