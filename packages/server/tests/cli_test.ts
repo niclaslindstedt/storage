@@ -9,6 +9,7 @@ import { renderMan } from "../src/cli/render.ts";
 import { COMMANDS, GLOBAL_FLAGS } from "../src/cli/spec.ts";
 import { openDatabase } from "../src/db/database.ts";
 import { createMemoryLogger } from "../src/log.ts";
+import { VERSION } from "../src/version.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -47,6 +48,10 @@ async function cli(
   };
 }
 
+// The version moves with every release; the snapshots pin the wording.
+const withoutVersion = (out: string) =>
+  out.replaceAll(`storage-server ${VERSION}`, "storage-server <version>");
+
 describe("discoverability", () => {
   it("--help-agent is deterministic and points at `commands`", async () => {
     const r = await cli(["--help-agent"]);
@@ -54,7 +59,7 @@ describe("discoverability", () => {
     expect(r.out).not.toMatch(/\u001b\[/);
     expect(r.out).toContain("storage-server commands");
     for (const c of COMMANDS) expect(r.out).toContain(`  ${c.name}: `);
-    expect(r.out).toMatchSnapshot();
+    expect(withoutVersion(r.out)).toMatchSnapshot();
   });
 
   it("--debug-agent lists logs, config precedence and every env var", async () => {
@@ -66,7 +71,9 @@ describe("discoverability", () => {
     expect(r.out).toContain("flags > environment > config.json > defaults");
     for (const f of GLOBAL_FLAGS.filter((x) => x.env))
       expect(r.out).toContain(f.env!);
-    expect(r.out.replace(/node v[\d.]+ on \S+/, "node <v>")).toMatchSnapshot();
+    expect(
+      withoutVersion(r.out).replace(/node v[\d.]+ on \S+/, "node <v>"),
+    ).toMatchSnapshot();
   });
 
   it("`commands` lists one command per line; details and examples per command", async () => {
