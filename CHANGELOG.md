@@ -10,6 +10,12 @@ do not edit manually.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-29
+
+### Fixed
+
+- **release:** move every workspace's pin on a sibling package with the version (#17)
+
 ## [0.1.0] - 2026-09-29
 
 ### Added

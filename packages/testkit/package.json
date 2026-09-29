@@ -1,6 +1,6 @@
 {
   "name": "@niclaslindstedt/storage-testkit",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Run a real storage-server in your tests: in-process for Vitest, as a process for Playwright — with seeding, snapshots, fault injection and clock control.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",
@@ -34,7 +34,7 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@niclaslindstedt/storage-server": "0.1.0"
+    "@niclaslindstedt/storage-server": "0.1.2"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

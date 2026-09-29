@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@niclaslindstedt/storage-server": "0.1.0",
-    "@niclaslindstedt/storage-testkit": "0.1.0"
+    "@niclaslindstedt/storage-server": "0.1.2",
+    "@niclaslindstedt/storage-testkit": "0.1.2"
   }
 }
