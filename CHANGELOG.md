@@ -10,3 +10,13 @@ do not edit manually.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-29
+
+### Added
+
+- web drive on the website, file version history as a setting, and text diffs between versions (#10)
+- **mcp:** storage-mcp, an MCP server for AI agents on server-scoped agent devices (#9)
+- **cli:** storage, a headless admin CLI with a Docker image (#8)
+- **app:** Storage Remote, the admin console and an encrypted drive on your phone (#7)
+- self-hosted end-to-end encrypted storage server, admin console, testkit, reference app and website (#2)
+
