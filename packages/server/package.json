@@ -1,6 +1,6 @@
 {
   "name": "@niclaslindstedt/storage-server",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Self-hosted, zero-knowledge storage server for local-first PWAs: end-to-end encrypted files and rows, QR pairing, per-namespace sharing, ACME certificates and UPnP.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",

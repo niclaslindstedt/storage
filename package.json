@@ -1,7 +1,7 @@
 {
   "name": "storage-monorepo",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Self-hosted, end-to-end encrypted storage backend for local-first PWAs.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",

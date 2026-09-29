@@ -10,6 +10,12 @@ do not edit manually.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-09-29
+
+### Fixed
+
+- **release:** publish the packed tarballs by an explicit relative path (#20)
+
 ## [0.1.4] - 2026-09-29
 
 Maintenance release; no user-facing changes.

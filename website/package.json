@@ -1,7 +1,7 @@
 {
   "name": "storage-website",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "Showcase and hosted docs for storage-server, prerendered for GitHub Pages.",
   "license": "PolyForm-Noncommercial-1.0.0",

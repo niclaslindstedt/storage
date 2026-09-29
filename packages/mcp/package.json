@@ -1,6 +1,6 @@
 {
   "name": "@niclaslindstedt/storage-mcp",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "An MCP server that lets an AI agent use your self-hosted storage server — as a scoped, end-to-end encrypted agent device, with every permission granted at the machine and enforced by the server.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "Niclas Lindstedt <niclas@agilator.se>",
