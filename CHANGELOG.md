@@ -10,6 +10,10 @@ do not edit manually.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-29
+
+Maintenance release; no user-facing changes.
+
 ## [0.1.3] - 2026-09-29
 
 Maintenance release; no user-facing changes.
