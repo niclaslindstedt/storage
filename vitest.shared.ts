@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { UserConfig } from "vitest/config";
+import type { ViteUserConfig } from "vitest/config";
 
 import { viteUiPlugin } from "./packages/server/scripts/ui-bundle.ts";
 
@@ -16,7 +16,7 @@ export const frameworkDir = resolve(
   process.env.OSS_FRAMEWORK_DIR ?? resolve(root, "..", "oss-framework"),
 );
 
-export const sharedConfig: UserConfig = {
+export const sharedConfig: ViteUserConfig = {
   plugins: [
     viteUiPlugin(),
     {
@@ -55,9 +55,7 @@ export const sharedConfig: UserConfig = {
     environment: "node",
     include: ["tests/**/*_test.ts"],
     // node:sqlite prints a one-time ExperimentalWarning per worker; silence it.
-    poolOptions: {
-      forks: { execArgv: ["--disable-warning=ExperimentalWarning"] },
-    },
+    execArgv: ["--disable-warning=ExperimentalWarning"],
     testTimeout: 30_000,
     hookTimeout: 30_000,
   },

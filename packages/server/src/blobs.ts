@@ -190,7 +190,7 @@ export function createFsBlobStore(root: string): BlobStore {
       await rm(pathOf(hash), { force: true });
     },
     async *list() {
-      let top: string[] = [];
+      let top: string[];
       try {
         top = await readdir(root);
       } catch {

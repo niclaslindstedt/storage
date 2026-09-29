@@ -74,6 +74,7 @@ export class ConfigStore {
     } catch (err) {
       throw new Error(
         `${this.file} is not valid JSON (${(err as Error).message}); fix or delete it`,
+        { cause: err },
       );
     }
     return {

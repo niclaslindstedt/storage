@@ -24,9 +24,7 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*_test.ts"],
     // node:sqlite prints a one-time ExperimentalWarning per worker; silence it.
-    poolOptions: {
-      forks: { execArgv: ["--disable-warning=ExperimentalWarning"] },
-    },
+    execArgv: ["--disable-warning=ExperimentalWarning"],
     testTimeout: 20_000,
   },
 });
