@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Compute the next version from the conventional-commit history since the
-# last v* tag (or force patch/minor/major), then create and push a
-# lightweight vX.Y.Z tag on main. Tag-only: the release workflow owns the
+# last v* tag (or force patch/minor/major), then create and push an
+# annotated vX.Y.Z tag on main. Tag-only: the release workflow owns the
 # changelog and manifest updates. The version-bump workflow
 # runs this; maintainers can run it locally as a break-glass procedure.
 #
@@ -57,7 +57,7 @@ if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
   exit 1
 fi
 
-git tag "$tag"
+git tag -a "$tag" -m "Release ${tag}"
 if [ "$push" = 1 ]; then git push origin "$tag"; fi
 echo "version=${version}" >>"${GITHUB_OUTPUT:-/dev/null}"
 echo "tagged ${tag} (${bump})"
