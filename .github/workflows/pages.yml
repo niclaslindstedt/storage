@@ -1,6 +1,6 @@
 name: pages
 
-# Deploy the website on every push to main (OSS_SPEC §10.4). The extractor
+# Deploy the website on every push to main. The extractor
 # reads release data from the latest v* tag, so the site shows the released
 # version while doc changes on main still ship immediately.
 on:

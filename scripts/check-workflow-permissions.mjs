@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Least-privilege audit of .github/workflows (OSS_SPEC §10.3): every
+// Least-privilege audit of .github/workflows: every
 // workflow sets a top-level `permissions:` default, every job declares its
 // own block, publish jobs carry `id-token: write`, and `contents: write` is
 // only granted to jobs that push commits/tags or create a release.

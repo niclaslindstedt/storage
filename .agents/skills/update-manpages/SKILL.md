@@ -5,9 +5,7 @@ description: "Use when files under man/ may be stale. Discovers commits since th
 
 # Updating the Manpages
 
-**Governing spec sections:** §12.3 (`docs` and `man` commands — every CLI subcommand must have a `man/<cmd>.md` page exposed through `<project> man <cmd>`), §12.5 (discoverability contract), §21.5 (this skill is mandated because `man/` is a drift-prone artifact in every CLI project).
-
-`man/` contains the reference-style command documentation shipped with storage — one markdown file per command. These pages are the authoritative command-level reference and rot whenever a flag, subcommand, or default changes without a matching edit.
+`man/` contains the reference-style command documentation shipped with storage — one markdown file per command, the server's exposed through `storage-server man <cmd>`, and `man/storage/` for the headless `storage` CLI, all rendered from the two command registries. These pages are the authoritative command-level reference and rot whenever a flag, subcommand, or default changes without a matching edit.
 
 ## Tracking mechanism
 

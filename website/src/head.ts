@@ -1,4 +1,4 @@
-// Per-route <head> (OSS_SPEC §11.3.2–§11.3.3), rendered at build time by the
+// Per-route <head>, rendered at build time by the
 // prerenderer. Every value comes from src/site.ts and the extracted source
 // data, so each page describes itself: its own title, description,
 // canonical URL, Open Graph / Twitter card and JSON-LD graph.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reject hand edits to CHANGELOG.md (OSS_SPEC §8.4): only the release
+# Reject hand edits to CHANGELOG.md: only the release
 # workflow's `chore(release): …` commit may touch it.
 #
 #   scripts/check-changelog.sh --staged        # pre-commit hook

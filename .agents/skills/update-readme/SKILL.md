@@ -5,9 +5,7 @@ description: "Use when README.md may be stale. Discovers commits since the last 
 
 # Updating the README
 
-**Governing spec sections:** §3 (`README.md` — required sections and content), §21.5 (this skill is mandated because `README.md` is a drift-prone artifact).
-
-`README.md` is the primary user-facing documentation for storage. Per §3 of `OSS_SPEC.md` it must cover the project description, installation, a quick-start, usage, contribution pointer, license, and a link to `OSS_SPEC.md`. It goes stale whenever a CLI flag, subcommand, default, or supported surface changes without a matching edit.
+`README.md` is the primary user-facing documentation for storage. It covers the project description, installation, a quick-start, usage, a contribution pointer and the license. It goes stale whenever a CLI flag, subcommand, default, or supported surface changes without a matching edit.
 
 ## Tracking mechanism
 
@@ -58,7 +56,7 @@ Extend this table every time you find a new source-of-truth file that feeds the 
 - [ ] Read the current `README.md`
 - [ ] Walk the mapping table and update each affected section
 - [ ] Verify every shell example is still syntactically valid
-- [ ] Run `make test` and `bash scripts/validate.sh .`
+- [ ] Run `make test` and `make fmt-check`
 - [ ] Write the new baseline:
 
       git rev-parse HEAD > .agents/skills/update-readme/.last-updated

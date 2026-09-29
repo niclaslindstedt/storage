@@ -3,7 +3,7 @@
 # version: the root and workspace package.json files (server, testkit,
 # cli, mcp), the testkit's pinned server dependency, package-lock.json, the
 # server's VERSION constant (the CLI bundles it), the MCP server's, and the
-# website. Idempotent (OSS_SPEC §10.3 step 4).
+# website. Idempotent.
 #
 #   scripts/update-versions.sh <tag>
 set -euo pipefail

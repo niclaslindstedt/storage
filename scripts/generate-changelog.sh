@@ -3,7 +3,7 @@
 # between the previous v* tag and <tag>. The new section is inserted under
 # the Unreleased heading; earlier sections are kept verbatim. The release
 # workflow is the only writer — manual edits are rejected by
-# scripts/check-changelog.sh (OSS_SPEC §8.4).
+# scripts/check-changelog.sh.
 #
 #   scripts/generate-changelog.sh <tag> [<date>]
 set -euo pipefail

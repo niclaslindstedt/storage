@@ -1,4 +1,4 @@
-# storage — developer entry points (OSS_SPEC §9). CI calls these exact targets.
+# storage — developer entry points. CI calls these exact targets.
 # The e2e suite and the reference app run the oss-framework client from source:
 # set OSS_FRAMEWORK_DIR (default ../oss-framework; `make framework` clones it).
 
@@ -7,7 +7,7 @@ FRAMEWORK_REF := $(shell cat e2e/framework-ref)
 OSS_FRAMEWORK_DIR ?= $(abspath ../oss-framework)
 export OSS_FRAMEWORK_DIR
 
-.PHONY: build test test-app test-unit test-e2e test-mcp remote remote-native drive examples lint fmt fmt-check release clean framework hooks docker docker-cli website website-dev man shellcheck actionlint validate
+.PHONY: build test test-app test-unit test-e2e test-mcp remote remote-native drive examples lint fmt fmt-check release clean framework hooks docker docker-cli website website-dev man shellcheck actionlint
 
 build:
 	npm run build --workspace packages/server
@@ -52,7 +52,7 @@ test-e2e:
 test-mcp:
 	npm run test --workspace packages/mcp
 
-# Run every example (OSS_SPEC §13). Needs `make framework build`.
+# Run every example. Needs `make framework build`.
 examples:
 	npm run start --prefix examples/node-quickstart
 	npm run start --prefix examples/app-testing
@@ -100,7 +100,7 @@ docker:
 docker-cli:
 	docker build -f packages/cli/Dockerfile -t storage-cli:dev .
 
-# Install the pre-commit and commit-msg hooks (OSS_SPEC §16).
+# Install the pre-commit and commit-msg hooks.
 hooks:
 	git config core.hooksPath .githooks
 	@echo "hooks installed from .githooks/"
@@ -124,6 +124,3 @@ shellcheck:
 
 actionlint:
 	actionlint
-
-validate:
-	bash scripts/validate.sh .

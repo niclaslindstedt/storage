@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Verify the agent-instruction symlinks (OSS_SPEC §7.1) and the skills
-# symlink (§21.2) point where they should.
+# Verify the agent-instruction symlinks and the skills symlink point
+# where they should.
 set -euo pipefail
 
 status=0

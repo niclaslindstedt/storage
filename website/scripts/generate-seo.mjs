@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Post-prerender SEO outputs (OSS_SPEC §11.3.6, §11.3.8), all from the same
+// Post-prerender SEO outputs, all from the same
 // page list and source data the pages render from:
 //   - sitemap.xml  with <lastmod> from git history (never the build time)
 //   - robots.txt   Allow: / (but not the web drive app) plus an absolute Sitemap: line

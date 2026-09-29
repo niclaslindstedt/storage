@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// §11.3.10 — structural SEO check. Walks every HTML file under `dist/`
+// Structural SEO check. Walks every HTML file under `dist/`
 // after the build and asserts the signals Search Console, social-card
 // unfurlers, and AI crawlers actually read. Failures emit GitHub
 // Actions `::error::` annotations so the line surfaces inline on the
@@ -7,11 +7,11 @@
 //
 // Run locally with `npm run check:seo` after a build, or wire into CI
 // after `npm run build`. The point of this script is to make the
-// failure modes the spec calls out (empty SSR body, missing canonical,
+// failure modes that matter (empty SSR body, missing canonical,
 // JSON-LD that doesn't parse, BlogPosting.image drift from og:image,
 // sitemap.xml that drops a route, a page only the sitemap links to)
-// impossible to ship silently. Adapted from oss-spec's checker; this copy
-// also walks JSON-LD `@graph` arrays and the internal link graph.
+// impossible to ship silently. It also walks JSON-LD `@graph` arrays and
+// the internal link graph.
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -59,7 +59,7 @@ function checkHtmlFile(file) {
   const html = readFileSync(file, "utf8");
   const is404 = rel === "404.html";
 
-  // §11.3.1 — prerendered body must contain substantive content.
+  // A prerendered body must contain substantive content.
   const body = bodyOf(html);
   if (!body) {
     err(rel, "no <body> tag");
@@ -72,7 +72,7 @@ function checkHtmlFile(file) {
       );
   }
 
-  // §11.3.5 — exactly one <h1>, no skipped heading levels.
+  // Exactly one <h1>, no skipped heading levels.
   const h1Count = (body ?? html).match(/<h1[\s>]/g)?.length ?? 0;
   if (!/<html[^>]*\blang="[a-z-]+"/i.test(html))
     err(rel, "missing <html lang>");
@@ -108,7 +108,7 @@ function checkHtmlFile(file) {
     }
   }
 
-  // §11.3.2 — <title>, meta description, canonical, robots.
+  // <title>, meta description, canonical, robots.
   const title = attr(html, /<title>([^<]*)<\/title>/);
   if (!title || !title.trim()) err(rel, "missing or empty <title>");
   else if (title.length > 70)
@@ -134,7 +134,7 @@ function checkHtmlFile(file) {
   } else if (/\bnoindex\b/.test(robots))
     err(rel, `real page has \`noindex\` (\`${robots}\`) — it won't be indexed`);
 
-  // §11.3.2 / §11.3.3 — og:image must resolve to a real file; if a
+  // og:image must resolve to a real file; if a
   // JSON-LD block carries an Article-shaped image, it must match.
   const ogImage = attr(html, /<meta\s+property="og:image"\s+content="([^"]+)"/);
   if (!ogImage) {
@@ -189,7 +189,7 @@ function checkHtmlFile(file) {
     }
   }
 
-  // §11.3 — every <img> needs alt + width + height + loading.
+  // Every <img> needs alt + width + height + loading.
   if (body) {
     for (const img of body.match(/<img\b[^>]*>/g) ?? []) {
       const altMatch = img.match(/\balt="([^"]*)"/);
@@ -248,7 +248,7 @@ function checkLlmsTxt() {
 }
 
 function checkBundleBudgets() {
-  // §11.3.9 — critical-path JS budget. Anything the entry HTML preloads
+  // Critical-path JS budget. Anything the entry HTML preloads
   // counts as critical; lazy chunks reached through a runtime import()
   // do not.
   const BUDGET_BYTES = 600_000;
@@ -284,7 +284,7 @@ function checkBundleBudgets() {
   }
 }
 
-// §11.3.4 — every sitemap URL must be reachable from the homepage through
+// Every sitemap URL must be reachable from the homepage through
 // static <a href> links in the prerendered HTML.
 function checkLinkGraph() {
   const sitemapPath = join(DIST, "sitemap.xml");
@@ -317,6 +317,23 @@ function checkLinkGraph() {
       );
 }
 
+// The docs pages are meant to be found; the apps built beside them are not.
+// Each app's entry page carries `noindex`, so a crawler that reaches it
+// anyway leaves it out of search results.
+function checkAppsUnlisted() {
+  for (const dir of APP_DIRS) {
+    const index = join(dir, "index.html");
+    if (!existsSync(index)) continue;
+    const rel = relative(DIST, index).replace(/\\/g, "/");
+    const robots = attr(
+      readFileSync(index, "utf8"),
+      /<meta\s+name="robots"\s+content="([^"]+)"/,
+    );
+    if (!robots || !/\bnoindex\b/.test(robots))
+      err(rel, "an app page beside the docs must carry `noindex`");
+  }
+}
+
 function main() {
   if (!existsSync(DIST)) {
     process.stderr.write(
@@ -329,6 +346,7 @@ function main() {
   if (htmlFiles.length === 0) err("dist/", "no HTML files found");
   for (const file of htmlFiles) checkHtmlFile(file);
 
+  checkAppsUnlisted();
   checkSitemap(htmlFiles);
   checkRobotsTxt();
   checkLlmsTxt();

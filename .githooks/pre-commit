@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit gate (OSS_SPEC §16). Install with `make hooks`.
+# Pre-commit gate. Install with `make hooks`.
 set -euo pipefail
 
 staged=$(git diff --cached --name-only --diff-filter=ACM)

@@ -5,7 +5,7 @@
 > interrupted, **resume from §15 (Progress)** — every task there points at the
 > section that defines it.
 
-- Status: **in development** — server, framework client (niclaslindstedt/oss-framework#162), testkit and e2e done; reference app and OSS_SPEC repository work in progress
+- Status: **in development** — server, framework client (niclaslindstedt/oss-framework#162), testkit and e2e done; reference app and repository work in progress
 - Spec version: 1.0.0 (2026-09-27)
 - Owner: Niclas Lindstedt
 
@@ -95,7 +95,7 @@ packages/cli/        @niclaslindstedt/storage-cli      (headless admin CLI `stor
 packages/mcp/        @niclaslindstedt/storage-mcp      (MCP server for AI agents, an agent device — §11.4)
 apps/reference/      reference PWA on oss-framework, built to be tested end to end (Playwright)
 e2e/                 full-stack tests: framework client ↔ real server (private)
-docs/ man/ examples/ website/ scripts/ prompts/ .agents/skills/   (OSS_SPEC)
+docs/ man/ examples/ website/ scripts/ .agents/skills/
 Dockerfile  compose.yaml
 ```
 
@@ -480,10 +480,10 @@ const pairing = await client.createDevicePairing();               // device-to-d
 `serve` (default) · `setup` · `pair` · `accounts {list,create,update,delete}` ·
 `devices {list,revoke}` · `namespaces list` · `audit {verify,tail}` ·
 `backup` · `cert {status,renew}` · `upnp {status,map,unmap}` · `doctor` ·
-`health` · `test-server` · plus OSS_SPEC §12 discoverability: `--help-agent`,
+`health` · `test-server` · plus discoverability for agents: `--help-agent`,
 `--debug-agent`, `commands [name] [--examples]`, `docs [topic]`, `man [cmd]`.
 Configuration precedence: flags > env (`STORAGE_*`) > `config.json` in the
-data dir > defaults. Logging per OSS_SPEC §19 (`status/warn/info/header/error`
+data dir > defaults. Logging through semantic helpers (`status/warn/info/header/error`
 
 - always-on debug log file, `--debug` to stderr).
 
@@ -859,7 +859,7 @@ await server.close();
 ## 14. Non-functional requirements
 
 - Zero runtime dependencies in `packages/server` (dev deps only).
-- Every source file < 1000 lines (OSS_SPEC §20.5); tests in `tests/` named `*_test.ts`.
+- Every source file < 1000 lines, or marked with `guidelines:allow-large-file:` and the reason; tests in `tests/` named `*_test.ts`.
 - `make build test lint fmt-check` green; framework `make lint test build fmt-check size` green.
 - Docker image runs as non-root, `HEALTHCHECK` via `/v1/info`.
 
@@ -918,13 +918,13 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 - [x] A2 testability: `data-testid` everywhere, deterministic ids/clock hooks, `?server=` param, in-page event log
 - [x] A3 Playwright suite against `storage-server test-server` (two browser contexts = two devices / two people)
 
-### Repository (OSS_SPEC)
+### Repository
 
 - [x] R1 root files (LICENSE, README, CONTRIBUTING, COC, SECURITY, AGENTS + symlinks, CHANGELOG, .gitignore, .editorconfig, Makefile)
 - [x] R2 .github (workflows ci/version-bump/release/pages/seo/lighthouse, templates, dependabot, CODEOWNERS)
-- [x] R3 docs/, man/, examples/, prompts/, scripts/, .agents/skills/
+- [x] R3 docs/, man/, examples/, scripts/, .agents/skills/
 - [x] R4 website/ (SEO scaffolding)
-- [x] R5 `scripts/validate.sh` from oss-spec reports no structural violations
+- [x] R5 the repository checks run in CI: agent symlinks, workflow permissions, release-only changelog, manpages equal to the registries
 
 ### Admin console (§11.1)
 

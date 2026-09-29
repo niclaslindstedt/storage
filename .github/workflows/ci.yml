@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 # Default to no permissions — every job declares its own least-privilege
-# scopes (OSS_SPEC §10.3).
+# scopes.
 permissions: {}
 
 concurrency:
@@ -115,7 +115,7 @@ jobs:
       - run: node scripts/bundle-web.mjs
         working-directory: apps/remote/native
 
-  # Every example builds and runs so none can silently rot (OSS_SPEC §13).
+  # Every example builds and runs so none can silently rot.
   examples:
     runs-on: ubuntu-latest
     permissions:
@@ -160,7 +160,7 @@ jobs:
       - name: CLI image drives the server image
         run: scripts/docker-smoke-cli.sh storage-server:ci storage-cli:ci
 
-  # Composition analysis: fail on high-severity advisories (OSS_SPEC §14).
+  # Composition analysis: fail on high-severity advisories.
   audit:
     runs-on: ubuntu-latest
     permissions:
@@ -172,8 +172,8 @@ jobs:
           node-version-file: .nvmrc
       - run: npm audit --audit-level=high
 
-  # Lint workflow YAML with actionlint and shell scripts with shellcheck
-  # (OSS_SPEC §16.1), plus the least-privilege permissions audit (§10.3).
+  # Lint workflow YAML with actionlint and shell scripts with shellcheck,
+  # and the least-privilege permissions audit.
   # shellcheck is preinstalled on ubuntu-latest.
   shell-lint:
     runs-on: ubuntu-latest

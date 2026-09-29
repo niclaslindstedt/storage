@@ -1,5 +1,5 @@
 // Client entry: hydrate the prerendered page (never createRoot, which would
-// wipe the server-rendered body — OSS_SPEC §11.3.1).
+// wipe the server-rendered body).
 import { StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 

@@ -5,8 +5,6 @@ description: "Use when SPEC.md may no longer describe the implementation. Discov
 
 # Updating SPEC.md
 
-**Governing spec sections:** §21.5 (project-specific drift-prone artifacts get their own skill; `update-spec` is the example the spec names), §7 (AGENTS.md points agents at `SPEC.md` as the design record).
-
 `SPEC.md` is the design specification for storage: decisions (§0), the security and crypto model (§4), the HTTP API (§6), conflict handling (§7), the client (§8), payload formats (§9), TLS and networking (§10), the CLI (§11), the testkit (§12) and the progress checklist (§15). It is how interrupted work resumes, so it must describe what the code does — not what was planned. It drifts whenever an endpoint, a wire format, a crypto binding or a default changes without a matching edit.
 
 ## Tracking mechanism
