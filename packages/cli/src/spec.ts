@@ -3,6 +3,8 @@
 // subcommand, flag, environment variable, example and exit code. --help,
 // `commands`, --help-agent and the man/storage/*.md pages are rendered from
 // these tables, and the parser reads its flags from them.
+//
+// guidelines:allow-large-file: split when next touched; known deviation by owner decision
 
 export type FlagType = "string" | "int" | "bool" | "list";
 

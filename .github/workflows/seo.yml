@@ -1,6 +1,6 @@
 name: seo
 
-# §11.3.10 — structural SEO assertions against the built site: prerendered
+# Structural SEO assertions against the built site: prerendered
 # body, one <h1>, per-page title/description/canonical, og:image that
 # exists, parseable JSON-LD, sitemap/robots/llms.txt, and the critical-path
 # JS budget. Errors block the PR; warnings surface as annotations.

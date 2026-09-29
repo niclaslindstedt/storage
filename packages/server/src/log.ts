@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Logging (OSS_SPEC §19). Semantic helpers — `status`, `header`, `info`,
+// Logging. Semantic helpers — `status`, `header`, `info`,
 // `warn`, `error` — write to stderr (styled when it is a TTY) AND to an
 // always-on debug log file; `debug` goes to the file, and to stderr only with
 // `--debug`. stdout is reserved for a command's result (JSON, QR codes, the

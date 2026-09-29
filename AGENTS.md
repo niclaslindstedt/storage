@@ -1,7 +1,7 @@
 # Agent guidance — storage
 
-The single source of truth for AI coding agents working in this repository
-(OSS_SPEC §7). `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules` and
+The single source of truth for AI coding agents working in this repository.
+`CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.windsurfrules` and
 `.github/copilot-instructions.md` and `.aider.conf.md` are symlinks to this
 file — edit only this file.
 
@@ -23,7 +23,7 @@ update §15 as items land. If you are resuming interrupted work, start at
 
 ## Build / test / lint commands
 
-Use the Makefile (OSS_SPEC §9); CI invokes the same targets.
+Use the Makefile; CI invokes the same targets.
 
 | Command                               | What it does                                                                                    |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -41,14 +41,13 @@ Use the Makefile (OSS_SPEC §9); CI invokes the same targets.
 | `make docker` / `make docker-cli`     | Build the server / headless CLI container image                                                 |
 | `make shellcheck` / `make actionlint` | Lint shell scripts / workflows                                                                  |
 | `make hooks`                          | Install the git hooks in `.githooks/`                                                           |
-| `make validate`                       | Run the OSS_SPEC validator (`scripts/validate.sh`)                                              |
 
 **No errors get through.** Never finish with a red `make lint`, `make test`,
 `make fmt-check` or `make build` — including failures you did not cause.
 
 ## Commit and PR conventions
 
-- Conventional Commits (OSS_SPEC §8.1): `feat`, `fix`, `perf`, `docs`,
+- Conventional Commits: `feat`, `fix`, `perf`, `docs`,
   `test`, `refactor`, `chore`, `ci`, `build`, `style`, `security`; scope =
   area (`server`, `cli`, `tls`, `net`, `testkit`, `e2e`, `app`, `website`,
   `spec`). `make hooks` installs a `commit-msg` hook that enforces it.
@@ -157,33 +156,13 @@ Rules:
 | A client feature               | oss-framework `src/storage/selfhosted/` + an e2e test here                                                                                                                                                           |
 | A scenario an app depends on   | `e2e/tests/apps_test.ts`                                                                                                                                                                                             |
 | A UI-level behaviour           | `apps/reference` + a Playwright test                                                                                                                                                                                 |
-| A doc topic                    | `docs/<topic>.md` + `cli/docs.ts` (embedded) + `DOC_ORDER` in `website/scripts/extract-source-data.mjs`                                                                                                              |
-| An example                     | `examples/<name>/` with a README, a `start` script or `check.sh`, a row in `examples/README.md`, the `examples` Makefile target, and `EXAMPLES` in the website extractor                                             |
-| Website pitch or feature cards | `website/src/site.ts` (SEO copy) and `website/src/components/Home.tsx`                                                                                                                                               |
-| A CI or release step           | `.github/workflows/*.yml` — pin actions by commit SHA, declare job-level `permissions:` (`scripts/check-workflow-permissions.mjs` enforces it)                                                                       |
-| Change                         | Goes in                                                                                                                                                                                                              |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A new API endpoint             | `services/<area>.ts` (logic + test) → `api/<area>.ts` (route) → `docs/protocol.md` + SPEC §6                                                                                                                         |
-| A schema change                | Append a migration to `db/schema.ts` (never edit a shipped one)                                                                                                                                                      |
-| A CLI command or flag          | `cli/spec.ts` (registry) + `cli/commands/*.ts`, then `make man`                                                                                                                                                      |
-| A config key                   | `config.ts` + `cli/spec.ts` (flag/env) + `docs/configuration.md`                                                                                                                                                     |
-| An admin console feature       | `admin/api.ts` (endpoint + `admin_console_test.ts`) → `admin/ui/pages/*.ts` (+ `ui/types.ts`) → `browser-tests/admin_test.ts` → `docs/admin-console.md`                                                              |
-| A console feature on the phone | Nothing extra: `apps/remote` mounts the console's own pages. Only a page that must behave differently remotely checks `isRemote()` (`ui/api.ts`)                                                                     |
-| Storage Remote (app) behaviour | `apps/remote/src/` (+ a unit test in `apps/remote/tests/`, a flow in `apps/remote/browser-tests/`) → `docs/remote-app.md`                                                                                            |
-| Web drive behaviour            | Shared file pages: `apps/remote/src/files/` (both apps get it); drive-only: `apps/drive/src/` (+ `tests/`, `browser-tests/`) → `docs/drive.md`                                                                       |
-| A native capability for Remote | `apps/remote/native/src/bridge.ts` + `wire.ts` (import nothing) + the handler in `App.tsx` + the page's lookup in `apps/remote/src/hosts.ts` + `native_bridge_test.ts`                                               |
-| A health check                 | `admin/checks.ts` + `admin_checks_test.ts` (it appears in `doctor` and the console) + the checks table in `docs/admin-console.md`                                                                                    |
-| A test-mode control            | `api/testing.ts` + `packages/testkit/src/control.ts` + `docs/testing.md`                                                                                                                                             |
-| A client feature               | oss-framework `src/storage/selfhosted/` + an e2e test here                                                                                                                                                           |
-| A scenario an app depends on   | `e2e/tests/apps_test.ts`                                                                                                                                                                                             |
-| A UI-level behaviour           | `apps/reference` + a Playwright test                                                                                                                                                                                 |
 | An MCP tool                    | `packages/mcp/src/tools/<group>.ts` (+ the permission it needs) → a test in `packages/mcp/tests/` → the tool table in `docs/mcp.md`; a new console endpoint or Remote action needs its row in `tests/parity_test.ts` |
 | A doc topic                    | `docs/<topic>.md` + `cli/docs.ts` (embedded) + `DOC_ORDER` in `website/scripts/extract-source-data.mjs`                                                                                                              |
 | An example                     | `examples/<name>/` with a README, a `start` script or `check.sh`, a row in `examples/README.md`, the `examples` Makefile target, and `EXAMPLES` in the website extractor                                             |
 | Website pitch or feature cards | `website/src/site.ts` (SEO copy) and `website/src/components/Home.tsx`                                                                                                                                               |
 | A CI or release step           | `.github/workflows/*.yml` — pin actions by commit SHA, declare job-level `permissions:` (`scripts/check-workflow-permissions.mjs` enforces it)                                                                       |
 
-## Test conventions (OSS_SPEC §20)
+## Test conventions
 
 - Tests live in `tests/` beside each workspace's `src/`; file names end in
   `_test.ts` (Playwright: `apps/reference/tests/*_test.ts`). Shared
@@ -221,7 +200,9 @@ Rules:
   server side in `packages/server/tests/admin_remote_test.ts` and
   `e2e/tests/remote_test.ts`. `apps/remote/tests/native_bridge_test.ts`
   pins the names the native bridge and the page share.
-- Source files stay under 1000 lines (§20.5).
+- Source files stay under 1000 lines. A file over it is a known deviation:
+  it carries `guidelines:allow-large-file: <reason>` in its first 20 lines
+  and is split when next touched.
 
 ## Documentation sync points
 
@@ -251,7 +232,7 @@ Rules:
 - The headless CLI covers every console page and action: a console
   feature lands with its `storage` command.
 
-## Website staleness (OSS_SPEC §11.2)
+## Website staleness
 
 The website is generated from source: `website/scripts/extract-source-data.mjs`
 reads the version, CLI registry, config defaults, TLS modes, capabilities,
@@ -261,7 +242,7 @@ sources must still pass `make website` and `npm run check:seo` in
 `website/` (the `seo` and `lighthouse` workflows run both on every PR); the
 `pages` workflow redeploys on every push to `main`.
 
-## Maintenance skills (OSS_SPEC §21)
+## Maintenance skills
 
 Skills live in `.agents/skills/` (`.claude/skills` is a symlink):
 
@@ -273,5 +254,4 @@ Skills live in `.agents/skills/` (`.claude/skills` is a symlink):
 | `update-docs`     | Server behaviour, config or protocol changed                            |
 | `update-readme`   | User-visible features, install or usage changed                         |
 | `update-website`  | Website content or extractor inputs changed                             |
-| `sync-oss-spec`   | After any sweep, or when `scripts/validate.sh` reports violations       |
 | `commit`          | Grouping and writing conventional commits                               |

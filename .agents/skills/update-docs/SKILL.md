@@ -5,8 +5,6 @@ description: "Use when files under docs/ may be stale. Discovers commits since t
 
 # Updating the Docs
 
-**Governing spec sections:** §11.1 (`docs/` directory — the required conceptual docs tree), §21.5 (this skill is mandated because `docs/` is a drift-prone artifact in every project).
-
 The `docs/` directory contains conceptual documentation for storage. Unlike the README (overview) or man pages (command reference), `docs/` explains _why_ and _how_ in depth. It goes stale whenever a user-visible behavior, configuration key, or supported surface changes without a matching edit.
 
 ## Tracking mechanism
@@ -62,7 +60,7 @@ Extend this table every time you find a new source file that feeds the docs.
 - [ ] Walk the mapping table and update each doc in place
 - [ ] Verify cross-links between docs still resolve
 - [ ] Verify every shell example is still syntactically valid
-- [ ] Run `make test`, `make website` and `bash scripts/validate.sh .`
+- [ ] Run `make test` and `make website`
 - [ ] Write the new baseline:
 
       git rev-parse HEAD > .agents/skills/update-docs/.last-updated

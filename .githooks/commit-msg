@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Conventional-commit subject lint (OSS_SPEC §8.1). Install with `make hooks`.
+# Conventional-commit subject lint. Install with `make hooks`.
 set -euo pipefail
 
 subject=$(head -n1 "$1")

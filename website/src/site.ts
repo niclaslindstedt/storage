@@ -1,4 +1,4 @@
-// The single SEO/site configuration module (OSS_SPEC §11.3.2): site name,
+// The single SEO/site configuration module: site name,
 // pitch, canonical URL, author, colours and the page list. The client, the
 // prerenderer and the SEO/OG generators all import it, so changing the
 // site's pitch is a one-file edit.

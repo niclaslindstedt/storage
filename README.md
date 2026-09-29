@@ -339,8 +339,7 @@ and embedded in the CLI (`storage-server docs <topic>`):
 See [CONTRIBUTING.md](CONTRIBUTING.md). Bugs and feature requests go to
 [Issues](https://github.com/niclaslindstedt/storage/issues), questions to
 [Discussions](https://github.com/niclaslindstedt/storage/discussions), and
-security problems privately per [SECURITY.md](SECURITY.md). This repository
-follows [OSS_SPEC.md](OSS_SPEC.md).
+security problems privately per [SECURITY.md](SECURITY.md).
 
 ## License
 

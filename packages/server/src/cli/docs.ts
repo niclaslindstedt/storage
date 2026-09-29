@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// The repository's docs/ topics, compiled into the binary (OSS_SPEC §12.3):
+// The repository's docs/ topics, compiled into the binary:
 // the bundler inlines each Markdown file as a string.
 
 import adminConsole from "../../../../docs/admin-console.md";

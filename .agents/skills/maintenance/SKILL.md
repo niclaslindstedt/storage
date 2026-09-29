@@ -5,7 +5,7 @@ description: "Use when you want to bring every drift-prone artifact in the repo 
 
 # Maintenance
 
-This is the umbrella skill for storage, mandated by §21.6 of `OSS_SPEC.md`. It does no rewriting itself — it decides which sync skills are stale, runs each one, and reports a combined summary. Use it when you do not know which specific artifact is out of date, or when several have likely drifted at once (for example, after a large merge).
+This is the umbrella skill for storage. It does no rewriting itself — it decides which sync skills are stale, runs each one, and reports a combined summary. Use it when you do not know which specific artifact is out of date, or when several have likely drifted at once (for example, after a large merge).
 
 ## When to run
 
@@ -19,20 +19,18 @@ Do **not** use this skill for a targeted fix — if you know exactly which artif
 
 The registry is the single source of truth for which sync skills exist in this repo. Every `update-*` directory under `.agents/skills/` must appear here exactly once. New projects start with the entries below; add rows whenever you create a new sync skill.
 
-| Skill             | Fixes                                                          | Spec sections             | Run order                                                       |
-| ----------------- | -------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
-| `sync-oss-spec`   | Repo contents vs. the latest upstream `OSS_SPEC.md`            | all structural §§ + §21.5 | 1 — run first so every downstream skill reads the freshest spec |
-| `update-spec`     | `SPEC.md` (design spec + progress) vs. the implementation      | §21.5                     | 2                                                               |
-| `update-manpages` | `man/*.md` vs. `packages/server/src/cli/spec.ts` (regenerated) | §12.3                     | 3                                                               |
-| `update-docs`     | `docs/*.md` vs. server, framework client and testkit behaviour | §11.1                     | 4                                                               |
-| `update-readme`   | `README.md` vs. the current public surface                     | §3                        | 5                                                               |
-| `update-website`  | `website/` pitch, feature cards and extractor markers          | §11.2                     | 6 — last: it renders docs and reads the README-level facts      |
+| Skill             | Fixes                                                          | Run order                                                  |
+| ----------------- | -------------------------------------------------------------- | ---------------------------------------------------------- |
+| `update-spec`     | `SPEC.md` (design spec + progress) vs. the implementation      | 1                                                          |
+| `update-manpages` | `man/*.md` vs. `packages/server/src/cli/spec.ts` (regenerated) | 2                                                          |
+| `update-docs`     | `docs/*.md` vs. server, framework client and testkit behaviour | 3                                                          |
+| `update-readme`   | `README.md` vs. the current public surface                     | 4                                                          |
+| `update-website`  | `website/` pitch, feature cards and extractor markers          | 5 — last: it renders docs and reads the README-level facts |
 
 `commit` is a workflow skill, not a sync skill, so it is not in the registry.
 
 Run order matters:
 
-- `sync-oss-spec` runs **first** so every downstream skill sees the current spec — it may overwrite the local `OSS_SPEC.md` with the upstream copy, which downstream skills then read.
 - `update-spec` runs before the user-facing skills because the docs and README restate what SPEC.md records.
 - `update-website` runs last: it renders `docs/` and repeats facts the README states.
 

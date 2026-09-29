@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Platform-appropriate default locations (OSS_SPEC §19). The platform is a
+// Platform-appropriate default locations. The platform is a
 // parameter so the CLI (and its tests) can pin it.
 
 import { homedir, platform } from "node:os";

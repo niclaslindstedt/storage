@@ -2,7 +2,7 @@
 # Compute the next version from the conventional-commit history since the
 # last v* tag (or force patch/minor/major), then create and push a
 # lightweight vX.Y.Z tag on main. Tag-only: the release workflow owns the
-# changelog and manifest updates (OSS_SPEC §10.3). The version-bump workflow
+# changelog and manifest updates. The version-bump workflow
 # runs this; maintainers can run it locally as a break-glass procedure.
 #
 #   scripts/release.sh [auto|patch|minor|major] [--no-push]

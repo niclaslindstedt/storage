@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// The single source of truth for the CLI surface (OSS_SPEC §12): every
+// The single source of truth for the CLI surface: every
 // command, flag, environment variable, example and exit code. `--help`,
 // `--help-agent`, `--debug-agent`, `commands`, the `man/*.md` pages and the
 // README's command table are all rendered from these tables.

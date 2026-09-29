@@ -69,7 +69,7 @@ Run one test file: `npx vitest run tests/files_test.ts` inside the workspace
 ## Tests
 
 - Tests live in `tests/` directories, separate from source, and their file
-  names end in `_test.ts` (OSS_SPEC §20).
+  names end in `_test.ts`.
 - Write the test first. Every server module has a unit test; every
   user-visible behaviour of the client has a full-stack test in `e2e/`
   against the real server.

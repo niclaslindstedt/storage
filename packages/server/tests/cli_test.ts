@@ -47,7 +47,7 @@ async function cli(
   };
 }
 
-describe("discoverability (OSS_SPEC §12)", () => {
+describe("discoverability", () => {
   it("--help-agent is deterministic and points at `commands`", async () => {
     const r = await cli(["--help-agent"]);
     expect(r.code).toBe(0);

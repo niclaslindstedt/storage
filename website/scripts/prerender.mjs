@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// §11.3.1 — prerender every route. Builds an SSR bundle of
+// Prerender every route. Builds an SSR bundle of
 // src/entry-server.tsx, renders each page from src/site.ts into
 // dist/<path>/index.html with its own <head>, and writes dist/404.html
 // (noindex). The client hydrates over the result.

@@ -1,4 +1,4 @@
-// SSR entry for scripts/prerender.mjs (OSS_SPEC §11.3.1): renders each route
+// SSR entry for scripts/prerender.mjs: renders each route
 // to static HTML plus its own <head>. Doc bodies come from the generated
 // data here; the client hydrates them from the DOM instead.
 

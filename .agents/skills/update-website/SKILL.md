@@ -5,9 +5,7 @@ description: "Use when the marketing website may be stale. Discovers commits sin
 
 # Updating the Website
 
-**Governing spec sections:** §11.2 (`website/` — source-derived content, no double-authoring, staleness CI check), §21.5 (this skill is mandated when the project publishes a website).
-
-The `website/` directory contains the showcase and hosted docs for `storage` (Vite + React, prerendered). Per §11.2 of `OSS_SPEC.md`, facts are never authored twice: `website/scripts/extract-source-data.mjs` reads them from source (at the latest `v*` tag for released facts, the working tree for docs and examples) into the gitignored `website/src/generated/sourceData.ts`. What this skill maintains is the hand-written part: the pitch and feature cards in `website/src/site.ts` and `website/src/components/Home.tsx`, and the extractor itself when a source marker moves.
+The `website/` directory contains the showcase and hosted docs for `storage` (Vite + React, prerendered). Facts are never authored twice: `website/scripts/extract-source-data.mjs` reads them from source (at the latest `v*` tag for released facts, the working tree for docs and examples) into the gitignored `website/src/generated/sourceData.ts`. What this skill maintains is the hand-written part: the pitch and feature cards in `website/src/site.ts` and `website/src/components/Home.tsx`, and the extractor itself when a source marker moves.
 
 ## Tracking mechanism
 
@@ -50,7 +48,7 @@ The `website/` directory contains the showcase and hosted docs for `storage` (Vi
 - [ ] `make website` (the extractor fails loudly on a moved marker)
 - [ ] `cd website && npm run check:seo && npm run typecheck`
 - [ ] `npm run preview` and look at `/storage/` and one doc page
-- [ ] Run `bash scripts/validate.sh .`
+- [ ] Run `make fmt-check`
 - [ ] Write the new baseline:
 
       git rev-parse HEAD > .agents/skills/update-website/.last-updated

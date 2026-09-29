@@ -1,6 +1,6 @@
 name: lighthouse
 
-# §11.3.10 — Lighthouse against the built site with thresholds in
+# Lighthouse against the built site with thresholds in
 # .github/lighthouse/lighthouserc.json, catching the Core Web Vitals
 # regressions a static check cannot see.
 on:
